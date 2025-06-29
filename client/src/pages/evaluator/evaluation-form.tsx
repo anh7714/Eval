@@ -1,405 +1,367 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import ProgressBar from "@/components/ui/progress-bar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Save, Send, ArrowLeft, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/lib/auth";
-import { Save, Check, Clock, ArrowLeft } from "lucide-react";
-
-interface EvaluationCategory {
-  id: number;
-  code: string;
-  name: string;
-  description?: string;
-  order: number;
-}
 
 interface EvaluationItem {
   id: number;
-  categoryId: number;
-  code: string;
-  name: string;
-  description?: string;
+  itemCode: string;
+  itemName: string;
+  description: string;
   maxScore: number;
-  weight: string;
-  order: number;
-  categoryName: string;
+  weight: number;
+  category: {
+    id: number;
+    categoryName: string;
+    categoryCode: string;
+  };
 }
 
-interface Candidate {
-  id: number;
-  name: string;
-  department: string;
-  position: string;
-  description?: string;
-}
-
-interface EvaluationScore {
+interface Score {
   itemId: number;
   score: number;
-  comment: string;
+  comments: string;
 }
 
 export default function EvaluationForm() {
-  const params = useParams();
-  const [, navigate] = useLocation();
+  const { candidateId } = useParams();
+  const [, setLocation] = useLocation();
+  const [scores, setScores] = useState<{ [key: number]: Score }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const { toast } = useToast();
-  const { evaluator } = useAuth();
-  const candidateId = parseInt(params.candidateId || "0");
-
-  const [scores, setScores] = useState<Record<number, EvaluationScore>>({});
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: candidate, isLoading: candidateLoading } = useQuery({
-    queryKey: ["/api/candidates", candidateId],
-    enabled: !!candidateId,
+    queryKey: ["/api/evaluator/candidate", candidateId],
   });
 
-  const { data: categories, isLoading: categoriesLoading } = useQuery({
-    queryKey: ["/api/categories/active"],
+  const { data: items = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ["/api/evaluator/evaluation-items"],
   });
 
-  const { data: items, isLoading: itemsLoading } = useQuery({
-    queryKey: ["/api/evaluation-items/active"],
-  });
-
-  const { data: existingEvaluations } = useQuery({
-    queryKey: ["/api/evaluations/my"],
+  const { data: existingScores, isLoading: scoresLoading } = useQuery({
+    queryKey: ["/api/evaluator/scores", candidateId],
     onSuccess: (data) => {
-      // Pre-populate form with existing scores
-      const candidateEvaluations = data?.filter((e: any) => e.candidateId === candidateId) || [];
-      const existingScores: Record<number, EvaluationScore> = {};
-      
-      candidateEvaluations.forEach((evaluation: any) => {
-        existingScores[evaluation.itemId] = {
-          itemId: evaluation.itemId,
-          score: parseFloat(evaluation.score) || 0,
-          comment: evaluation.comment || "",
-        };
-      });
-      
-      setScores(existingScores);
+      if (data && data.length > 0) {
+        const scoresMap: { [key: number]: Score } = {};
+        data.forEach((score: any) => {
+          scoresMap[score.itemId] = {
+            itemId: score.itemId,
+            score: score.score,
+            comments: score.comments || "",
+          };
+        });
+        setScores(scoresMap);
+      }
     },
   });
 
-  const saveEvaluationMutation = useMutation({
-    mutationFn: async (evaluation: any) => {
-      const response = await apiRequest("POST", "/api/evaluations", evaluation);
+  const { data: submission } = useQuery({
+    queryKey: ["/api/evaluator/submission", candidateId],
+  });
+
+  const saveScoreMutation = useMutation({
+    mutationFn: async (scoreData: Score) => {
+      const response = await fetch("/api/evaluator/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: parseInt(candidateId as string),
+          ...scoreData,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save score");
       return response.json();
     },
     onSuccess: () => {
-      setLastSaved(new Date());
-      queryClient.invalidateQueries({ queryKey: ["/api/evaluations/my"] });
-    },
-    onError: (error: Error) => {
-      toast({ title: "저장 실패", description: error.message, variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["/api/evaluator/scores", candidateId] });
     },
   });
 
   const submitEvaluationMutation = useMutation({
-    mutationFn: async (candidateId: number) => {
-      const response = await apiRequest("POST", `/api/evaluations/submit/${candidateId}`);
+    mutationFn: async () => {
+      const response = await fetch(`/api/evaluator/submit/${candidateId}`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to submit evaluation");
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "제출 완료", description: "평가가 성공적으로 제출되었습니다." });
-      navigate("/evaluator/dashboard");
+      queryClient.invalidateQueries({ queryKey: ["/api/evaluator/submission", candidateId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+      toast({ title: "성공", description: "평가가 제출되었습니다." });
+      setLocation("/evaluator/dashboard");
     },
-    onError: (error: Error) => {
-      toast({ title: "제출 실패", description: error.message, variant: "destructive" });
+    onError: () => {
+      toast({ title: "오류", description: "평가 제출에 실패했습니다.", variant: "destructive" });
     },
   });
 
-  const updateScore = (itemId: number, field: 'score' | 'comment', value: string | number) => {
+  const handleScoreChange = (itemId: number, field: 'score' | 'comments', value: string | number) => {
+    const newScore = {
+      ...scores[itemId],
+      itemId,
+      [field]: value,
+    };
+    
     setScores(prev => ({
       ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        itemId,
-        [field]: field === 'score' ? Number(value) : value,
-        comment: prev[itemId]?.comment || "",
-        score: prev[itemId]?.score || 0,
-      }
+      [itemId]: newScore,
     }));
+
+    // 자동 저장
+    saveScoreMutation.mutate(newScore);
   };
 
-  const handleSaveTemporary = async () => {
-    if (!evaluator) return;
-
-    const evaluationsToSave = Object.values(scores).filter(score => 
-      score.score > 0 || score.comment.trim()
+  const handleSubmit = () => {
+    const requiredItems = items.filter((item: EvaluationItem) => item.category);
+    const completedItems = requiredItems.filter((item: EvaluationItem) => 
+      scores[item.id] && scores[item.id].score !== undefined && scores[item.id].score >= 0
     );
 
-    for (const evaluation of evaluationsToSave) {
-      await saveEvaluationMutation.mutateAsync({
-        candidateId,
-        itemId: evaluation.itemId,
-        score: evaluation.score,
-        comment: evaluation.comment,
-        isSubmitted: false,
-      });
-    }
-
-    toast({ title: "임시 저장 완료", description: "작성한 내용이 저장되었습니다." });
-  };
-
-  const handleSubmitEvaluation = async () => {
-    if (!evaluator || !items) return;
-
-    // Check if all items have scores
-    const requiredItems = items.filter((item: EvaluationItem) => item.isActive);
-    const missingItems = requiredItems.filter((item: EvaluationItem) => 
-      !scores[item.id] || scores[item.id].score <= 0
-    );
-
-    if (missingItems.length > 0) {
+    if (completedItems.length < requiredItems.length) {
       toast({
         title: "평가 미완료",
-        description: `${missingItems.length}개의 항목이 평가되지 않았습니다.`,
-        variant: "destructive"
+        description: "모든 평가 항목을 완료해주세요.",
+        variant: "destructive",
       });
       return;
     }
 
-    // Save all evaluations as submitted
-    for (const evaluation of Object.values(scores)) {
-      await saveEvaluationMutation.mutateAsync({
-        candidateId,
-        itemId: evaluation.itemId,
-        score: evaluation.score,
-        comment: evaluation.comment,
-        isSubmitted: true,
-      });
-    }
-
-    // Submit the evaluation
-    submitEvaluationMutation.mutate(candidateId);
+    setIsSubmitting(true);
+    submitEvaluationMutation.mutate();
   };
 
   const getProgress = () => {
-    if (!items) return 0;
-    const totalItems = items.filter((item: EvaluationItem) => item.isActive).length;
-    const completedItems = Object.values(scores).filter(score => score.score > 0).length;
-    return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+    if (items.length === 0) return 0;
+    const completedItems = items.filter((item: EvaluationItem) => 
+      scores[item.id] && scores[item.id].score !== undefined && scores[item.id].score >= 0
+    );
+    return (completedItems.length / items.length) * 100;
   };
 
   const getTotalScore = () => {
-    return Object.values(scores).reduce((total, score) => total + score.score, 0);
+    let total = 0;
+    let maxTotal = 0;
+    
+    items.forEach((item: EvaluationItem) => {
+      maxTotal += item.maxScore * item.weight;
+      if (scores[item.id] && scores[item.id].score !== undefined) {
+        total += scores[item.id].score * item.weight;
+      }
+    });
+    
+    return { total, maxTotal };
   };
 
-  const getMaxPossibleScore = () => {
-    if (!items) return 0;
-    return items.reduce((total: number, item: EvaluationItem) => total + item.maxScore, 0);
-  };
-
-  // Group items by category
-  const groupedItems = categories?.reduce((acc: any, category: EvaluationCategory) => {
-    acc[category.id] = {
-      category,
-      items: items?.filter((item: EvaluationItem) => item.categoryId === category.id) || []
-    };
-    return acc;
-  }, {}) || {};
-
-  if (candidateLoading || categoriesLoading || itemsLoading) {
+  if (candidateLoading || itemsLoading || scoresLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-96">
-            <div className="loading-spinner w-8 h-8"></div>
-            <span className="ml-3 text-slate-600">데이터를 불러오는 중...</span>
-          </div>
-        </main>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">평가 데이터를 불러오는 중...</p>
+        </div>
       </div>
     );
   }
 
+  const progress = getProgress();
+  const { total, maxTotal } = getTotalScore();
+  const categorizedItems = items.reduce((acc: any, item: EvaluationItem) => {
+    const categoryName = item.category.categoryName;
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
+    }
+    acc[categoryName].push(item);
+    return acc;
+  }, {});
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
-        <Card className="gov-card mb-8">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/evaluator/dashboard")}
-                  className="p-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900 mb-2">
-                    {candidate?.name} 평가
-                  </h1>
-                  <p className="text-slate-600">
-                    {candidate?.department} · {candidate?.position}
-                  </p>
-                  {candidate?.description && (
-                    <p className="text-sm text-slate-500 mt-1">{candidate.description}</p>
-                  )}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-slate-600 mb-1">진행률</div>
-                <div className="text-2xl font-bold text-blue-700">{getProgress()}%</div>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" onClick={() => setLocation("/evaluator/dashboard")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              돌아가기
+            </Button>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">{candidate?.name} 평가</h1>
+              <p className="text-lg text-gray-600">
+                {candidate?.department} · {candidate?.position}
+              </p>
             </div>
-            <ProgressBar value={getProgress()} className="h-3" />
+          </div>
+          <div className="text-right">
+            {submission?.isSubmitted && (
+              <Badge variant="default" className="mb-2">
+                제출 완료
+              </Badge>
+            )}
+            <div className="text-sm text-gray-500">
+              진행률: {progress.toFixed(1)}%
+            </div>
+          </div>
+        </div>
+
+        {/* 진행률 카드 */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>평가 진행률</CardTitle>
+            <CardDescription>
+              {items.length}개 항목 중 {items.filter((item: EvaluationItem) => 
+                scores[item.id] && scores[item.id].score !== undefined
+              ).length}개 완료
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Progress value={progress} className="mb-4" />
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>현재 점수: {total.toFixed(1)}점</span>
+              <span>최대 점수: {maxTotal.toFixed(1)}점</span>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Evaluation Categories */}
+        {/* 평가 항목들 */}
         <div className="space-y-8">
-          {Object.values(groupedItems).map(({ category, items: categoryItems }: any) => (
-            <Card key={category.id} className="gov-card">
-              <CardHeader className="border-b border-slate-200">
-                <CardTitle className="text-xl font-semibold text-slate-900 flex items-center gap-3">
-                  <span className="w-8 h-8 bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center text-sm font-bold">
-                    {category.code}
-                  </span>
-                  {category.name}
-                  <span className="text-sm font-normal text-slate-500">
-                    (총 {categoryItems.reduce((sum: number, item: EvaluationItem) => sum + item.maxScore, 0)}점)
-                  </span>
-                </CardTitle>
-                {category.description && (
-                  <p className="text-slate-600 mt-2">{category.description}</p>
-                )}
+          {Object.entries(categorizedItems).map(([categoryName, categoryItems]: [string, any]) => (
+            <Card key={categoryName}>
+              <CardHeader>
+                <CardTitle className="text-xl">{categoryName}</CardTitle>
+                <CardDescription>
+                  {categoryItems.length}개의 평가 항목
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {categoryItems.map((item: EvaluationItem) => {
-                  const currentScore = scores[item.id] || { score: 0, comment: "" };
-                  return (
-                    <div key={item.id} className="border border-slate-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-slate-900 mb-2">
-                            {item.code}. {item.name}
-                            <span className="text-sm font-normal text-slate-500 ml-2">
-                              ({item.maxScore}점)
-                            </span>
-                          </h3>
-                          {item.description && (
-                            <p className="text-sm text-slate-600 leading-relaxed">{item.description}</p>
-                          )}
+              <CardContent>
+                <div className="space-y-6">
+                  {categoryItems.map((item: EvaluationItem, index: number) => (
+                    <div key={item.id} className="space-y-4">
+                      {index > 0 && <Separator />}
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg">{item.itemName}</h4>
+                            <p className="text-sm text-gray-600 mb-2">
+                              {item.itemCode} · 최대 {item.maxScore}점 · 가중치 {item.weight}
+                            </p>
+                            {item.description && (
+                              <p className="text-sm text-gray-500">{item.description}</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="ml-4">
-                          {currentScore.score > 0 ? (
-                            <span className="gov-badge-completed">완료</span>
-                          ) : (
-                            <span className="gov-badge-pending">미평가</span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <Label htmlFor={`score-${item.id}`} className="text-sm font-medium text-slate-700 mb-2 block">
-                            점수 입력
-                          </Label>
-                          <div className="flex items-center gap-2">
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium mb-2 block">
+                              점수 (0 ~ {item.maxScore}점)
+                            </label>
                             <Input
-                              id={`score-${item.id}`}
                               type="number"
                               min="0"
                               max={item.maxScore}
-                              value={currentScore.score || ""}
-                              onChange={(e) => updateScore(item.id, 'score', e.target.value)}
-                              className="w-20 gov-input"
-                              placeholder="0"
+                              value={scores[item.id]?.score || ""}
+                              onChange={(e) => handleScoreChange(
+                                item.id, 
+                                'score', 
+                                Math.min(Math.max(0, parseInt(e.target.value) || 0), item.maxScore)
+                              )}
+                              placeholder="점수 입력"
+                              disabled={submission?.isSubmitted}
                             />
-                            <span className="text-sm text-slate-600">/ {item.maxScore}점</span>
+                            <div className="flex mt-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`h-4 w-4 cursor-pointer ${
+                                    scores[item.id]?.score >= (star * item.maxScore / 5)
+                                      ? "text-yellow-400 fill-current"
+                                      : "text-gray-300"
+                                  }`}
+                                  onClick={() => !submission?.isSubmitted && handleScoreChange(
+                                    item.id, 
+                                    'score', 
+                                    Math.round(star * item.maxScore / 5)
+                                  )}
+                                />
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <Label htmlFor={`comment-${item.id}`} className="text-sm font-medium text-slate-700 mb-2 block">
-                            평가 의견
-                          </Label>
-                          <Textarea
-                            id={`comment-${item.id}`}
-                            rows={3}
-                            value={currentScore.comment || ""}
-                            onChange={(e) => updateScore(item.id, 'comment', e.target.value)}
-                            className="gov-input text-sm"
-                            placeholder="평가 근거나 의견을 입력하세요..."
-                          />
+                          
+                          <div>
+                            <label className="text-sm font-medium mb-2 block">
+                              평가 의견
+                            </label>
+                            <Textarea
+                              value={scores[item.id]?.comments || ""}
+                              onChange={(e) => handleScoreChange(item.id, 'comments', e.target.value)}
+                              placeholder="평가에 대한 의견을 작성해주세요"
+                              rows={3}
+                              disabled={submission?.isSubmitted}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Action Buttons */}
-        <Card className="gov-card mt-8 sticky bottom-4">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={handleSaveTemporary}
-                  disabled={saveEvaluationMutation.isPending}
-                  className="gov-btn-secondary"
-                >
-                  {saveEvaluationMutation.isPending ? (
-                    <>
-                      <div className="loading-spinner w-4 h-4 mr-2"></div>
-                      저장 중...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      임시 저장
-                    </>
-                  )}
-                </Button>
-                {lastSaved && (
-                  <div className="text-sm text-slate-600 flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    마지막 저장: {lastSaved.toLocaleTimeString()}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-sm text-slate-600">현재 총점:</div>
-                  <div className="text-lg font-bold text-blue-700">
-                    {getTotalScore()}/{getMaxPossibleScore()}점
-                  </div>
+        {/* 제출 버튼 */}
+        {!submission?.isSubmitted && (
+          <Card className="mt-8">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold">평가 완료</h3>
+                  <p className="text-sm text-gray-600">
+                    모든 항목을 평가한 후 제출해주세요. 제출 후에는 수정할 수 없습니다.
+                  </p>
                 </div>
-                <Button
-                  onClick={handleSubmitEvaluation}
-                  disabled={submitEvaluationMutation.isPending || getProgress() < 100}
-                  className="gov-btn-primary"
-                >
-                  {submitEvaluationMutation.isPending ? (
-                    <>
-                      <div className="loading-spinner w-4 h-4 mr-2"></div>
-                      제출 중...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 mr-2" />
-                      평가 완료
-                    </>
-                  )}
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={progress < 100 || isSubmitting}
+                    className="px-8"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {isSubmitting ? "제출 중..." : "평가 제출"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+            </CardContent>
+          </Card>
+        )}
+
+        {submission?.isSubmitted && (
+          <Card className="mt-8 border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="text-green-600 mb-2">
+                  <Send className="h-8 w-8 mx-auto" />
+                </div>
+                <h3 className="text-lg font-semibold text-green-800">평가가 완료되었습니다</h3>
+                <p className="text-sm text-green-600">
+                  {submission.submittedAt && `제출일: ${new Date(submission.submittedAt).toLocaleString()}`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

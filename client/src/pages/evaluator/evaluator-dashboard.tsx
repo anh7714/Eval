@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, User, FileText } from "lucide-react";
-import { Link } from "wouter";
 
 export default function EvaluatorDashboard() {
   const { data: progress, isLoading } = useQuery({
@@ -28,14 +27,23 @@ export default function EvaluatorDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">평가자 대시보드</h1>
-          <p className="text-lg text-gray-600">
-            안녕하세요, {evaluator?.name || "평가자"}님
-          </p>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">평가자 대시보드</h1>
+              <p className="mt-1 text-gray-600">
+                안녕하세요, {evaluator?.name || "평가자"}님
+              </p>
+            </div>
+            <Button variant="outline">
+              로그아웃
+            </Button>
+          </div>
         </div>
-        
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 진행률 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
@@ -91,7 +99,7 @@ export default function EvaluatorDashboard() {
               {progress?.candidates?.map((candidate: any) => (
                 <div
                   key={candidate.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-blue-100 rounded-full">
@@ -108,11 +116,9 @@ export default function EvaluatorDashboard() {
                     <Badge variant={candidate.is_submitted ? "default" : "secondary"}>
                       {candidate.is_submitted ? "완료" : "미완료"}
                     </Badge>
-                    <Link href={`/evaluator/evaluation/${candidate.id}`}>
-                      <Button size="sm" variant="outline">
-                        {candidate.is_submitted ? "결과 보기" : "평가하기"}
-                      </Button>
-                    </Link>
+                    <Button size="sm" variant="outline">
+                      {candidate.is_submitted ? "결과 보기" : "평가하기"}
+                    </Button>
                   </div>
                 </div>
               )) || (

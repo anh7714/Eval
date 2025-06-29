@@ -45,7 +45,7 @@ const memoryStore = {
   nextId: 1
 };
 
-if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('postgresql://')) {
+if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgresql://') && !process.env.DATABASE_URL.startsWith('postgres://'))) {
   console.warn("DATABASE_URL not properly configured, using in-memory storage (data will be lost on restart)");
   useMemoryStorage = true;
   

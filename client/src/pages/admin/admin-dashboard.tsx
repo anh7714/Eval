@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, UserCheck, FileText, Target, BarChart3, Settings } from "lucide-react";
-import { Link } from "wouter";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
@@ -12,11 +11,11 @@ export default function AdminDashboard() {
   });
 
   const menuItems = [
-    { id: "evaluators", label: "평가자 관리", icon: Users, color: "bg-blue-500", href: "/admin/evaluators" },
-    { id: "candidates", label: "후보자 관리", icon: UserCheck, color: "bg-green-500", href: "/admin/candidates" },
-    { id: "items", label: "평가항목 관리", icon: FileText, color: "bg-purple-500", href: "/admin/evaluation-items" },
-    { id: "results", label: "결과 관리", icon: BarChart3, color: "bg-orange-500", href: "/admin/results" },
-    { id: "settings", label: "시스템 설정", icon: Settings, color: "bg-gray-500", href: "/admin/settings" },
+    { id: "evaluators", label: "평가자 관리", icon: Users, color: "bg-blue-500" },
+    { id: "candidates", label: "후보자 관리", icon: UserCheck, color: "bg-green-500" },
+    { id: "items", label: "평가항목 관리", icon: FileText, color: "bg-purple-500" },
+    { id: "results", label: "결과 관리", icon: BarChart3, color: "bg-orange-500" },
+    { id: "settings", label: "시스템 설정", icon: Settings, color: "bg-gray-500" },
   ];
 
   if (isLoading) {
@@ -32,12 +31,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">관리자 대시보드</h1>
-          <p className="text-lg text-gray-600">평가 시스템 관리 및 모니터링</p>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">관리자 대시보드</h1>
+              <p className="mt-1 text-gray-600">평가 시스템 관리 및 모니터링</p>
+            </div>
+            <Button variant="outline">
+              로그아웃
+            </Button>
+          </div>
         </div>
-        
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -96,27 +104,25 @@ export default function AdminDashboard() {
         {/* 메뉴 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {menuItems.map((item) => (
-            <Link key={item.id} href={item.href}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${item.color}`}>
-                      <item.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{item.label}</CardTitle>
-                      <CardDescription>
-                        {item.id === "evaluators" && "평가자 추가, 수정, 삭제"}
-                        {item.id === "candidates" && "후보자 정보 관리"}
-                        {item.id === "items" && "평가 기준 및 항목 설정"}
-                        {item.id === "results" && "평가 결과 조회 및 분석"}
-                        {item.id === "settings" && "시스템 환경 설정"}
-                      </CardDescription>
-                    </div>
+            <Card key={item.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className={`p-2 rounded-lg ${item.color}`}>
+                    <item.icon className="h-6 w-6 text-white" />
                   </div>
-                </CardHeader>
-              </Card>
-            </Link>
+                  <div>
+                    <CardTitle className="text-lg">{item.label}</CardTitle>
+                    <CardDescription>
+                      {item.id === "evaluators" && "평가자 추가, 수정, 삭제"}
+                      {item.id === "candidates" && "후보자 정보 관리"}
+                      {item.id === "items" && "평가 기준 및 항목 설정"}
+                      {item.id === "results" && "평가 결과 조회 및 분석"}
+                      {item.id === "settings" && "시스템 환경 설정"}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
           ))}
         </div>
       </div>

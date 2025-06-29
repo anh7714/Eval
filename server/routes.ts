@@ -5,6 +5,14 @@ import { storage } from "./storage";
 import { insertAdminSchema, insertEvaluatorSchema, insertCandidateSchema, insertEvaluationCategorySchema, insertEvaluationItemSchema, insertEvaluationSchema, insertSystemConfigSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Extend session data interface
+declare module 'express-session' {
+  interface SessionData {
+    user?: any;
+    evaluator?: any;
+  }
+}
+
 // Auth middleware for admin routes
 function requireAuth(req: any, res: any, next: any) {
   if (!req.session?.user) {
