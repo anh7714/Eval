@@ -108,7 +108,20 @@ This is a comprehensive evaluation management system built for government/profes
 
 ## Changelog
 - June 29, 2025. Initial setup
+- June 29, 2025. Updated UI/UX to minimal design with Korean interface improvements
+
+## Recent Changes
+- ✓ Redesigned home page with minimal, clean aesthetics
+- ✓ Renamed portals: "평가위원", "관리자", "결과 조회" 
+- ✓ Reordered portal cards (평가위원 first, then 관리자, then 결과 조회)
+- ✓ Added top navigation tabs for better accessibility
+- ✓ Removed unnecessary "전문적인 평가 관리 시스템" description section
+- ✓ Applied clean white background and subtle shadows
+- ✓ Simplified statistics cards with light typography
+- ✓ Used minimal icon backgrounds with soft colors
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Design preference: Minimal, clean design inspired by modern government systems.
+Interface language: Korean with professional terminology.
