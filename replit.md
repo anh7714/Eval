@@ -111,16 +111,16 @@ This is a comprehensive evaluation management system built for government/profes
 - June 29, 2025. Updated UI/UX to minimal design with Korean interface improvements
 
 ## Recent Changes
-- ✓ Complete UI/UX overhaul to premium glassmorphism design
-- ✓ Dark gradient background with blue/purple color scheme
-- ✓ Glass effect cards with backdrop blur and transparency
-- ✓ Inter font family for modern, professional typography
-- ✓ Animated elements with floating, shimmer, and fade effects
-- ✓ Color-coded icon backgrounds (emerald, blue, purple, orange)
-- ✓ Redesigned home page with minimal, clean aesthetics
-- ✓ Renamed portals: "평가위원", "관리자", "결과 조회" 
-- ✓ Reordered portal cards (평가위원 first, then 관리자, then 결과 조회)
-- ✓ Added top navigation tabs for better accessibility
+- ✓ Modern clean design inspired by government UI/UX standards
+- ✓ Light gradient background (slate/gray tones) for professional appearance
+- ✓ Pretendard font for optimal Korean typography
+- ✓ Subtle glass-effect cards with backdrop blur
+- ✓ Clean navigation with sticky header and Award icon
+- ✓ Color-coded statistics cards with soft gradients
+- ✓ Refined button styles (primary, secondary, outline)
+- ✓ Improved spacing and visual hierarchy
+- ✓ Smooth animations and hover effects
+- ✓ Government-style color palette (blues, slate)
 
 ## User Preferences
 
