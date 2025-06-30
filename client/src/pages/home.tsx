@@ -32,80 +32,72 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* 3-Card Layout - Clean and Simple */}
-        <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-          {/* Evaluation Card */}
-          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 rounded-xl">
-            <CardHeader className="text-center pb-6 pt-8">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-                <ClipboardList className="h-10 w-10 text-blue-600" />
+        {/* 3-Card Layout - KRDS 정부 표준 디자인 */}
+        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+          {/* Evaluation Card - Primary Action */}
+          <Card className="krds-card krds-card-primary group">
+            <CardHeader className="text-center pb-6 pt-10">
+              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-blue-50 border border-blue-100 group-hover:bg-blue-100 transition-colors duration-200">
+                <ClipboardList className="h-12 w-12 text-blue-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-900 mb-3" style={{ fontSize: '1.5rem', lineHeight: '1.5' }}>
+              <CardTitle className="h3 text-gray-900 mb-4">
                 평가 실시
               </CardTitle>
-              <CardDescription className="text-gray-600 text-lg leading-relaxed" style={{ fontSize: '1.125rem', lineHeight: '1.6' }}>
+              <CardDescription className="body-large text-gray-600 px-4 leading-relaxed">
                 구조화된 평가 기준으로 공정하고 객관적인 평가를 실시합니다
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-0 pb-8">
+            <CardContent className="pt-0 pb-10 px-8">
               <Link href="/evaluator/login" className="block">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium rounded-lg" style={{ fontSize: '1.125rem' }}>
+                <Button className="krds-button-primary w-full">
                   평가 시작하기
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-3 h-5 w-5" />
                 </Button>
               </Link>
             </CardContent>
           </Card>
 
-          {/* Admin Management Card */}
-          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 rounded-xl">
-            <CardHeader className="text-center pb-6 pt-8">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
-                <Shield className="h-10 w-10 text-emerald-600" />
+          {/* Admin Management Card - Secondary Action */}
+          <Card className="krds-card krds-card-secondary group">
+            <CardHeader className="text-center pb-6 pt-10">
+              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200">
+                <Shield className="h-12 w-12 text-gray-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-900 mb-3" style={{ fontSize: '1.5rem', lineHeight: '1.5' }}>
+              <CardTitle className="h3 text-gray-900 mb-4">
                 시스템 관리
               </CardTitle>
-              <CardDescription className="text-gray-600 text-lg leading-relaxed" style={{ fontSize: '1.125rem', lineHeight: '1.6' }}>
+              <CardDescription className="body-large text-gray-600 px-4 leading-relaxed">
                 평가자, 후보자, 평가 기준을 체계적으로 관리합니다
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-0 pb-8">
+            <CardContent className="pt-0 pb-10 px-8">
               <Link href="/admin/login" className="block">
-                <Button 
-                  variant="outline" 
-                  className="w-full border-gray-300 hover:bg-gray-50 text-gray-700 py-4 text-lg font-medium rounded-lg" 
-                  style={{ fontSize: '1.125rem' }}
-                >
+                <Button className="krds-button-secondary w-full">
                   관리자 로그인
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-3 h-5 w-5" />
                 </Button>
               </Link>
             </CardContent>
           </Card>
 
-          {/* Results Analysis Card */}
-          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 rounded-xl">
-            <CardHeader className="text-center pb-6 pt-8">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
-                <BarChart3 className="h-10 w-10 text-gray-600" />
+          {/* Results Analysis Card - Tertiary Action */}
+          <Card className="krds-card krds-card-tertiary group">
+            <CardHeader className="text-center pb-6 pt-10">
+              <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200">
+                <BarChart3 className="h-12 w-12 text-gray-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-900 mb-3" style={{ fontSize: '1.5rem', lineHeight: '1.5' }}>
+              <CardTitle className="h3 text-gray-900 mb-4">
                 결과 분석
               </CardTitle>
-              <CardDescription className="text-gray-600 text-lg leading-relaxed" style={{ fontSize: '1.125rem', lineHeight: '1.6' }}>
+              <CardDescription className="body-large text-gray-600 px-4 leading-relaxed">
                 상세한 통계와 분석으로 평가 결과를 확인합니다
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-0 pb-8">
+            <CardContent className="pt-0 pb-10 px-8">
               <Link href="/results" className="block">
-                <Button 
-                  variant="outline" 
-                  className="w-full border-gray-300 hover:bg-gray-50 text-gray-700 py-4 text-lg font-medium rounded-lg" 
-                  style={{ fontSize: '1.125rem' }}
-                >
+                <Button className="krds-button-secondary w-full">
                   결과 확인하기
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-3 h-5 w-5" />
                 </Button>
               </Link>
             </CardContent>

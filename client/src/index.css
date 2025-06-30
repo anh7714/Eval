@@ -57,30 +57,382 @@
     line-height: 1.6; /* KRDS 줄 간격 표준 */
   }
   
-  /* KRDS Typography Styles */
+  /* KRDS Typography Styles - 정확한 가이드라인 적용 */
+  
+  /* Display Styles */
+  .display-large {
+    font-size: 3.75rem; /* 60px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 1px;
+  }
+  
+  .display-medium {
+    font-size: 2.75rem; /* 44px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 1px;
+  }
+  
+  .display-small {
+    font-size: 2.25rem; /* 36px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 1px;
+  }
+  
+  /* Heading Styles - KRDS 표준 */
   h1 {
-    font-size: 2.5rem; /* 40px - KRDS Heading XLarge */
+    font-size: 2.5rem; /* 40px - Heading XLarge */
     font-weight: 700;
     line-height: 1.5;
     letter-spacing: 1px;
   }
   
   h2 {
-    font-size: 2rem; /* 32px - KRDS Heading Large */
+    font-size: 2rem; /* 32px - Heading Large */
     font-weight: 700;
     line-height: 1.5;
     letter-spacing: 1px;
   }
   
   h3 {
-    font-size: 1.5rem; /* 24px - KRDS Heading Medium */
+    font-size: 1.5rem; /* 24px - Heading Medium */
     font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  h4 {
+    font-size: 1.1875rem; /* 19px - Heading Small */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  h5 {
+    font-size: 1.0625rem; /* 17px - Heading XSmall */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  h6 {
+    font-size: 0.9375rem; /* 15px - Heading XXSmall */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  /* Body Text Styles - KRDS 표준 */
+  p {
+    font-size: 1.0625rem; /* 17px - Body Medium (기본) */
+    font-weight: 400;
+    line-height: 1.5; /* 150% - KRDS 최소 기준 */
+    letter-spacing: 0px;
+  }
+  
+  .body-large {
+    font-size: 1.1875rem; /* 19px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .body-large-bold {
+    font-size: 1.1875rem; /* 19px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .body-medium {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .body-medium-bold {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .body-small {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .body-small-bold {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .body-xsmall {
+    font-size: 0.8125rem; /* 13px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .body-xsmall-bold {
+    font-size: 0.8125rem; /* 13px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  /* Navigation Styles */
+  .nav-title-large {
+    font-size: 1.5rem; /* 24px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .nav-title-small {
+    font-size: 1.1875rem; /* 19px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .nav-depth-medium {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .nav-depth-medium-bold {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  /* Label Styles */
+  .label-large {
+    font-size: 1.1875rem; /* 19px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .label-medium {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  .label-small {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0px;
+  }
+  
+  /* KRDS Component Styles - 정부 표준 컴포넌트 */
+  
+  /* Cards - KRDS 카드 컴포넌트 */
+  .krds-card {
+    @apply bg-white border border-gray-200 shadow-sm rounded-lg transition-all duration-200;
+    padding: 0;
+    overflow: hidden;
+  }
+  
+  .krds-card:hover {
+    @apply shadow-md border-gray-300;
+    transform: translateY(-1px);
+  }
+  
+  .krds-card-primary {
+    @apply border-blue-200;
+  }
+  
+  .krds-card-primary:hover {
+    @apply border-blue-300 shadow-blue-100;
+  }
+  
+  .krds-card-secondary {
+    @apply border-gray-200;
+  }
+  
+  .krds-card-secondary:hover {
+    @apply border-gray-300;
+  }
+  
+  .krds-card-tertiary {
+    @apply border-gray-200;
+  }
+  
+  .krds-card-tertiary:hover {
+    @apply border-gray-300;
+  }
+  
+  /* Buttons - KRDS 버튼 컴포넌트 */
+  .krds-button-primary {
+    @apply inline-flex items-center justify-center font-medium text-white bg-blue-600 border border-blue-600;
+    @apply hover:bg-blue-700 hover:border-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+    letter-spacing: 0px;
+    padding: 12px 24px;
+    border-radius: 6px;
+    min-height: 48px; /* KRDS 접근성 기준 */
+  }
+  
+  .krds-button-secondary {
+    @apply inline-flex items-center justify-center font-medium text-gray-700 bg-white border border-gray-300;
+    @apply hover:bg-gray-50 hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+    letter-spacing: 0px;
+    padding: 12px 24px;
+    border-radius: 6px;
+    min-height: 48px; /* KRDS 접근성 기준 */
+  }
+  
+  .krds-button-tertiary {
+    @apply inline-flex items-center justify-center font-medium text-blue-600 bg-transparent border border-transparent;
+    @apply hover:bg-blue-50 hover:text-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+    letter-spacing: 0px;
+    padding: 12px 24px;
+    border-radius: 6px;
+    min-height: 48px; /* KRDS 접근성 기준 */
+  }
+  
+  /* Links - KRDS 링크 컴포넌트 */
+  .krds-link {
+    @apply text-blue-600 underline hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+    transition: color 0.2s ease;
+  }
+  
+  /* Form Elements - KRDS 폼 요소 */
+  .krds-input {
+    @apply w-full px-4 py-3 text-gray-900 bg-white border border-gray-300 rounded-md;
+    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+    min-height: 48px; /* KRDS 접근성 기준 */
+  }
+  
+  .krds-select {
+    @apply w-full px-4 py-3 text-gray-900 bg-white border border-gray-300 rounded-md;
+    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+    min-height: 48px; /* KRDS 접근성 기준 */
+  }
+  
+  .krds-textarea {
+    @apply w-full px-4 py-3 text-gray-900 bg-white border border-gray-300 rounded-md;
+    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+    min-height: 96px;
+  }
+  
+  /* Tables - KRDS 표 컴포넌트 */
+  .krds-table {
+    @apply w-full border-collapse bg-white;
+  }
+  
+  .krds-table th {
+    @apply px-6 py-4 text-left font-medium text-gray-900 bg-gray-50 border-b border-gray-200;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
     line-height: 1.5;
   }
   
-  p {
+  .krds-table td {
+    @apply px-6 py-4 text-gray-900 border-b border-gray-200;
     font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.6;
+    line-height: 1.5;
+  }
+  
+  .krds-table tr:hover {
+    @apply bg-gray-50;
+  }
+  
+  /* Navigation - KRDS 네비게이션 */
+  .krds-nav {
+    @apply bg-white border-b border-gray-200;
+  }
+  
+  .krds-nav-item {
+    @apply px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500;
+    font-size: 1.0625rem; /* 17px - KRDS Navigation Depth Medium */
+    line-height: 1.5;
+    transition: all 0.2s ease;
+  }
+  
+  .krds-nav-item.active {
+    @apply text-blue-600 bg-blue-50 border-r-2 border-blue-600;
+    font-weight: 700;
+  }
+  
+  /* Alerts - KRDS 알림 컴포넌트 */
+  .krds-alert {
+    @apply p-4 rounded-md border;
+    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
+    line-height: 1.5;
+  }
+  
+  .krds-alert-info {
+    @apply bg-blue-50 border-blue-200 text-blue-800;
+  }
+  
+  .krds-alert-success {
+    @apply bg-green-50 border-green-200 text-green-800;
+  }
+  
+  .krds-alert-warning {
+    @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+  }
+  
+  .krds-alert-error {
+    @apply bg-red-50 border-red-200 text-red-800;
+  }
+  
+  /* Badges - KRDS 배지 컴포넌트 */
+  .krds-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+    font-size: 0.9375rem; /* 15px - KRDS Body Small */
+    line-height: 1.5;
+  }
+  
+  .krds-badge-primary {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .krds-badge-secondary {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  .krds-badge-success {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .krds-badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .krds-badge-error {
+    @apply bg-red-100 text-red-800;
   }
 }
 

@@ -111,14 +111,14 @@ This is a comprehensive evaluation management system built for government/profes
 - June 29, 2025. Updated UI/UX to minimal design with Korean interface improvements
 
 ## Recent Changes
-- ✓ KRDS 디자인 시스템 완전 적용 (2025.06.30)
+- ✓ KRDS 디자인 시스템 및 컴포넌트 가이드라인 완전 적용 (2025.06.30)
 - ✓ Pretendard GOV 폰트로 변경하여 정부 표준 타이포그래피 구현
+- ✓ KRDS 완전한 타이포그래피 스케일 적용 (Display, Heading, Body, Navigation, Label)
 - ✓ 메인화면을 깔끔한 3-카드 레이아웃으로 단순화 (상단 메뉴바 제거)
-- ✓ KRDS 표준 글자 크기 적용: 본문 17px, 헤딩 40px/32px/24px
+- ✓ KRDS 표준 컴포넌트 스타일 구현 (카드, 버튼, 폼, 테이블, 네비게이션, 알림, 배지)
+- ✓ KRDS 표준 글자 크기 적용: 본문 17px, 헤딩 40px/32px/24px, 접근성 기준 150% 줄 간격
 - ✓ 정부 청색(Primary Blue)과 정부 회색(Secondary Gray) 색상 체계 적용
-- ✓ 줄 간격 1.6으로 설정하여 KRDS 접근성 기준 준수
-- ✓ 카드 디자인을 정부서비스 표준에 맞게 단정하고 신뢰성 있게 수정
-- ✓ 사용자 요청에 따른 글자 크기 확대 및 가독성 개선
+- ✓ KRDS 접근성 기준 준수: 최소 48px 버튼 높이, 명확한 포커스 링, 적절한 대비
 
 ## User Preferences
 
