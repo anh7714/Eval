@@ -8,73 +8,110 @@ export default function HomePage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        {/* Header Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-display mb-6">
-            {(config as any)?.evaluationTitle || "2025년 상반기 적극행정 우수공무원 선발"}
-          </h1>
-          <p className="text-body-large max-w-2xl mx-auto">
-            정확하고 효율적인 채점 및 집계 시스템
-          </p>
+    <div className="page" style={{ backgroundColor: 'var(--tblr-body-bg)' }}>
+      <div className="container-xl">
+        {/* Page Header */}
+        <div className="page-header">
+          <div className="text-center">
+            <div className="page-pretitle">평가 시스템</div>
+            <h1 className="page-title">
+              {(config as any)?.evaluationTitle || "종합평가시스템"}
+            </h1>
+          </div>
         </div>
 
         {/* Main Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Link href="/evaluator/login">
-            <div className="tblr-card card-interactive card-feature group">
-              <div className="mb-6">
-                <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <Users className="h-8 w-8 text-blue-600" />
+        <div className="row g-4">
+          <div className="col-lg-4">
+            <Link href="/evaluator/login">
+              <div className="card">
+                <div className="card-body text-center">
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-center">
+                      <div style={{
+                        width: '3rem',
+                        height: '3rem',
+                        backgroundColor: 'rgba(32, 107, 196, 0.1)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Users className="h-6 w-6" style={{ color: 'var(--tblr-primary)' }} />
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="card-title justify-content-center mb-2">평가 위원</h3>
+                  <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+                    채점을 진행하고 결과를 제출합니다.
+                  </p>
                 </div>
               </div>
-              <h3 className="text-heading-3 mb-4">평가 위원</h3>
-              <p className="text-body mb-6">
-                채점을 진행하고 결과를 제출합니다.
-              </p>
-              <div className="inline-flex items-center text-blue-600 font-medium group-hover:text-blue-700">
-                이동하기
-                <BarChart3 className="ml-2 h-4 w-4" />
-              </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
-          <Link href="/admin/login">
-            <div className="tblr-card card-interactive card-feature group">
-              <div className="mb-6">
-                <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                  <Shield className="h-8 w-8 text-green-600" />
+          <div className="col-lg-4">
+            <Link href="/admin/login">
+              <div className="card">
+                <div className="card-body text-center">
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-center">
+                      <div style={{
+                        width: '3rem',
+                        height: '3rem',
+                        backgroundColor: 'rgba(47, 179, 68, 0.1)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Shield className="h-6 w-6" style={{ color: 'var(--tblr-success)' }} />
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="card-title justify-content-center mb-2">관리자</h3>
+                  <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+                    시스템 설정을 관리하고 결과를 집계합니다.
+                  </p>
                 </div>
               </div>
-              <h3 className="text-heading-3 mb-4">관리자</h3>
-              <p className="text-body mb-6">
-                시스템 설정을 관리하고 결과를 집계합니다.
-              </p>
-              <div className="inline-flex items-center text-green-600 font-medium group-hover:text-green-700">
-                이동하기
-                <BarChart3 className="ml-2 h-4 w-4" />
-              </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
-          <Link href="/results">
-            <div className="tblr-card card-interactive card-feature group">
-              <div className="mb-6">
-                <div className="w-16 h-16 mx-auto bg-orange-100 rounded-full flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                  <BarChart3 className="h-8 w-8 text-orange-600" />
+          <div className="col-lg-4">
+            <Link href="/results">
+              <div className="card">
+                <div className="card-body text-center">
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-center">
+                      <div style={{
+                        width: '3rem',
+                        height: '3rem',
+                        backgroundColor: 'rgba(245, 159, 0, 0.1)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <BarChart3 className="h-6 w-6" style={{ color: 'var(--tblr-warning)' }} />
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="card-title justify-content-center mb-2">채점 결과</h3>
+                  <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+                    종합 채점 결과를 확인합니다.
+                  </p>
                 </div>
               </div>
-              <h3 className="text-heading-3 mb-4">채점 결과</h3>
-              <p className="text-body mb-6">
-                종합 채점 결과를 확인합니다.
-              </p>
-              <div className="inline-flex items-center text-orange-600 font-medium group-hover:text-orange-700">
-                이동하기
-                <BarChart3 className="ml-2 h-4 w-4" />
-              </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
+        </div>
+
+        {/* Footer Info */}
+        <div className="text-center mt-5">
+          <p className="text-muted small">
+            안전하고 신뢰할 수 있는 평가 시스템
+          </p>
         </div>
       </div>
     </div>

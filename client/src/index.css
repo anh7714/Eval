@@ -50,13 +50,11 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: #f8fafc;
-  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  background-color: var(--tblr-body-bg);
+  color: var(--tblr-body-color);
   line-height: 1.5;
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
 }
 
 .page {
@@ -82,37 +80,50 @@ body {
     @apply text-sm text-slate-500 uppercase tracking-wide mb-2 font-medium;
   }
 
+  /* Tabler Typography */
   .page-title {
-    @apply text-3xl font-bold text-slate-900 m-0 leading-tight;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--tblr-dark);
+    margin: 0;
   }
 
-  /* Enhanced Typography Scale */
-  .text-display {
-    @apply text-4xl font-bold text-slate-900 leading-tight;
+  .page-pretitle {
+    font-size: 0.75rem;
+    color: var(--tblr-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
   }
 
-  .text-heading-1 {
-    @apply text-3xl font-bold text-slate-900 leading-tight;
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
   }
 
-  .text-heading-2 {
-    @apply text-2xl font-semibold text-slate-800 leading-snug;
+  .subheader {
+    font-size: 0.75rem;
+    color: var(--tblr-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
   }
 
-  .text-heading-3 {
-    @apply text-xl font-semibold text-slate-800 leading-snug;
+  .h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--tblr-primary);
   }
 
-  .text-body-large {
-    @apply text-lg text-slate-600 leading-relaxed;
+  .text-muted {
+    color: var(--tblr-secondary);
   }
 
-  .text-body {
-    @apply text-base text-slate-600 leading-relaxed;
-  }
-
-  .text-body-sm {
-    @apply text-sm text-slate-500 leading-relaxed;
+  .small {
+    font-size: 0.75rem;
   }
 
   /* EvalMaster Pro Cards */
@@ -124,13 +135,205 @@ body {
     @apply bg-transparent border-b border-slate-100 px-6 py-5;
   }
 
-  /* Enhanced Card Variants */
-  .card-interactive {
-    @apply cursor-pointer hover:border-blue-300 hover:shadow-lg;
+  /* Tabler Layout Classes */
+  .page {
+    min-height: 100vh;
   }
 
-  .card-feature {
-    @apply p-8 text-center border-2 border-transparent hover:border-blue-200 hover:bg-blue-50/30;
+  .container-xl {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .page-header {
+    background: white;
+    border-bottom: 1px solid var(--tblr-border-color);
+    padding: 1.5rem 0;
+    margin-bottom: 2rem;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -0.75rem;
+  }
+
+  .col, .col-auto, .col-sm-6, .col-md-6, .col-lg-3, .col-lg-4 {
+    padding: 0 0.75rem;
+  }
+
+  .col-lg-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+  }
+
+  .g-4 > * {
+    margin-bottom: 1.5rem;
+  }
+
+  .d-flex {
+    display: flex;
+  }
+
+  .justify-content-center {
+    justify-content: center;
+  }
+
+  .align-items-center {
+    align-items: center;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .w-100 { width: 100%; }
+
+  .mb-0 { margin-bottom: 0; }
+  .mb-2 { margin-bottom: 0.5rem; }
+  .mb-3 { margin-bottom: 1rem; }
+  .mb-4 { margin-bottom: 1.5rem; }
+  .mb-5 { margin-bottom: 3rem; }
+  .mt-3 { margin-top: 1rem; }
+  .mt-5 { margin-top: 3rem; }
+
+  /* Card Components */
+  .card {
+    background: white;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    box-shadow: var(--tblr-box-shadow);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--tblr-box-shadow-lg);
+  }
+
+  .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--tblr-border-color);
+    padding: 1rem 1.25rem;
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+
+  /* Form Components */
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--tblr-body-color);
+    font-size: 0.875rem;
+  }
+
+  .form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--tblr-body-color);
+    background-color: #fff;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--tblr-primary-rgb), 0.25);
+  }
+
+  .form-floating-icon {
+    position: relative;
+  }
+
+  .form-floating-icon .form-control {
+    padding-left: 2.5rem;
+  }
+
+  .form-floating-icon::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    z-index: 3;
+    opacity: 0.6;
+  }
+
+  .form-floating-icon.icon-user::before {
+    content: '👤';
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-floating-icon.icon-lock::before {
+    content: '🔒';
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Button Components */
+  .btn {
+    display: inline-block;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--tblr-body-color);
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: var(--tblr-border-radius);
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  .btn-primary {
+    color: #fff;
+    background-color: var(--tblr-primary);
+    border-color: var(--tblr-primary);
+  }
+
+  .btn-primary:hover {
+    background-color: #1c5ba0;
+    border-color: #1a5490;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(var(--tblr-primary-rgb), 0.3);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .col-lg-4 {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+    
+    .container-xl {
+      padding: 0 0.75rem;
+    }
+    
+    .card-body {
+      padding: 1rem;
+    }
   }
 
   .tblr-card-title {
