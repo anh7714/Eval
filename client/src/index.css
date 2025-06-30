@@ -434,6 +434,30 @@
   .krds-badge-error {
     @apply bg-red-100 text-red-800;
   }
+  
+  /* Horizontal Card Layout - 가로형 카드 레이아웃 */
+  .horizontal-card-layout {
+    @apply flex items-center gap-6;
+  }
+  
+  @media (max-width: 768px) {
+    .horizontal-card-layout {
+      @apply flex-col text-center gap-4;
+    }
+    
+    .horizontal-card-layout .flex-1 {
+      order: 1;
+    }
+    
+    .horizontal-card-layout .flex-shrink-0:last-child {
+      order: 2;
+      @apply w-full;
+    }
+    
+    .horizontal-card-layout .flex-shrink-0:first-child {
+      order: 0;
+    }
+  }
 }
 
 @layer utilities {
