@@ -51,7 +51,7 @@ export default function EvaluatorLogin() {
   };
 
   return (
-    <div className="page" style={{ backgroundColor: 'var(--tblr-body-bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem' }}>
+    <div className="page" style={{ backgroundColor: 'var(--tblr-body-bg)', minHeight: '100vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '8rem', padding: '8rem 1rem 3rem' }}>
       <div className="tblr-login-card">
         <div className="tblr-login-header">
           <div className="tblr-d-flex justify-center tblr-mb-4">

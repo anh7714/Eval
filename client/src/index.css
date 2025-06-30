@@ -54,7 +54,7 @@ body {
   background-color: var(--tblr-body-bg);
   color: var(--tblr-body-color);
   line-height: 1.5;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .page {
@@ -82,22 +82,22 @@ body {
 
   /* Tabler Typography */
   .page-title {
-    font-size: 1.75rem;
+    font-size: 2.25rem;
     font-weight: 600;
     color: var(--tblr-dark);
     margin: 0;
   }
 
   .page-pretitle {
-    font-size: 0.75rem;
+    font-size: 1rem;
     color: var(--tblr-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
   }
 
   .card-title {
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
     display: flex;
@@ -105,25 +105,26 @@ body {
   }
 
   .subheader {
-    font-size: 0.75rem;
+    font-size: 1rem;
     color: var(--tblr-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: 700;
     color: var(--tblr-primary);
   }
 
   .text-muted {
     color: var(--tblr-secondary);
+    font-size: 1rem;
   }
 
   .small {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
   }
 
   /* EvalMaster Pro Cards */
@@ -220,7 +221,12 @@ body {
   }
 
   .card-body {
-    padding: 1.25rem;
+    padding: 2.5rem 2rem;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
 
   /* Form Components */
