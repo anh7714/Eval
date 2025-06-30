@@ -50,8 +50,8 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen bg-gray-50 flex items-start justify-center px-4 pt-16 pb-8">
+      <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-6">
           <div className="flex justify-center">

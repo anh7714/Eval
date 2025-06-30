@@ -280,6 +280,74 @@
   .krds-card-interactive {
     @apply hover:shadow-lg hover:border-blue-200 transition-all duration-200 cursor-pointer;
   }
+
+  /* Modal Styles - KRDS 모달 컴포넌트 */
+  .krds-modal-overlay {
+    @apply fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50;
+  }
+  
+  .krds-modal {
+    @apply bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden;
+    animation: modalSlideIn 0.2s ease-out;
+  }
+  
+  .krds-modal-header {
+    @apply px-6 py-4 border-b border-gray-200 flex items-center justify-between;
+  }
+  
+  .krds-modal-title {
+    @apply h4 text-gray-900 font-medium;
+  }
+  
+  .krds-modal-close {
+    @apply p-1 hover:bg-gray-100 rounded-md transition-colors duration-200;
+  }
+  
+  .krds-modal-content {
+    @apply px-6 py-4;
+  }
+  
+  .krds-modal-footer {
+    @apply px-6 py-4 border-t border-gray-200 flex items-center justify-end space-x-3;
+  }
+  
+  /* Success Modal */
+  .krds-modal-success .krds-modal {
+    @apply border-t-4 border-green-500;
+  }
+  
+  .krds-modal-success-icon {
+    @apply w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center;
+  }
+  
+  .krds-modal-success-icon svg {
+    @apply w-8 h-8 text-green-600;
+  }
+  
+  /* Danger/Warning Modal */
+  .krds-modal-danger .krds-modal {
+    @apply border-t-4 border-red-500;
+  }
+  
+  .krds-modal-danger-icon {
+    @apply w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center;
+  }
+  
+  .krds-modal-danger-icon svg {
+    @apply w-8 h-8 text-red-600;
+  }
+  
+  /* Modal Animation */
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
   
   .krds-card-tertiary {
     @apply border-gray-200;

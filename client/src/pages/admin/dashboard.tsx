@@ -64,16 +64,16 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         {/* Header Section */}
-        <div className="mb-10">
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
-              <Settings className="h-8 w-8 text-blue-600" />
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
+              <Settings className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="display-medium text-gray-900">
+              <h1 className="h2 text-gray-900">
                 관리자 대시보드
               </h1>
-              <p className="body-large text-gray-600 mt-2">
+              <p className="body-medium text-gray-600">
                 평가 시스템의 전체 현황을 확인하고 관리합니다
               </p>
             </div>
@@ -81,71 +81,71 @@ export default function AdminDashboard() {
         </div>
         
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="krds-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
-                  <Users className="h-6 w-6 text-blue-600" />
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
+                  <Users className="h-5 w-5 text-blue-600" />
                 </div>
-                <Badge className="krds-badge-info">
+                <Badge className="krds-badge-info text-xs">
                   활성 {stats?.activeEvaluators || 0}명
                 </Badge>
               </div>
-              <div className="space-y-2">
-                <h3 className="h4 text-gray-900">{stats?.totalEvaluators || 0}</h3>
-                <p className="label-medium text-gray-600">전체 평가자</p>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-gray-900">{stats?.totalEvaluators || 0}</h3>
+                <p className="text-sm text-gray-600">전체 평가자</p>
               </div>
             </CardContent>
           </Card>
           
           <Card className="krds-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50 border border-green-100">
-                  <UserCheck className="h-6 w-6 text-green-600" />
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 border border-green-100">
+                  <UserCheck className="h-5 w-5 text-green-600" />
                 </div>
-                <Badge className="krds-badge-success">
+                <Badge className="krds-badge-success text-xs">
                   평가 대상
                 </Badge>
               </div>
-              <div className="space-y-2">
-                <h3 className="h4 text-gray-900">{stats?.totalCandidates || 0}</h3>
-                <p className="label-medium text-gray-600">전체 후보자</p>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-gray-900">{stats?.totalCandidates || 0}</h3>
+                <p className="text-sm text-gray-600">전체 후보자</p>
               </div>
             </CardContent>
           </Card>
           
           <Card className="krds-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 border border-purple-100">
-                  <FileText className="h-6 w-6 text-purple-600" />
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 border border-purple-100">
+                  <FileText className="h-5 w-5 text-purple-600" />
                 </div>
-                <Badge className="krds-badge-warning">
+                <Badge className="krds-badge-warning text-xs">
                   {stats?.totalCategories || 0}개 카테고리
                 </Badge>
               </div>
-              <div className="space-y-2">
-                <h3 className="h4 text-gray-900">{stats?.totalEvaluationItems || 0}</h3>
-                <p className="label-medium text-gray-600">평가 항목</p>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-gray-900">{stats?.totalEvaluationItems || 0}</h3>
+                <p className="text-sm text-gray-600">평가 항목</p>
               </div>
             </CardContent>
           </Card>
           
           <Card className="krds-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 border border-orange-100">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 border border-orange-100">
+                  <TrendingUp className="h-5 w-5 text-orange-600" />
                 </div>
-                <Badge className={`${(stats?.completionRate || 0) >= 80 ? 'krds-badge-success' : 'krds-badge-warning'}`}>
+                <Badge className={`text-xs ${(stats?.completionRate || 0) >= 80 ? 'krds-badge-success' : 'krds-badge-warning'}`}>
                   진행률
                 </Badge>
               </div>
-              <div className="space-y-2">
-                <h3 className="h4 text-gray-900">{stats?.completionRate || 0}%</h3>
-                <p className="label-medium text-gray-600">전체 완료율</p>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-gray-900">{stats?.completionRate || 0}%</h3>
+                <p className="text-sm text-gray-600">전체 완료율</p>
               </div>
             </CardContent>
           </Card>
