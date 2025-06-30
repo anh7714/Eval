@@ -32,30 +32,30 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* 3-Card Layout - 가로형 구조화 디자인 */}
-        <div className="space-y-6 max-w-7xl mx-auto">
+        {/* 3-Card Layout - 한 줄에 3개 가로 배치 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {/* Evaluation Card - Primary Action */}
           <Card className="krds-card krds-card-primary group">
-            <CardContent className="p-8">
-              <div className="horizontal-card-layout">
-                <div className="flex-shrink-0">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 border border-blue-100 group-hover:bg-blue-100 transition-colors duration-200">
-                    <ClipboardList className="h-10 w-10 text-blue-600" />
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <div className="mx-auto">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 border border-blue-100 group-hover:bg-blue-100 transition-colors duration-200 mx-auto">
+                    <ClipboardList className="h-8 w-8 text-blue-600" />
                   </div>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="h3 text-gray-900 mb-3">
+                <div>
+                  <CardTitle className="h3 text-gray-900 mb-2">
                     평가 실시
                   </CardTitle>
-                  <CardDescription className="body-large text-gray-600 leading-relaxed mb-6">
+                  <CardDescription className="body-medium text-gray-600 leading-relaxed mb-4">
                     구조화된 평가 기준으로 공정하고 객관적인 평가를 실시합니다
                   </CardDescription>
                 </div>
-                <div className="flex-shrink-0">
+                <div>
                   <Link href="/evaluator/login">
-                    <Button className="krds-button-primary px-8">
+                    <Button className="krds-button-primary w-full">
                       평가 시작하기
-                      <ArrowRight className="ml-3 h-5 w-5" />
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                 </div>
@@ -65,26 +65,26 @@ export default function HomePage() {
 
           {/* Admin Management Card - Secondary Action */}
           <Card className="krds-card krds-card-secondary group">
-            <CardContent className="p-8">
-              <div className="horizontal-card-layout">
-                <div className="flex-shrink-0">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200">
-                    <Shield className="h-10 w-10 text-gray-600" />
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <div className="mx-auto">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200 mx-auto">
+                    <Shield className="h-8 w-8 text-gray-600" />
                   </div>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="h3 text-gray-900 mb-3">
+                <div>
+                  <CardTitle className="h3 text-gray-900 mb-2">
                     시스템 관리
                   </CardTitle>
-                  <CardDescription className="body-large text-gray-600 leading-relaxed mb-6">
+                  <CardDescription className="body-medium text-gray-600 leading-relaxed mb-4">
                     평가자, 후보자, 평가 기준을 체계적으로 관리합니다
                   </CardDescription>
                 </div>
-                <div className="flex-shrink-0">
+                <div>
                   <Link href="/admin/login">
-                    <Button className="krds-button-secondary px-8">
+                    <Button className="krds-button-secondary w-full">
                       관리자 로그인
-                      <ArrowRight className="ml-3 h-5 w-5" />
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                 </div>
@@ -94,26 +94,26 @@ export default function HomePage() {
 
           {/* Results Analysis Card - Tertiary Action */}
           <Card className="krds-card krds-card-tertiary group">
-            <CardContent className="p-8">
-              <div className="horizontal-card-layout">
-                <div className="flex-shrink-0">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200">
-                    <BarChart3 className="h-10 w-10 text-gray-600" />
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <div className="mx-auto">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200 mx-auto">
+                    <BarChart3 className="h-8 w-8 text-gray-600" />
                   </div>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="h3 text-gray-900 mb-3">
+                <div>
+                  <CardTitle className="h3 text-gray-900 mb-2">
                     결과 분석
                   </CardTitle>
-                  <CardDescription className="body-large text-gray-600 leading-relaxed mb-6">
+                  <CardDescription className="body-medium text-gray-600 leading-relaxed mb-4">
                     상세한 통계와 분석으로 평가 결과를 확인합니다
                   </CardDescription>
                 </div>
-                <div className="flex-shrink-0">
+                <div>
                   <Link href="/results">
-                    <Button className="krds-button-secondary px-8">
+                    <Button className="krds-button-secondary w-full">
                       결과 확인하기
-                      <ArrowRight className="ml-3 h-5 w-5" />
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                 </div>
