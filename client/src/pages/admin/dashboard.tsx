@@ -151,41 +151,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Management Menu */}
-        <div className="space-y-6">
-          <div className="flex items-center space-x-3">
-            <CheckCircle2 className="h-6 w-6 text-blue-600" />
-            <h2 className="h3 text-gray-900">시스템 관리</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {menuItems.map((item) => (
-              <Link key={item.id} href={item.href}>
-                <Card className="krds-card krds-card-interactive group cursor-pointer">
-                  <CardContent className="p-8">
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 border border-blue-100 group-hover:bg-blue-100 transition-colors duration-200">
-                          <item.icon className="h-8 w-8 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="h4 text-gray-900 mb-2">
-                            {item.label}
-                          </h3>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="body-medium text-gray-600 leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
+
       </div>
     </div>
   );
