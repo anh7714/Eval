@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ClipboardList, User, Lock } from "lucide-react";
+import { Users, Eye, EyeOff } from "lucide-react";
 
 export default function EvaluatorLogin() {
   const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -32,16 +32,17 @@ export default function EvaluatorLogin() {
         });
         setLocation("/evaluator/dashboard");
       } else {
+        const error = await response.json();
         toast({
           title: "로그인 실패",
-          description: "이름이나 비밀번호를 확인해주세요.",
+          description: error.message || "인증에 실패했습니다.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "오류",
-        description: "서버 연결에 문제가 있습니다.",
+        description: "로그인 중 오류가 발생했습니다.",
         variant: "destructive",
       });
     } finally {
@@ -50,100 +51,73 @@ export default function EvaluatorLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-start justify-center px-4 pt-16 pb-8">
-      <div className="w-full max-w-md space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
-              <ClipboardList className="h-10 w-10 text-blue-600" />
+    <div className="page" style={{ backgroundColor: 'var(--tblr-body-bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem' }}>
+      <div className="tblr-login-card">
+        <div className="tblr-login-header">
+          <div className="tblr-d-flex justify-center tblr-mb-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: 'rgba(32, 201, 151, 0.1)', border: '2px solid rgba(32, 201, 151, 0.2)' }}>
+              <Users className="h-8 w-8" style={{ color: 'var(--tblr-success)' }} />
             </div>
           </div>
-          <div className="space-y-2">
-            <h1 className="display-small text-gray-900">
-              평가자 로그인
-            </h1>
-            <p className="body-large text-gray-600">
-              평가자 계정으로 로그인하여 평가를 시작하세요
-            </p>
-          </div>
+          <h1 className="tblr-login-title">평가자 로그인</h1>
+          <p className="tblr-login-subtitle">평가자 계정으로 로그인하세요</p>
         </div>
-
-        {/* Login Form */}
-        <Card className="krds-card">
-          <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="label-large text-gray-700">
-                    평가자 이름
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="krds-input pl-10"
-                      placeholder="평가자 이름을 입력하세요"
-                      aria-describedby="name-description"
-                    />
-                  </div>
-                  <p id="name-description" className="body-small text-gray-500">
-                    등록된 평가자 이름을 정확히 입력해주세요
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="label-large text-gray-700">
-                    비밀번호
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="krds-input pl-10"
-                      placeholder="비밀번호를 입력하세요"
-                      aria-describedby="password-description"
-                    />
-                  </div>
-                  <p id="password-description" className="body-small text-gray-500">
-                    관리자가 제공한 비밀번호를 입력하세요
-                  </p>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="name" className="tblr-form-label required">성명</Label>
+            <div className="tblr-form-floating-icon icon-user">
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="성명을 입력하세요"
+                className="tblr-form-control"
+                required
                 disabled={isLoading}
-                className="krds-button-primary w-full"
-                aria-describedby="login-button-description"
-              >
-                {isLoading ? "로그인 중..." : "평가 시작하기"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center space-y-3">
-          <p className="body-small text-gray-500">
-            로그인에 문제가 있으시면 관리자에게 문의하세요
-          </p>
-          <div className="flex items-center justify-center space-x-4 text-xs text-gray-400">
-            <span>보안 접속</span>
-            <span>•</span>
-            <span>세션 관리</span>
-            <span>•</span>
-            <span>접근성 지원</span>
+              />
+            </div>
           </div>
-        </div>
+
+          <div>
+            <Label htmlFor="password" className="tblr-form-label required">비밀번호</Label>
+            <div className="tblr-form-floating-icon icon-lock">
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="비밀번호를 입력하세요"
+                  className="tblr-form-control"
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-slate-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-slate-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="tblr-btn tblr-btn-primary tblr-w-100"
+            style={{ height: '48px' }}
+            disabled={isLoading}
+          >
+            {isLoading ? "로그인 중..." : "로그인"}
+          </Button>
+        </form>
       </div>
     </div>
   );

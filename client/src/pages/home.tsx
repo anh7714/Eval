@@ -1,12 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  ClipboardList, 
-  Shield, 
-  BarChart3,
-  ArrowRight
-} from "lucide-react";
+import { Shield, Users, BarChart3 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function HomePage() {
@@ -14,114 +7,94 @@ export default function HomePage() {
     queryKey: ["/api/system/config"],
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ["/api/system/stats"],
-  });
-
   return (
-    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Pretendard GOV, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-      {/* Main Content - Simplified 3-card layout */}
-      <main className="container mx-auto px-6 py-16">
-        {/* Page Title Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-6" style={{ fontSize: '2.5rem', lineHeight: '1.5', letterSpacing: '0.5px' }}>
-            {(config as any)?.systemName || "적극행정 우수공무원 선발"}
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed" style={{ fontSize: '1.25rem', lineHeight: '1.6' }}>
-            구조화된 평가 기준으로 공정하고 객관적인 평가를 실시합니다
+    <div className="page" style={{ backgroundColor: 'var(--tblr-body-bg)' }}>
+      <div className="container-xl" style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 1rem' }}>
+        {/* Page Header */}
+        <div className="page-header">
+          <div className="text-center">
+            <div className="tblr-d-flex justify-center tblr-mb-4">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ backgroundColor: 'rgba(32, 107, 196, 0.1)', border: '2px solid rgba(32, 107, 196, 0.2)' }}>
+                <Shield className="h-10 w-10" style={{ color: 'var(--tblr-primary)' }} />
+              </div>
+            </div>
+            <h1 className="page-title text-center" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
+              {(config as any)?.evaluationTitle || "종합평가시스템"}
+            </h1>
+            <p className="text-slate-600 max-w-2xl mx-auto" style={{ fontSize: '16px', lineHeight: '1.6' }}>
+              공정하고 투명한 평가 프로세스를 통해 우수한 인재를 선발합니다. 
+              체계적인 평가 관리와 실시간 진행 상황을 확인하세요.
+            </p>
+          </div>
+        </div>
+
+        {/* Main Cards */}
+        <div className="tblr-row tblr-g-4 tblr-mb-4" style={{ display: 'flex', flexWrap: 'wrap', margin: '0 -0.75rem' }}>
+          <div className="tblr-col-lg-4" style={{ padding: '0 0.75rem', flex: '0 0 33.333333%', maxWidth: '33.333333%' }}>
+            <Link href="/admin/login">
+              <div className="tblr-card">
+                <div className="tblr-card-body text-center">
+                  <div className="tblr-d-flex justify-center tblr-mb-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors duration-200">
+                      <Shield className="h-8 w-8 text-blue-600" />
+                    </div>
+                  </div>
+                  <h3 className="tblr-card-title justify-center tblr-mb-3" style={{ fontSize: '1.25rem' }}>관리자</h3>
+                  <p className="text-slate-600" style={{ fontSize: '14px', lineHeight: '1.5' }}>
+                    시스템 전체를 관리하고<br />
+                    평가 설정을 구성합니다
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          <div className="tblr-col-lg-4" style={{ padding: '0 0.75rem', flex: '0 0 33.333333%', maxWidth: '33.333333%' }}>
+            <Link href="/evaluator/login">
+              <div className="tblr-card">
+                <div className="tblr-card-body text-center">
+                  <div className="tblr-d-flex justify-center tblr-mb-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-50 border border-green-100 hover:bg-green-100 transition-colors duration-200">
+                      <Users className="h-8 w-8 text-green-600" />
+                    </div>
+                  </div>
+                  <h3 className="tblr-card-title justify-center tblr-mb-3" style={{ fontSize: '1.25rem' }}>평가자</h3>
+                  <p className="text-slate-600" style={{ fontSize: '14px', lineHeight: '1.5' }}>
+                    후보자를 평가하고<br />
+                    결과를 입력합니다
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          <div className="tblr-col-lg-4" style={{ padding: '0 0.75rem', flex: '0 0 33.333333%', maxWidth: '33.333333%' }}>
+            <Link href="/results">
+              <div className="tblr-card">
+                <div className="tblr-card-body text-center">
+                  <div className="tblr-d-flex justify-center tblr-mb-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 border border-orange-100 hover:bg-orange-100 transition-colors duration-200">
+                      <BarChart3 className="h-8 w-8 text-orange-600" />
+                    </div>
+                  </div>
+                  <h3 className="tblr-card-title justify-center tblr-mb-3" style={{ fontSize: '1.25rem' }}>결과 조회</h3>
+                  <p className="text-slate-600" style={{ fontSize: '14px', lineHeight: '1.5' }}>
+                    평가 결과 및 통계를<br />
+                    실시간으로 확인합니다
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Footer Info */}
+        <div className="text-center tblr-mt-3">
+          <p className="tblr-text-muted tblr-small">
+            안전하고 신뢰할 수 있는 평가 시스템으로 공정한 선발을 지원합니다
           </p>
         </div>
-
-        {/* 3-Card Layout - 한 줄에 3개 가로 배치 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {/* Evaluation Card - Primary Action */}
-          <Card className="krds-card krds-card-primary group">
-            <CardContent className="p-6">
-              <div className="text-center space-y-4">
-                <div className="mx-auto">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 border border-blue-100 group-hover:bg-blue-100 transition-colors duration-200 mx-auto">
-                    <ClipboardList className="h-8 w-8 text-blue-600" />
-                  </div>
-                </div>
-                <div>
-                  <CardTitle className="h3 text-gray-900 mb-2">
-                    평가 실시
-                  </CardTitle>
-                  <CardDescription className="body-medium text-gray-600 leading-relaxed mb-4">
-                    구조화된 평가 기준으로 공정하고 객관적인 평가를 실시합니다
-                  </CardDescription>
-                </div>
-                <div>
-                  <Link href="/evaluator/login">
-                    <Button className="krds-button-primary w-full">
-                      평가 시작하기
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Admin Management Card - Secondary Action */}
-          <Card className="krds-card krds-card-secondary group">
-            <CardContent className="p-6">
-              <div className="text-center space-y-4">
-                <div className="mx-auto">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200 mx-auto">
-                    <Shield className="h-8 w-8 text-gray-600" />
-                  </div>
-                </div>
-                <div>
-                  <CardTitle className="h3 text-gray-900 mb-2">
-                    시스템 관리
-                  </CardTitle>
-                  <CardDescription className="body-medium text-gray-600 leading-relaxed mb-4">
-                    평가자, 후보자, 평가 기준을 체계적으로 관리합니다
-                  </CardDescription>
-                </div>
-                <div>
-                  <Link href="/admin/login">
-                    <Button className="krds-button-secondary w-full">
-                      관리자 로그인
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Results Analysis Card - Tertiary Action */}
-          <Card className="krds-card krds-card-tertiary group">
-            <CardContent className="p-6">
-              <div className="text-center space-y-4">
-                <div className="mx-auto">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100 group-hover:bg-gray-100 transition-colors duration-200 mx-auto">
-                    <BarChart3 className="h-8 w-8 text-gray-600" />
-                  </div>
-                </div>
-                <div>
-                  <CardTitle className="h3 text-gray-900 mb-2">
-                    결과 분석
-                  </CardTitle>
-                  <CardDescription className="body-medium text-gray-600 leading-relaxed mb-4">
-                    상세한 통계와 분석으로 평가 결과를 확인합니다
-                  </CardDescription>
-                </div>
-                <div>
-                  <Link href="/results">
-                    <Button className="krds-button-secondary w-full">
-                      결과 확인하기
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

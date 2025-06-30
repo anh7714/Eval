@@ -1,343 +1,365 @@
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-gov.css');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* KRDS Government Colors */
-  --background: 0 0% 98%;
-  --foreground: 220 9% 15%;
-  --card: 0 0% 100%;
-  --card-foreground: 220 9% 15%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 9% 15%;
+  /* Tabler Design System */
+  --tblr-primary: #206bc4;
+  --tblr-primary-rgb: 32, 107, 196;
+  --tblr-secondary: #6c757d;
+  --tblr-success: #2fb344;
+  --tblr-info: #17a2b8;
+  --tblr-warning: #f59f00;
+  --tblr-danger: #d63384;
+  --tblr-light: #f8f9fa;
+  --tblr-dark: #354052;
+  --tblr-body-bg: #f8fafc;
+  --tblr-body-color: #1e293b;
+  --tblr-border-color: #e2e8f0;
+  --tblr-border-radius: 0.375rem;
+  --tblr-box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --tblr-box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   
-  /* KRDS Primary Blue (정부 청색) */
+  /* Tailwind CSS Variables for Tabler */
+  --background: 248 250 252;
+  --foreground: 30 41 59;
+  --card: 255 255 255;
+  --card-foreground: 30 41 59;
+  --popover: 255 255 255;
+  --popover-foreground: 30 41 59;
   --primary: 214 100% 50%;
-  --primary-foreground: 0 0% 100%;
-  
-  /* KRDS Secondary Gray (정부 회색) */
-  --secondary: 220 13% 96%;
-  --secondary-foreground: 220 9% 46%;
-  
-  /* KRDS Neutral Colors */
-  --muted: 220 13% 96%;
-  --muted-foreground: 220 9% 46%;
-  --accent: 214 100% 97%;
-  --accent-foreground: 214 100% 47%;
-  
-  /* KRDS System Colors */
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
+  --primary-foreground: 255 255 255;
+  --secondary: 100 116 139;
+  --secondary-foreground: 255 255 255;
+  --muted: 241 245 249;
+  --muted-foreground: 100 116 139;
+  --accent: 241 245 249;
+  --accent-foreground: 30 41 59;
+  --destructive: 339 90% 51%;
+  --destructive-foreground: 255 255 255;
+  --border: 226 232 240;
+  --input: 226 232 240;
   --ring: 214 100% 50%;
-  --radius: 0.75rem;
-  
-  /* shadcn theme colors */
-  --chart-1: 221.2 83.2% 53.3%;
-  --chart-2: 212 95% 68%;
-  --chart-3: 216 92% 60%;
-  --chart-4: 210 98% 78%;
-  --chart-5: 212 97% 87%;
+  --radius: 0.375rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  background-color: var(--tblr-body-bg);
+  color: var(--tblr-body-color);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.page {
+  min-height: 100vh;
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Pretendard GOV', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    background-color: #f8fafc;
-    min-height: 100vh;
-    font-size: 17px; /* KRDS 표준 본문 크기 */
-    line-height: 1.6; /* KRDS 줄 간격 표준 */
+    @apply bg-background text-foreground;
   }
-  
-  /* KRDS Typography Styles - 정확한 가이드라인 적용 */
-  
-  /* Display Styles */
-  .display-large {
-    font-size: 3.75rem; /* 60px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 1px;
-  }
-  
-  .display-medium {
-    font-size: 2.75rem; /* 44px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 1px;
-  }
-  
-  .display-small {
-    font-size: 2.25rem; /* 36px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 1px;
-  }
-  
-  /* Heading Styles - KRDS 표준 */
-  h1 {
-    font-size: 2.5rem; /* 40px - Heading XLarge */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 1px;
-  }
-  
-  h2 {
-    font-size: 2rem; /* 32px - Heading Large */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 1px;
-  }
-  
-  h3 {
-    font-size: 1.5rem; /* 24px - Heading Medium */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  h4 {
-    font-size: 1.1875rem; /* 19px - Heading Small */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  h5 {
-    font-size: 1.0625rem; /* 17px - Heading XSmall */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  h6 {
-    font-size: 0.9375rem; /* 15px - Heading XXSmall */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  /* Body Text Styles - KRDS 표준 */
-  p {
-    font-size: 1.0625rem; /* 17px - Body Medium (기본) */
-    font-weight: 400;
-    line-height: 1.5; /* 150% - KRDS 최소 기준 */
-    letter-spacing: 0px;
-  }
-  
-  .body-large {
-    font-size: 1.1875rem; /* 19px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .body-large-bold {
-    font-size: 1.1875rem; /* 19px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .body-medium {
-    font-size: 1.0625rem; /* 17px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .body-medium-bold {
-    font-size: 1.0625rem; /* 17px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .body-small {
-    font-size: 0.9375rem; /* 15px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .body-small-bold {
-    font-size: 0.9375rem; /* 15px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .body-xsmall {
-    font-size: 0.8125rem; /* 13px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .body-xsmall-bold {
-    font-size: 0.8125rem; /* 13px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  /* Navigation Styles */
-  .nav-title-large {
-    font-size: 1.5rem; /* 24px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .nav-title-small {
-    font-size: 1.1875rem; /* 19px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .nav-depth-medium {
-    font-size: 1.0625rem; /* 17px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .nav-depth-medium-bold {
-    font-size: 1.0625rem; /* 17px */
-    font-weight: 700;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  /* Label Styles */
-  .label-large {
-    font-size: 1.1875rem; /* 19px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .label-medium {
-    font-size: 1.0625rem; /* 17px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  .label-small {
-    font-size: 0.9375rem; /* 15px */
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0px;
-  }
-  
-  /* KRDS Component Styles - 정부 표준 컴포넌트 */
-  
-  /* Cards - KRDS 카드 컴포넌트 */
-  .krds-card {
-    @apply bg-white border border-gray-200 shadow-sm rounded-lg transition-all duration-200;
-    padding: 0;
-    overflow: hidden;
-  }
-  
-  .krds-card:hover {
-    @apply shadow-md border-gray-300;
-    transform: translateY(-1px);
-  }
-  
-  .krds-card-primary {
-    @apply border-blue-200;
-  }
-  
-  .krds-card-primary:hover {
-    @apply border-blue-300 shadow-blue-100;
-  }
-  
-  .krds-card-secondary {
-    @apply border-gray-200;
-  }
-  
-  .krds-card-secondary:hover {
-    @apply border-gray-300;
-  }
-  
-  .krds-card-tertiary {
-    @apply border-gray-200 bg-white;
-  }
-  
-  .krds-card-tertiary:hover {
-    @apply border-gray-300 bg-gray-50/30;
+}
+
+@layer components {
+  /* Tabler Typography */
+  .page-header {
+    @apply bg-white border-b border-slate-200 py-6 mb-8;
   }
 
-  .krds-card-interactive {
-    @apply hover:shadow-lg hover:border-blue-200 transition-all duration-200 cursor-pointer;
+  .page-pretitle {
+    @apply text-xs text-slate-500 uppercase tracking-wide mb-1;
   }
 
-  /* Modal Styles - KRDS 모달 컴포넌트 */
-  .krds-modal-overlay {
+  .page-title {
+    @apply text-2xl font-semibold text-slate-800 m-0;
+  }
+
+  /* Tabler Cards */
+  .tblr-card {
+    @apply bg-white border border-slate-200 rounded-md shadow-sm mb-6 transition-all duration-200;
+  }
+
+  .tblr-card:hover {
+    @apply transform -translate-y-0.5 shadow-lg;
+  }
+
+  .tblr-card-header {
+    @apply bg-transparent border-b border-slate-200 px-5 py-4;
+  }
+
+  .tblr-card-title {
+    @apply text-base font-semibold m-0 flex items-center text-slate-800;
+  }
+
+  .tblr-card-body {
+    @apply px-5 py-5;
+  }
+
+  /* Tabler Buttons */
+  .tblr-btn {
+    @apply inline-block font-medium leading-6 text-center no-underline align-middle cursor-pointer select-none bg-transparent border border-transparent px-4 py-2 text-sm rounded-md transition-all duration-150;
+  }
+
+  .tblr-btn-primary {
+    @apply text-white bg-blue-600 border-blue-600;
+  }
+
+  .tblr-btn-primary:hover {
+    @apply bg-blue-700 border-blue-700 transform -translate-y-0.5 shadow-lg;
+  }
+
+  .tblr-btn-success {
+    @apply text-white bg-green-600 border-green-600;
+  }
+
+  .tblr-btn-outline-primary {
+    @apply text-blue-600 border-blue-600;
+  }
+
+  .tblr-btn-outline-primary:hover {
+    @apply text-white bg-blue-600 border-blue-600;
+  }
+
+  /* Tabler Forms */
+  .tblr-form-label {
+    @apply block mb-2 font-medium text-slate-700 text-sm;
+  }
+
+  .tblr-form-label.required::after {
+    @apply content-['*'] text-red-500 ml-1;
+  }
+
+  .tblr-form-control {
+    @apply block w-full px-3 py-2 text-sm font-normal leading-6 text-slate-700 bg-white border border-slate-200 rounded-md transition-all duration-150;
+  }
+
+  .tblr-form-control:focus {
+    @apply outline-none border-blue-600 shadow-[0_0_0_0.2rem_rgba(32,107,196,0.25)];
+  }
+
+  .tblr-form-control::placeholder {
+    @apply text-slate-400;
+  }
+
+  /* Tabler Stats Cards */
+  .tblr-stats-card {
+    @apply border-l-4 border-blue-600;
+  }
+
+  .tblr-subheader {
+    @apply text-xs text-slate-500 uppercase tracking-wide mb-2;
+  }
+
+  .tblr-h1 {
+    @apply text-3xl font-bold text-blue-600;
+  }
+
+  /* Tabler Progress */
+  .tblr-progress {
+    @apply flex h-2 overflow-hidden bg-slate-200 rounded-md;
+  }
+
+  .tblr-progress-bar {
+    @apply flex flex-col justify-center overflow-hidden text-white text-center whitespace-nowrap bg-blue-600 transition-all duration-500;
+  }
+
+  /* Tabler Navigation */
+  .tblr-navbar {
+    @apply bg-white border-b border-slate-200 px-4 py-3;
+  }
+
+  .tblr-navbar-brand {
+    @apply text-lg font-semibold text-slate-800 no-underline;
+  }
+
+  .tblr-navbar-nav {
+    @apply flex list-none m-0 p-0;
+  }
+
+  .tblr-nav-item {
+    @apply mx-2;
+  }
+
+  .tblr-nav-link {
+    @apply px-3 py-2 text-sm text-slate-600 no-underline rounded-md transition-colors duration-150;
+  }
+
+  .tblr-nav-link:hover,
+  .tblr-nav-link.active {
+    @apply text-blue-600 bg-blue-50;
+  }
+
+  /* Tabler Badges */
+  .tblr-badge {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-md;
+  }
+
+  .tblr-badge-primary {
+    @apply text-blue-700 bg-blue-100;
+  }
+
+  .tblr-badge-success {
+    @apply text-green-700 bg-green-100;
+  }
+
+  .tblr-badge-warning {
+    @apply text-yellow-700 bg-yellow-100;
+  }
+
+  .tblr-badge-info {
+    @apply text-cyan-700 bg-cyan-100;
+  }
+
+  /* Tabler Tables */
+  .tblr-table {
+    @apply w-full text-sm text-left;
+  }
+
+  .tblr-table th {
+    @apply px-4 py-3 font-medium text-slate-700 bg-slate-50 border-b border-slate-200;
+  }
+
+  .tblr-table td {
+    @apply px-4 py-3 border-b border-slate-200;
+  }
+
+  .tblr-table tbody tr:hover {
+    @apply bg-slate-50;
+  }
+
+  /* Tabler Modal */
+  .tblr-modal-overlay {
     @apply fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50;
   }
   
-  .krds-modal {
+  .tblr-modal {
     @apply bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden;
     animation: modalSlideIn 0.2s ease-out;
   }
   
-  .krds-modal-header {
-    @apply px-6 py-4 border-b border-gray-200 flex items-center justify-between;
+  .tblr-modal-header {
+    @apply px-6 py-4 border-b border-slate-200 flex items-center justify-between;
   }
   
-  .krds-modal-title {
-    @apply h4 text-gray-900 font-medium;
+  .tblr-modal-title {
+    @apply text-lg font-medium text-slate-800;
   }
   
-  .krds-modal-close {
-    @apply p-1 hover:bg-gray-100 rounded-md transition-colors duration-200;
+  .tblr-modal-close {
+    @apply p-1 hover:bg-slate-100 rounded-md transition-colors duration-200;
   }
   
-  .krds-modal-content {
+  .tblr-modal-content {
     @apply px-6 py-4;
   }
   
-  .krds-modal-footer {
-    @apply px-6 py-4 border-t border-gray-200 flex items-center justify-end space-x-3;
+  .tblr-modal-footer {
+    @apply px-6 py-4 border-t border-slate-200 flex items-center justify-end space-x-3;
   }
-  
-  /* Success Modal */
-  .krds-modal-success .krds-modal {
-    @apply border-t-4 border-green-500;
+
+  /* Login Page Specific */
+  .tblr-login-card {
+    @apply bg-white border border-slate-200 rounded-lg shadow-lg p-8 w-full max-w-md;
   }
-  
-  .krds-modal-success-icon {
-    @apply w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center;
+
+  .tblr-login-header {
+    @apply text-center mb-8;
   }
-  
-  .krds-modal-success-icon svg {
-    @apply w-8 h-8 text-green-600;
+
+  .tblr-login-title {
+    @apply text-2xl font-semibold text-slate-800 mb-2;
   }
-  
-  /* Danger/Warning Modal */
-  .krds-modal-danger .krds-modal {
-    @apply border-t-4 border-red-500;
+
+  .tblr-login-subtitle {
+    @apply text-sm text-slate-500;
   }
-  
-  .krds-modal-danger-icon {
-    @apply w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center;
+
+  .tblr-form-floating-icon {
+    @apply relative;
   }
-  
-  .krds-modal-danger-icon svg {
-    @apply w-8 h-8 text-red-600;
+
+  .tblr-form-floating-icon .tblr-form-control {
+    @apply pl-10;
   }
-  
-  /* Modal Animation */
+
+  .tblr-form-floating-icon::before {
+    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-base z-10;
+  }
+
+  .tblr-form-floating-icon.icon-user::before {
+    content: '👤';
+  }
+
+  .tblr-form-floating-icon.icon-lock::before {
+    content: '🔒';
+  }
+
+  /* Dashboard Grid */
+  .tblr-row {
+    @apply flex flex-wrap -mx-3;
+  }
+
+  .tblr-col {
+    @apply px-3;
+  }
+
+  .tblr-col-auto {
+    @apply flex-none w-auto;
+  }
+
+  .tblr-col-sm-6 {
+    @apply w-full;
+  }
+
+  .tblr-col-lg-3 {
+    @apply w-full;
+  }
+
+  .tblr-col-lg-4 {
+    @apply w-full;
+  }
+
+  @media (min-width: 640px) {
+    .tblr-col-sm-6 {
+      @apply w-1/2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .tblr-col-lg-3 {
+      @apply w-1/4;
+    }
+    .tblr-col-lg-4 {
+      @apply w-1/3;
+    }
+  }
+
+  /* Utilities */
+  .tblr-mb-0 { @apply mb-0; }
+  .tblr-mb-2 { @apply mb-2; }
+  .tblr-mb-3 { @apply mb-4; }
+  .tblr-mb-4 { @apply mb-6; }
+  .tblr-me-2 { @apply mr-2; }
+  .tblr-mt-3 { @apply mt-4; }
+  .tblr-w-100 { @apply w-full; }
+  .tblr-d-flex { @apply flex; }
+  .tblr-align-items-center { @apply items-center; }
+  .tblr-text-green { @apply text-green-600; }
+  .tblr-text-muted { @apply text-slate-500; }
+  .tblr-small { @apply text-xs; }
+  .tblr-lh-1 { @apply leading-none; }
+
+  /* Animation */
   @keyframes modalSlideIn {
     from {
       opacity: 0;
@@ -348,388 +370,47 @@
       transform: scale(1) translateY(0);
     }
   }
-  
-  .krds-card-tertiary {
-    @apply border-gray-200;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .tblr-col-sm-6, .tblr-col-lg-3, .tblr-col-lg-4 {
+    @apply w-full;
   }
   
-  .krds-card-tertiary:hover {
-    @apply border-gray-300;
+  .page-title {
+    @apply text-xl;
   }
   
-  /* Buttons - KRDS 버튼 컴포넌트 */
-  .krds-button-primary {
-    @apply inline-flex items-center justify-center font-medium text-white bg-blue-600 border border-blue-600;
-    @apply hover:bg-blue-700 hover:border-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-    letter-spacing: 0px;
-    padding: 12px 24px;
-    border-radius: 6px;
-    min-height: 48px; /* KRDS 접근성 기준 */
-  }
-  
-  .krds-button-secondary {
-    @apply inline-flex items-center justify-center font-medium text-gray-700 bg-white border border-gray-300;
-    @apply hover:bg-gray-50 hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-    letter-spacing: 0px;
-    padding: 12px 24px;
-    border-radius: 6px;
-    min-height: 48px; /* KRDS 접근성 기준 */
-  }
-  
-  .krds-button-tertiary {
-    @apply inline-flex items-center justify-center font-medium text-blue-600 bg-transparent border border-transparent;
-    @apply hover:bg-blue-50 hover:text-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-    letter-spacing: 0px;
-    padding: 12px 24px;
-    border-radius: 6px;
-    min-height: 48px; /* KRDS 접근성 기준 */
-  }
-  
-  /* Links - KRDS 링크 컴포넌트 */
-  .krds-link {
-    @apply text-blue-600 underline hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-    transition: color 0.2s ease;
-  }
-  
-  /* Form Elements - KRDS 폼 요소 */
-  .krds-input {
-    @apply w-full px-4 py-3 text-gray-900 bg-white border border-gray-300 rounded-md;
-    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-    min-height: 48px; /* KRDS 접근성 기준 */
-  }
-  
-  .krds-select {
-    @apply w-full px-4 py-3 text-gray-900 bg-white border border-gray-300 rounded-md;
-    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-    min-height: 48px; /* KRDS 접근성 기준 */
-  }
-  
-  .krds-textarea {
-    @apply w-full px-4 py-3 text-gray-900 bg-white border border-gray-300 rounded-md;
-    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-    min-height: 96px;
-  }
-  
-  /* Tables - KRDS 표 컴포넌트 */
-  .krds-table {
-    @apply w-full border-collapse bg-white;
-  }
-  
-  .krds-table th {
-    @apply px-6 py-4 text-left font-medium text-gray-900 bg-gray-50 border-b border-gray-200;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-  }
-  
-  .krds-table td {
-    @apply px-6 py-4 text-gray-900 border-b border-gray-200;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-  }
-  
-  .krds-table tr:hover {
-    @apply bg-gray-50;
-  }
-  
-  /* Navigation - KRDS 네비게이션 */
-  .krds-nav {
-    @apply bg-white border-b border-gray-200;
-  }
-  
-  .krds-nav-item {
-    @apply px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500;
-    font-size: 1.0625rem; /* 17px - KRDS Navigation Depth Medium */
-    line-height: 1.5;
-    transition: all 0.2s ease;
-  }
-  
-  .krds-nav-item.active {
-    @apply text-blue-600 bg-blue-50 border-r-2 border-blue-600;
-    font-weight: 700;
-  }
-  
-  /* Alerts - KRDS 알림 컴포넌트 */
-  .krds-alert {
-    @apply p-4 rounded-md border;
-    font-size: 1.0625rem; /* 17px - KRDS Body Medium */
-    line-height: 1.5;
-  }
-  
-  .krds-alert-info {
-    @apply bg-blue-50 border-blue-200 text-blue-800;
-  }
-  
-  .krds-alert-success {
-    @apply bg-green-50 border-green-200 text-green-800;
-  }
-  
-  .krds-alert-warning {
-    @apply bg-yellow-50 border-yellow-200 text-yellow-800;
-  }
-  
-  .krds-alert-error {
-    @apply bg-red-50 border-red-200 text-red-800;
-  }
-  
-  /* Badges - KRDS 배지 컴포넌트 */
-  .krds-badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
-    font-size: 0.9375rem; /* 15px - KRDS Body Small */
-    line-height: 1.5;
-  }
-  
-  .krds-badge-primary {
-    @apply bg-blue-100 text-blue-800;
-  }
-  
-  .krds-badge-secondary {
-    @apply bg-gray-100 text-gray-800;
-  }
-  
-  .krds-badge-success {
-    @apply bg-green-100 text-green-800;
-  }
-  
-  .krds-badge-warning {
-    @apply bg-yellow-100 text-yellow-800;
-  }
-  
-  .krds-badge-error {
-    @apply bg-red-100 text-red-800;
-  }
-  
-  /* Horizontal Card Layout - 가로형 카드 레이아웃 */
-  .horizontal-card-layout {
-    @apply flex items-center gap-6;
-  }
-  
-  @media (max-width: 768px) {
-    .horizontal-card-layout {
-      @apply flex-col text-center gap-4;
-    }
-    
-    .horizontal-card-layout .flex-1 {
-      order: 1;
-    }
-    
-    .horizontal-card-layout .flex-shrink-0:last-child {
-      order: 2;
-      @apply w-full;
-    }
-    
-    .horizontal-card-layout .flex-shrink-0:first-child {
-      order: 0;
-    }
+  .tblr-card-body {
+    @apply px-4 py-4;
   }
 }
 
-@layer utilities {
-  /* Premium dashboard styling */
-  .premium-card {
-    @apply bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl transition-all duration-300;
-    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
-  }
-  
-  .stats-dashboard {
-    @apply bg-white rounded-xl border border-slate-200/50 shadow-lg backdrop-blur-sm;
-    background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.95) 100%);
-  }
-  
-  .feature-card-blue {
-    @apply rounded-lg border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-md;
-    background: white;
-  }
-  
-  .feature-card-emerald {
-    @apply rounded-lg border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-md;
-    background: white;
-  }
-  
-  .feature-card-purple {
-    @apply rounded-lg border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-md;
-    background: white;
-  }
-  
-  .metric-large {
-    @apply text-3xl font-bold tracking-tight text-slate-900;
-  }
-  
-  .metric-label {
-    @apply text-sm font-medium text-slate-600;
-  }
-  
-  .metric-change-positive {
-    @apply text-xs font-medium text-emerald-600;
-  }
-  
-  .glass-nav {
-    @apply bg-white/80 backdrop-blur-md border-b border-white/20;
-    box-shadow: 0 1px 20px rgba(0,0,0,0.05);
-  }
-  
-  .gradient-bg {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 75%, #cbd5e1 100%);
-  }
-  
-  .cta-section {
-    @apply bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-xl;
-  }
-  
-  /* Button styles */
-  .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium px-6 py-3 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border-0;
-  }
-  
-  .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-6 py-3 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200;
-  }
-  
-  .btn-outline {
-    @apply bg-transparent hover:bg-blue-50 text-blue-600 font-medium px-6 py-3 rounded-xl transition-all duration-300 border border-blue-200 hover:border-blue-300;
-  }
-  
-  /* Icon backgrounds */
-  .icon-bg-blue {
-    @apply bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-3 shadow-sm;
-    background: linear-gradient(135deg, rgba(219, 234, 254, 0.8), rgba(191, 219, 254, 0.8));
-  }
-  
-  .icon-bg-emerald {
-    @apply bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl p-3 shadow-sm;
-    background: linear-gradient(135deg, rgba(209, 250, 229, 0.8), rgba(167, 243, 208, 0.8));
-  }
-  
-  .icon-bg-purple {
-    @apply bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-3 shadow-sm;
-    background: linear-gradient(135deg, rgba(237, 233, 254, 0.8), rgba(221, 214, 254, 0.8));
-  }
-  
-  .icon-bg-orange {
-    @apply bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-3 shadow-sm;
-    background: linear-gradient(135deg, rgba(254, 215, 170, 0.8), rgba(251, 191, 36, 0.8));
-  }
-  
-  /* Typography */
-  .heading-primary {
-    @apply text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent;
-  }
-  
-  .heading-secondary {
-    @apply text-2xl font-semibold text-slate-800;
-  }
-  
-  .text-muted {
-    @apply text-slate-600;
-  }
-  
-  /* Animations */
-  .animate-fade-in {
-    animation: fadeIn 0.6s ease-out;
-  }
-  
-  .animate-slide-up {
-    animation: slideUp 0.6s ease-out;
-  }
-  
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-  
-  /* Navigation tabs */
-  .nav-tab {
-    @apply px-8 py-4 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-300 relative;
-  }
-  
-  .nav-tab:hover::after {
-    content: '';
-    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full;
-  }
-  
-  /* Premium effects */
-  .glass-effect {
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-  
-  .text-gradient-blue {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+/* Tabler Login Styles */
+.tblr-login-card {
+  width: 100%;
+  max-width: 25rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--tblr-border-color);
+  padding: 2rem;
 }
 
-@keyframes fadeIn {
-  from { 
-    opacity: 0; 
-  }
-  to { 
-    opacity: 1; 
-  }
+.tblr-login-header {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
-@keyframes slideUp {
-  from { 
-    opacity: 0; 
-    transform: translateY(30px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
+.tblr-login-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: var(--tblr-body-color);
+  margin-bottom: 0.5rem;
 }
 
-@keyframes float {
-  0%, 100% { 
-    transform: translateY(0px); 
-  }
-  50% { 
-    transform: translateY(-8px); 
-  }
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.5);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
-}
-
-/* Selection styling */
-::selection {
-  background: rgba(59, 130, 246, 0.2);
-  color: inherit;
+.tblr-login-subtitle {
+  color: var(--tblr-text-muted);
+  font-size: 0.875rem;
 }
