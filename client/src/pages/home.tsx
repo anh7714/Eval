@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Users, FileText, BarChart3, ClipboardList, Award, Calendar } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Users, FileText, BarChart3, ClipboardList, Award, Calendar, TrendingUp, Clock, CheckCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export default function HomePage() {
@@ -15,194 +17,254 @@ export default function HomePage() {
   });
 
   return (
-    <div className="min-h-screen">
-      {/* 상단 네비게이션 */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-2">
-              <Award className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-slate-800">평가시스템</span>
-            </div>
-            <div className="flex space-x-6">
-              <button
+    <div className="min-h-screen bg-background">
+      {/* Header Navigation */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          <div className="mr-4 flex">
+            <Link href="/" className="mr-6 flex items-center space-x-2">
+              <Award className="h-6 w-6 text-primary" />
+              <span className="hidden font-bold sm:inline-block">평가시스템</span>
+            </Link>
+          </div>
+          <div className="flex flex-1 items-center justify-end space-x-6">
+            <nav className="flex items-center space-x-6 text-sm font-medium">
+              <Button 
+                variant="ghost" 
                 onClick={() => setLocation("/evaluator/login")}
-                className="nav-tab"
               >
                 평가위원
-              </button>
-              <button
+              </Button>
+              <Button 
+                variant="ghost" 
                 onClick={() => setLocation("/admin/login")}
-                className="nav-tab"
               >
                 관리자
-              </button>
-              <button
+              </Button>
+              <Button 
+                variant="outline" 
                 onClick={() => setLocation("/results")}
-                className="nav-tab"
               >
                 결과 조회
-              </button>
-            </div>
+              </Button>
+            </nav>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="container mx-auto px-6 py-16">
-        {/* 헤더 섹션 */}
-        <div className="text-center mb-16 animate-fade-in">
-          <h1 className="heading-primary mb-4 animate-float">
+      <main className="container mx-auto py-10">
+        {/* Hero Section */}
+        <div className="flex flex-col items-center text-center space-y-4 mb-12">
+          <Badge variant="secondary" className="px-3 py-1">
+            정부 평가 시스템
+          </Badge>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             {config?.systemName || "2025년 상반기 적극행정 우수공무원 선발"}
           </h1>
-          <p className="text-xl text-muted max-w-2xl mx-auto">
+          <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl">
             공정하고 투명한 평가 프로세스를 통한 우수 인재 발굴
           </p>
           
-          {/* 시스템 정보 */}
           {config && config.evaluationDeadline && (
-            <div className="max-w-md mx-auto mt-8 animate-slide-up">
-              <div className="modern-card-primary p-4">
-                <div className="flex items-center justify-center space-x-3">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <p className="text-blue-800 font-medium">
-                    평가 마감일: {new Date(config.evaluationDeadline).toLocaleDateString('ko-KR')}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Card className="w-full max-w-md">
+              <CardContent className="flex items-center justify-center p-4">
+                <Calendar className="mr-2 h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">
+                  평가 마감일: {new Date(config.evaluationDeadline).toLocaleDateString('ko-KR')}
+                </span>
+              </CardContent>
+            </Card>
           )}
         </div>
 
-        {/* 통계 카드 */}
+        {/* Statistics Grid */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16 animate-slide-up">
-            <div className="stats-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted mb-1">전체 평가자</p>
-                  <p className="text-3xl font-bold text-slate-800">{stats.totalEvaluators || 0}</p>
-                </div>
-                <div className="icon-bg-blue">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-12">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">전체 평가자</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalEvaluators || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  +0% 전월 대비
+                </p>
+              </CardContent>
+            </Card>
             
-            <div className="stats-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted mb-1">전체 후보자</p>
-                  <p className="text-3xl font-bold text-slate-800">{stats.totalCandidates || 0}</p>
-                </div>
-                <div className="icon-bg-emerald">
-                  <FileText className="h-6 w-6 text-emerald-600" />
-                </div>
-              </div>
-            </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">전체 후보자</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalCandidates || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  등록된 후보자 수
+                </p>
+              </CardContent>
+            </Card>
             
-            <div className="stats-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted mb-1">평가 항목</p>
-                  <p className="text-3xl font-bold text-slate-800">{stats.totalEvaluationItems || 0}</p>
-                </div>
-                <div className="icon-bg-purple">
-                  <ClipboardList className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">평가 항목</CardTitle>
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalEvaluationItems || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  평가 기준 항목
+                </p>
+              </CardContent>
+            </Card>
             
-            <div className="stats-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted mb-1">완료율</p>
-                  <p className="text-3xl font-bold text-slate-800">{stats.completionRate || 0}%</p>
-                </div>
-                <div className="icon-bg-orange">
-                  <BarChart3 className="h-6 w-6 text-orange-600" />
-                </div>
-              </div>
-            </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">완료율</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.completionRate || 0}%</div>
+                <p className="text-xs text-muted-foreground">
+                  평가 진행률
+                </p>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        {/* 주요 기능 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-slide-up">
-          {/* 평가위원 */}
-          <div className="modern-card p-8 text-center group">
-            <div className="icon-bg-blue w-16 h-16 mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <ClipboardList className="h-8 w-8 text-blue-600" />
-            </div>
-            <h3 className="heading-secondary mb-4">평가위원</h3>
-            <p className="text-muted text-base mb-8 leading-relaxed">
-              할당된 후보자들을 공정하고 체계적으로 평가합니다.
-            </p>
-            <Link href="/evaluator/login">
-              <Button className="btn-primary w-full">
-                이용하기 →
-              </Button>
-            </Link>
-          </div>
+        {/* Main Features */}
+        <div className="grid gap-6 md:grid-cols-3 mb-16">
+          <Card className="relative overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>평가위원</CardTitle>
+                  <CardDescription>할당된 후보자 평가</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                할당된 후보자들을 공정하고 체계적으로 평가합니다.
+              </p>
+              <Link href="/evaluator/login">
+                <Button className="w-full">
+                  시작하기
+                  <Clock className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
 
-          {/* 관리자 */}
-          <div className="modern-card p-8 text-center group">
-            <div className="icon-bg-emerald w-16 h-16 mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <Users className="h-8 w-8 text-emerald-600" />
-            </div>
-            <h3 className="heading-secondary mb-4">관리자</h3>
-            <p className="text-muted text-base mb-8 leading-relaxed">
-              시스템 전체를 관리하고 평가 환경을 설정합니다.
-            </p>
-            <Link href="/admin/login">
-              <Button className="btn-secondary w-full">
-                이용하기 →
-              </Button>
-            </Link>
-          </div>
+          <Card className="relative overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+                  <Users className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <CardTitle>관리자</CardTitle>
+                  <CardDescription>시스템 전체 관리</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                시스템 전체를 관리하고 평가 환경을 설정합니다.
+              </p>
+              <Link href="/admin/login">
+                <Button variant="secondary" className="w-full">
+                  관리하기
+                  <Users className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
 
-          {/* 결과 조회 */}
-          <div className="modern-card p-8 text-center group">
-            <div className="icon-bg-purple w-16 h-16 mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <BarChart3 className="h-8 w-8 text-purple-600" />
+          <Card className="relative overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle>결과 조회</CardTitle>
+                  <CardDescription>평가 결과 및 통계</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                전체 평가 결과와 상세 통계를 확인할 수 있습니다.
+              </p>
+              <Link href="/results">
+                <Button variant="outline" className="w-full">
+                  조회하기
+                  <BarChart3 className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* System Features */}
+        <div className="grid gap-8 md:grid-cols-3 mb-16">
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+              <CheckCircle className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="heading-secondary mb-4">결과 조회</h3>
-            <p className="text-muted text-base mb-8 leading-relaxed">
-              전체 평가 결과와 상세 통계를 확인할 수 있습니다.
+            <h3 className="text-lg font-semibold">체계적 평가</h3>
+            <p className="text-sm text-muted-foreground">
+              다양한 평가 기준과 가중치를 통한 정확한 평가
             </p>
-            <Link href="/results">
-              <Button className="btn-outline w-full">
-                이용하기 →
-              </Button>
-            </Link>
+          </div>
+          
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100">
+              <TrendingUp className="h-6 w-6 text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-semibold">실시간 모니터링</h3>
+            <p className="text-sm text-muted-foreground">
+              평가 진행 상황을 실시간으로 확인하고 관리
+            </p>
+          </div>
+          
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
+              <FileText className="h-6 w-6 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold">데이터 관리</h3>
+            <p className="text-sm text-muted-foreground">
+              Excel 파일을 통한 효율적인 데이터 입출력
+            </p>
           </div>
         </div>
 
-        {/* 하단 정보 */}
-        <div className="text-center mt-20 animate-fade-in">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="p-6">
-                <h4 className="text-lg font-semibold text-slate-800 mb-3">체계적 평가</h4>
-                <p className="text-muted text-sm leading-relaxed">
-                  다양한 평가 기준과 가중치를 통한 정확한 평가
-                </p>
-              </div>
-              <div className="p-6">
-                <h4 className="text-lg font-semibold text-slate-800 mb-3">실시간 모니터링</h4>
-                <p className="text-muted text-sm leading-relaxed">
-                  평가 진행 상황을 실시간으로 확인하고 관리
-                </p>
-              </div>
-              <div className="p-6">
-                <h4 className="text-lg font-semibold text-slate-800 mb-3">데이터 관리</h4>
-                <p className="text-muted text-sm leading-relaxed">
-                  Excel 파일을 통한 효율적인 데이터 입출력
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* Footer CTA */}
+        <div className="text-center">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle>평가 시스템을 시작해보세요</CardTitle>
+              <CardDescription>
+                공정하고 투명한 평가 프로세스로 우수한 인재를 발굴하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-4">
+              <Link href="/evaluator/login" className="flex-1">
+                <Button className="w-full">평가위원으로 시작</Button>
+              </Link>
+              <Link href="/admin/login" className="flex-1">
+                <Button variant="outline" className="w-full">관리자로 시작</Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

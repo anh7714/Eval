@@ -24,7 +24,14 @@
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 221.2 83.2% 53.3%;
-  --radius: 0.75rem;
+  --radius: 0.5rem;
+  
+  /* shadcn theme colors */
+  --chart-1: 221.2 83.2% 53.3%;
+  --chart-2: 212 95% 68%;
+  --chart-3: 216 92% 60%;
+  --chart-4: 210 98% 78%;
+  --chart-5: 212 97% 87%;
 }
 
 @layer base {
@@ -35,34 +42,40 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+    background: hsl(210 40% 98%);
     min-height: 100vh;
   }
 }
 
 @layer utilities {
-  /* Modern card styles */
-  .modern-card {
-    @apply bg-white rounded-2xl shadow-sm border border-slate-200/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+  /* shadcn-style card components */
+  .dashboard-card {
+    @apply bg-card text-card-foreground rounded-lg border shadow-sm transition-colors;
   }
   
-  .modern-card-primary {
-    @apply bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-200/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
-    background: linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(238, 242, 255, 0.95));
-    backdrop-filter: blur(10px);
+  .metric-card {
+    @apply dashboard-card p-6 hover:shadow-md transition-all duration-200;
   }
   
-  .modern-card-secondary {
-    @apply bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl shadow-sm border border-slate-200/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  .chart-card {
+    @apply dashboard-card p-6;
   }
   
-  /* Statistics cards */
-  .stats-card {
-    @apply bg-white rounded-xl p-6 shadow-sm border border-slate-200/30 transition-all duration-300 hover:shadow-md;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(8px);
+  .feature-card {
+    @apply dashboard-card p-8 hover:shadow-lg transition-all duration-300;
+  }
+  
+  /* Statistics display */
+  .metric-value {
+    @apply text-2xl font-bold tracking-tight;
+  }
+  
+  .metric-label {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+  
+  .metric-change {
+    @apply text-xs text-muted-foreground;
   }
   
   /* Button styles */
