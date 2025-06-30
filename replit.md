@@ -111,14 +111,11 @@ This is a comprehensive evaluation management system built for government/profes
 - June 29, 2025. Updated UI/UX to minimal design with Korean interface improvements
 
 ## Recent Changes
-- ✓ EvalMaster Pro 스타일 완전 적용 (2025.06.30)
-- ✓ 현대적인 타이포그래피 시스템으로 전환: System UI 폰트 스택 적용
-- ✓ 향상된 타이포그래피 스케일: text-display, text-heading-*, text-body-* 클래스 구현
-- ✓ 홈페이지 완전 재디자인: EvalMaster Pro 스타일의 3-카드 레이아웃
-- ✓ 로그인 페이지 현대화: 관리자 및 평가자 로그인 페이지 Tabler 스타일 적용
-- ✓ 개선된 카드 컴포넌트: 호버 효과, 그림자, 인터랙션 애니메이션 추가
-- ✓ 색상 시스템 최적화: 슬레이트 기반 색상 팔레트로 전환
-- ✓ 반응형 디자인 강화: 모바일 우선 접근법 적용
+- ✓ 코드 롤백 완료 (2025.06.30)
+- ✓ 홈페이지와 로그인 페이지들을 이전 안정된 상태로 복원
+- ✓ 기본 Tailwind CSS 및 shadcn/ui 컴포넌트 시스템 유지
+- ✓ 그라데이션 배경과 모던한 카드 레이아웃 보존
+- ✓ 반응형 디자인 및 다크모드 지원 유지
 
 ## User Preferences
 

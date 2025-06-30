@@ -8,148 +8,70 @@ export default function HomePage() {
   });
 
   return (
-    <div className="page-container">
-      <div className="main-container">
-        <div className="page-header">
-          <div className="pretitle">🔐 GOVERNMENT EVALUATION SYSTEM</div>
-          <h1 className="main-title">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <div className="container mx-auto px-4 py-16">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-800 dark:text-slate-100 mb-6">
             {(config as any)?.evaluationTitle || "종합평가시스템"}
           </h1>
-          <p className="body-text text-center" style={{ maxWidth: '600px', margin: '0 auto' }}>
-            정부기관을 위한 전문적이고 체계적인 평가 관리 시스템으로<br />
-            투명하고 효율적인 평가 프로세스를 제공합니다
+          <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            체계적이고 투명한 평가 시스템으로 공정한 선발을 지원합니다
           </p>
         </div>
 
-        <div className="grid-container">
-          {/* 관리자 카드 */}
-          <div className="card">
-            <div className="card-header">
-              <div className="flex-container">
-                <Shield className="icon" />
-                <h3 className="card-title">👥 관리자</h3>
+        {/* Main Cards */}
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {/* Evaluator Card */}
+          <Link href="/evaluator/login">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group">
+              <div className="bg-blue-100 dark:bg-blue-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               </div>
-            </div>
-            <div className="card-body">
-              <p className="body-text mb-6">
-                시스템 전체를 관리하고 평가 프로세스를 설정합니다. 
-                평가자와 후보자를 관리하고 결과를 분석할 수 있습니다.
+              <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                평가 위원
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                채점을 진행하고 결과를 제출합니다.
               </p>
-              
-              <div className="flex-column mb-6">
-                <div className="flex-container">
-                  <span>✅</span>
-                  <span className="body-text">평가자 및 후보자 관리</span>
-                </div>
-                <div className="flex-container">
-                  <span>📄</span>
-                  <span className="body-text">평가 항목 설정</span>
-                </div>
-                <div className="flex-container">
-                  <span>📊</span>
-                  <span className="body-text">결과 분석 및 리포트</span>
-                </div>
-                <div className="flex-container">
-                  <span>⚙️</span>
-                  <span className="body-text">시스템 설정</span>
-                </div>
-              </div>
-              
-              <Link href="/admin/login">
-                <button className="btn btn-primary btn-full btn-lg">
-                  관리자 로그인
-                </button>
-              </Link>
             </div>
-          </div>
+          </Link>
 
-          {/* 평가자 카드 */}
-          <div className="card">
-            <div className="card-header">
-              <div className="flex-container">
-                <Users className="icon" />
-                <h3 className="card-title">⭐ 평가자</h3>
+          {/* Admin Card */}
+          <Link href="/admin/login">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group">
+              <div className="bg-green-100 dark:bg-green-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Shield className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
-            </div>
-            <div className="card-body">
-              <p className="body-text mb-6">
-                배정된 후보자들을 평가하고 점수를 입력합니다. 
-                체계적인 평가 도구로 공정한 평가를 진행할 수 있습니다.
+              <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                관리자
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                시스템 설정을 관리하고 결과를 집계합니다.
               </p>
-              
-              <div className="flex-column mb-6">
-                <div className="flex-container">
-                  <span>📝</span>
-                  <span className="body-text">후보자 평가 수행</span>
-                </div>
-                <div className="flex-container">
-                  <span>📅</span>
-                  <span className="body-text">평가 진행 상황 확인</span>
-                </div>
-                <div className="flex-container">
-                  <span>💬</span>
-                  <span className="body-text">평가 의견 작성</span>
-                </div>
-                <div className="flex-container">
-                  <span>✉️</span>
-                  <span className="body-text">평가 결과 제출</span>
-                </div>
-              </div>
-              
-              <Link href="/evaluator/login">
-                <button className="btn btn-primary btn-full btn-lg">
-                  평가자 로그인
-                </button>
-              </Link>
             </div>
-          </div>
+          </Link>
 
-          {/* 평가 결과 카드 */}
-          <div className="card">
-            <div className="card-header">
-              <div className="flex-container">
-                <BarChart3 className="icon" />
-                <h3 className="card-title">📊 평가 결과</h3>
+          {/* Results Card */}
+          <Link href="/results">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group">
+              <div className="bg-orange-100 dark:bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-8 h-8 text-orange-600 dark:text-orange-400" />
               </div>
-            </div>
-            <div className="card-body">
-              <p className="body-text mb-6">
-                완료된 평가의 결과를 확인할 수 있습니다. 
-                투명하고 객관적인 평가 결과를 제공합니다.
+              <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                채점 결과
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                종합 채점 결과를 확인합니다.
               </p>
-              
-              <div className="flex-column mb-6">
-                <div className="flex-container">
-                  <span>📈</span>
-                  <span className="body-text">종합 평가 결과</span>
-                </div>
-                <div className="flex-container">
-                  <span>🏆</span>
-                  <span className="body-text">후보자별 순위</span>
-                </div>
-                <div className="flex-container">
-                  <span>📋</span>
-                  <span className="body-text">세부 평가 내역</span>
-                </div>
-                <div className="flex-container">
-                  <span>📊</span>
-                  <span className="body-text">통계 및 분석</span>
-                </div>
-              </div>
-              
-              <Link href="/results">
-                <button className="btn btn-secondary btn-full btn-lg">
-                  결과 확인
-                </button>
-              </Link>
             </div>
-          </div>
+          </Link>
         </div>
 
-        <div className="text-center mt-8">
-          <p className="body-text text-muted">
-            본 시스템은 정부기관의 평가 업무 효율성 향상을 위해 개발되었습니다.<br />
-            문의사항이 있으시면 시스템 관리자에게 연락해주세요.
+        {/* Footer */}
+        <div className="text-center mt-16">
+          <p className="text-slate-500 dark:text-slate-400">
+            안전하고 신뢰할 수 있는 평가 시스템
           </p>
         </div>
       </div>
