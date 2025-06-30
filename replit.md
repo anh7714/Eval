@@ -111,13 +111,13 @@ This is a comprehensive evaluation management system built for government/profes
 - June 29, 2025. Updated UI/UX to minimal design with Korean interface improvements
 
 ## Recent Changes
-- ✓ shadcn/ui 테마 적용 - 첨부된 이미지 참고한 현대적 디자인
-- ✓ 깔끔한 카드 기반 레이아웃과 일관된 디자인 시스템
-- ✓ 표준 shadcn 컴포넌트 활용 (Card, Badge, Button variants)
-- ✓ 통계 카드에 아이콘과 메트릭 스타일 적용
-- ✓ 반응형 그리드 레이아웃과 개선된 타이포그래피
-- ✓ 백드롭 블러 헤더와 스티키 네비게이션
-- ✓ 전문적인 색상 시스템과 호버 효과
+- ✓ 정부 UIUX 가이드라인 기반 디자인 적용 (2025.06.30)
+- ✓ 과도한 그라데이션과 화려함 제거하여 깔끔한 정부서비스 스타일 구현
+- ✓ 단순하고 신뢰성 있는 흰색 배경과 정부 표준 색상 적용
+- ✓ Building2 아이콘으로 정부기관 아이덴티티 강화
+- ✓ 카드 디자인을 단순명료하게 수정하여 가독성 향상
+- ✓ 정부서비스 표준에 맞는 헤더와 네비게이션 구조
+- ✓ 명확한 텍스트 계층구조와 적절한 여백 적용
 - ✓ Pretendard 폰트 유지로 한국어 최적화
 
 ## User Preferences
