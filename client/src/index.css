@@ -270,6 +270,18 @@
   }
   
   .krds-card-tertiary {
+    @apply border-gray-200 bg-white;
+  }
+  
+  .krds-card-tertiary:hover {
+    @apply border-gray-300 bg-gray-50/30;
+  }
+
+  .krds-card-interactive {
+    @apply hover:shadow-lg hover:border-blue-200 transition-all duration-200 cursor-pointer;
+  }
+  
+  .krds-card-tertiary {
     @apply border-gray-200;
   }
   

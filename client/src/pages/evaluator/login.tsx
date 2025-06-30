@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { ClipboardList, User, Lock } from "lucide-react";
 
 export default function EvaluatorLogin() {
   const [, setLocation] = useLocation();
@@ -49,50 +50,101 @@ export default function EvaluatorLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">평가자 로그인</CardTitle>
-          <CardDescription>
-            평가자 계정으로 로그인하여 평가를 시작하세요.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">이름</Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full"
-                placeholder="평가자 이름을 입력하세요"
-              />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
+              <ClipboardList className="h-10 w-10 text-blue-600" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">비밀번호</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full"
-                placeholder="비밀번호를 입력하세요"
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? "로그인 중..." : "로그인"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+          <div className="space-y-2">
+            <h1 className="display-small text-gray-900">
+              평가자 로그인
+            </h1>
+            <p className="body-large text-gray-600">
+              평가자 계정으로 로그인하여 평가를 시작하세요
+            </p>
+          </div>
+        </div>
+
+        {/* Login Form */}
+        <Card className="krds-card">
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="label-large text-gray-700">
+                    평가자 이름
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="krds-input pl-10"
+                      placeholder="평가자 이름을 입력하세요"
+                      aria-describedby="name-description"
+                    />
+                  </div>
+                  <p id="name-description" className="body-small text-gray-500">
+                    등록된 평가자 이름을 정확히 입력해주세요
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="label-large text-gray-700">
+                    비밀번호
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="krds-input pl-10"
+                      placeholder="비밀번호를 입력하세요"
+                      aria-describedby="password-description"
+                    />
+                  </div>
+                  <p id="password-description" className="body-small text-gray-500">
+                    관리자가 제공한 비밀번호를 입력하세요
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="krds-button-primary w-full"
+                aria-describedby="login-button-description"
+              >
+                {isLoading ? "로그인 중..." : "평가 시작하기"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center space-y-3">
+          <p className="body-small text-gray-500">
+            로그인에 문제가 있으시면 관리자에게 문의하세요
+          </p>
+          <div className="flex items-center justify-center space-x-4 text-xs text-gray-400">
+            <span>보안 접속</span>
+            <span>•</span>
+            <span>세션 관리</span>
+            <span>•</span>
+            <span>접근성 지원</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCheck, FileText, Target, BarChart3, Settings } from "lucide-react";
+import { Users, UserCheck, FileText, Target, BarChart3, Settings, TrendingUp, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function AdminDashboard() {
@@ -12,19 +12,49 @@ export default function AdminDashboard() {
   });
 
   const menuItems = [
-    { id: "evaluators", label: "평가자 관리", icon: Users, color: "bg-blue-500", href: "/admin/evaluators" },
-    { id: "candidates", label: "후보자 관리", icon: UserCheck, color: "bg-green-500", href: "/admin/candidates" },
-    { id: "items", label: "평가항목 관리", icon: FileText, color: "bg-purple-500", href: "/admin/evaluation-items" },
-    { id: "results", label: "결과 관리", icon: BarChart3, color: "bg-orange-500", href: "/admin/results" },
-    { id: "settings", label: "시스템 설정", icon: Settings, color: "bg-gray-500", href: "/admin/settings" },
+    { 
+      id: "evaluators", 
+      label: "평가자 관리", 
+      icon: Users, 
+      description: "평가자 추가, 수정, 삭제 및 권한 관리",
+      href: "/admin/evaluators" 
+    },
+    { 
+      id: "candidates", 
+      label: "후보자 관리", 
+      icon: UserCheck, 
+      description: "후보자 정보 관리 및 평가 배정",
+      href: "/admin/candidates" 
+    },
+    { 
+      id: "items", 
+      label: "평가항목 관리", 
+      icon: FileText, 
+      description: "평가 기준 및 항목 설정, 가중치 조정",
+      href: "/admin/evaluation-items" 
+    },
+    { 
+      id: "results", 
+      label: "결과 관리", 
+      icon: BarChart3, 
+      description: "평가 결과 조회, 분석 및 리포트 생성",
+      href: "/admin/results" 
+    },
+    { 
+      id: "settings", 
+      label: "시스템 설정", 
+      icon: Settings, 
+      description: "시스템 환경 설정 및 기본값 관리",
+      href: "/admin/settings" 
+    },
   ];
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+          <p className="body-large text-gray-600">시스템 데이터를 불러오는 중입니다</p>
         </div>
       </div>
     );
@@ -32,92 +62,129 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">관리자 대시보드</h1>
-          <p className="text-lg text-gray-600">평가 시스템 관리 및 모니터링</p>
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
+        {/* Header Section */}
+        <div className="mb-10">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
+              <Settings className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="display-medium text-gray-900">
+                관리자 대시보드
+              </h1>
+              <p className="body-large text-gray-600 mt-2">
+                평가 시스템의 전체 현황을 확인하고 관리합니다
+              </p>
+            </div>
+          </div>
         </div>
         
-        {/* 통계 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">전체 평가자</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalEvaluators || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                활성: {stats?.activeEvaluators || 0}명
-              </p>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <Card className="krds-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 border border-blue-100">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <Badge className="krds-badge-info">
+                  활성 {stats?.activeEvaluators || 0}명
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <h3 className="h4 text-gray-900">{stats?.totalEvaluators || 0}</h3>
+                <p className="label-medium text-gray-600">전체 평가자</p>
+              </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">전체 후보자</CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalCandidates || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                평가 대상자
-              </p>
+          <Card className="krds-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50 border border-green-100">
+                  <UserCheck className="h-6 w-6 text-green-600" />
+                </div>
+                <Badge className="krds-badge-success">
+                  평가 대상
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <h3 className="h4 text-gray-900">{stats?.totalCandidates || 0}</h3>
+                <p className="label-medium text-gray-600">전체 후보자</p>
+              </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">평가 항목</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalEvaluationItems || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.totalCategories || 0}개 카테고리
-              </p>
+          <Card className="krds-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 border border-purple-100">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                </div>
+                <Badge className="krds-badge-warning">
+                  {stats?.totalCategories || 0}개 카테고리
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <h3 className="h4 text-gray-900">{stats?.totalEvaluationItems || 0}</h3>
+                <p className="label-medium text-gray-600">평가 항목</p>
+              </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">완료율</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.completionRate || 0}%</div>
-              <p className="text-xs text-muted-foreground">
-                전체 평가 진행률
-              </p>
+          <Card className="krds-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 border border-orange-100">
+                  <TrendingUp className="h-6 w-6 text-orange-600" />
+                </div>
+                <Badge className={`${(stats?.completionRate || 0) >= 80 ? 'krds-badge-success' : 'krds-badge-warning'}`}>
+                  진행률
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <h3 className="h4 text-gray-900">{stats?.completionRate || 0}%</h3>
+                <p className="label-medium text-gray-600">전체 완료율</p>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* 메뉴 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {menuItems.map((item) => (
-            <Link key={item.id} href={item.href}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${item.color}`}>
-                      <item.icon className="h-6 w-6 text-white" />
+        {/* Management Menu */}
+        <div className="space-y-6">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="h-6 w-6 text-blue-600" />
+            <h2 className="h3 text-gray-900">시스템 관리</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {menuItems.map((item) => (
+              <Link key={item.id} href={item.href}>
+                <Card className="krds-card krds-card-interactive group cursor-pointer">
+                  <CardContent className="p-8">
+                    <div className="space-y-6">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 border border-blue-100 group-hover:bg-blue-100 transition-colors duration-200">
+                          <item.icon className="h-8 w-8 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="h4 text-gray-900 mb-2">
+                            {item.label}
+                          </h3>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="body-medium text-gray-600 leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{item.label}</CardTitle>
-                      <CardDescription>
-                        {item.id === "evaluators" && "평가자 추가, 수정, 삭제"}
-                        {item.id === "candidates" && "후보자 정보 관리"}
-                        {item.id === "items" && "평가 기준 및 항목 설정"}
-                        {item.id === "results" && "평가 결과 조회 및 분석"}
-                        {item.id === "settings" && "시스템 환경 설정"}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
