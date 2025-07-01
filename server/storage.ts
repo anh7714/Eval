@@ -503,6 +503,29 @@ export class DatabaseStorage implements IStorage {
     totalCategories: number;
     completionRate: number;
   }> {
+    if (useMemoryStorage) {
+      const totalEvaluators = memoryStore.evaluators.length;
+      const activeEvaluators = memoryStore.evaluators.filter(e => e.isActive).length;
+      const totalCandidates = memoryStore.candidates.filter(c => c.isActive).length;
+      const totalEvaluationItems = memoryStore.evaluationItems.filter(i => i.isActive).length;
+      const totalCategories = memoryStore.categories.filter(c => c.isActive).length;
+      const completedSubmissions = memoryStore.submissions.filter(s => s.isCompleted).length;
+      const totalPossibleSubmissions = activeEvaluators * totalCandidates;
+      
+      const completionRate = totalPossibleSubmissions > 0 
+        ? Math.round((completedSubmissions / totalPossibleSubmissions) * 100)
+        : 0;
+
+      return {
+        totalEvaluators,
+        activeEvaluators,
+        totalCandidates,
+        totalEvaluationItems,
+        totalCategories,
+        completionRate,
+      };
+    }
+
     const [
       totalEvaluators,
       activeEvaluators,
