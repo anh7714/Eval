@@ -314,6 +314,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== ADMIN CANDIDATE ROUTES =====
+  app.get("/api/admin/candidates", requireAuth, async (req, res) => {
+    try {
+      const candidates = await storage.getAllCandidates();
+      res.json(candidates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch candidates" });
+    }
+  });
+
+  app.post("/api/admin/candidates", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertCandidateSchema.parse(req.body);
+      const candidate = await storage.createCandidate(validatedData);
+      res.json(candidate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create candidate" });
+    }
+  });
+
+  app.patch("/api/admin/candidates/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertCandidateSchema.partial().parse(req.body);
+      const candidate = await storage.updateCandidate(id, validatedData);
+      res.json(candidate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update candidate" });
+    }
+  });
+
+  app.delete("/api/admin/candidates/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteCandidate(id);
+      res.json({ message: "Candidate deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete candidate" });
+    }
+  });
+
   // ===== EVALUATION CATEGORY ROUTES =====
   app.get("/api/categories", async (req, res) => {
     try {
