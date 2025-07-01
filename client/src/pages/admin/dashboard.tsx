@@ -147,15 +147,6 @@ export default function AdminDashboard() {
         </div>
 
         {/* Management Menu */}
-        <div className="text-center mb-8">
-          <div className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-            관리 기능
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-            시스템 관리
-          </h2>
-        </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {menuItems.map((item) => {
             const Icon = item.icon;
