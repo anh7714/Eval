@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { eq, and, desc, asc, sql, count } from "drizzle-orm";
 import * as fs from 'fs';
 import * as path from 'path';
@@ -69,28 +69,75 @@ function saveDataToFile() {
   }
 }
 
-// Using file-based storage due to Replit-Supabase connectivity issues
-console.log("Using reliable file-based storage (data.json)");
-useMemoryStorage = true;
-
-// Load data from file
-loadDataFromFile();
-
-// Initialize with default admin if no data exists
-if (memoryStore.admins.length === 0) {
-  memoryStore.admins.push({
-    id: 1,
-    username: 'admin',
-    password: 'admin123',
-    name: '시스템 관리자',
-    createdAt: new Date(),
-    isActive: true
-  });
-  memoryStore.nextId = 2;
-  saveDataToFile();
+if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgresql://') && !process.env.DATABASE_URL.startsWith('postgres://'))) {
+  console.warn("DATABASE_URL not properly configured, using file-based storage");
+  useMemoryStorage = true;
+  
+  // Load data from file
+  loadDataFromFile();
+  
+  // Initialize with default admin if no data exists
+  if (memoryStore.admins.length === 0) {
+    memoryStore.admins.push({
+      id: 1,
+      username: 'admin',
+      password: 'admin123',
+      name: '시스템 관리자',
+      createdAt: new Date(),
+      isActive: true
+    });
+    memoryStore.nextId = 2;
+    saveDataToFile();
+  }
+} else {
+  console.log("Attempting to connect to Supabase with Connection Pooler...");
+  try {
+    // Use Connection Pooler URL instead of Direct Connection
+    const poolerUrl = process.env.DATABASE_URL.replace(
+      'db.bqgbppdppkhsqkekqrui.supabase.co:5432',
+      'aws-0-ap-northeast-2.pooler.supabase.com:6543'
+    );
+    
+    const pool = new Pool({
+      connectionString: poolerUrl,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000
+    });
+    
+    db = drizzle(pool);
+    console.log("Successfully connected to Supabase via Connection Pooler");
+    
+    // Test the connection asynchronously
+    pool.query('SELECT 1').then(() => {
+      console.log("Database connection test successful");
+    }).catch((testError) => {
+      console.warn("Database connection test failed:", testError.message);
+    });
+    
+  } catch (error) {
+    console.warn("Failed to connect to database, falling back to file-based storage:", error.message);
+    console.log("Continuing with reliable file-based storage");
+    useMemoryStorage = true;
+    
+    // Load data from file as fallback
+    loadDataFromFile();
+    
+    // Initialize with default admin if no data exists
+    if (memoryStore.admins.length === 0) {
+      memoryStore.admins.push({
+        id: 1,
+        username: 'admin',
+        password: 'admin123',
+        name: '시스템 관리자',
+        createdAt: new Date(),
+        isActive: true
+      });
+      memoryStore.nextId = 2;
+      saveDataToFile();
+    }
+  }
 }
-
-// Supabase connection temporarily disabled due to network restrictions in Replit environment
 
 export interface IStorage {
   // System Config
