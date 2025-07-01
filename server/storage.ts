@@ -92,25 +92,29 @@ if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgres
 } else {
   console.log("Attempting to connect to Supabase with Connection Pooler...");
   try {
-    // Use Connection Pooler URL instead of Direct Connection
-    const poolerUrl = process.env.DATABASE_URL.replace(
-      'db.bqgbppdppkhsqkekqrui.supabase.co:5432',
-      'aws-0-ap-northeast-2.pooler.supabase.com:6543'
+    // Try direct connection URL first
+    const directUrl = process.env.DATABASE_URL.replace(
+      'aws-0-ap-northeast-2.pooler.supabase.com:6543',
+      'db.bqgbppdppkhsqkekqrui.supabase.co:5432'
     );
     
+    console.log("Trying direct connection to Supabase...");
+    
     const pool = new Pool({
-      connectionString: poolerUrl,
-      ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000,
+      connectionString: directUrl,
+      ssl: { 
+        rejectUnauthorized: false
+      },
+      connectionTimeoutMillis: 15000,
       idleTimeoutMillis: 30000
     });
     
     db = drizzle(pool);
-    console.log("Successfully connected to Supabase via Connection Pooler");
+    console.log("Successfully connected to Supabase via Direct Connection");
     
     // Test the connection asynchronously
     pool.query('SELECT 1').then(() => {
-      console.log("Database connection test successful");
+      console.log("Database connection test successful - ready to use Supabase");
     }).catch((testError) => {
       console.warn("Database connection test failed:", testError.message);
     });
