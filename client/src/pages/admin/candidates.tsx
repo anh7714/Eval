@@ -118,25 +118,33 @@ export default function CandidateManagement() {
     }
   };
 
-  const handleExcelDownload = () => {
-    const candidateList = candidates as any[];
-    if (!candidateList || candidateList.length === 0) {
-      toast({ title: "알림", description: "다운로드할 후보자 데이터가 없습니다." });
-      return;
-    }
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        이름: "홍길동",
+        부서: "기획팀",
+        직책: "과장",
+        구분: "정규직",
+        설명: "기획업무 담당"
+      },
+      {
+        이름: "김영희",
+        부서: "마케팅팀",
+        직책: "대리",
+        구분: "정규직",
+        설명: "마케팅 전략 수립"
+      },
+      {
+        이름: "박철수",
+        부서: "개발팀",
+        직책: "팀장",
+        구분: "정규직",
+        설명: "시스템 개발 총괄"
+      }
+    ];
 
-    const excelData = candidateList.map((candidate: any) => ({
-      이름: candidate.name,
-      부서: candidate.department,
-      직책: candidate.position,
-      구분: candidate.category,
-      설명: candidate.description,
-      상태: candidate.isActive ? '활성' : '비활성',
-      등록일: new Date(candidate.createdAt).toLocaleDateString('ko-KR'),
-    }));
-
-    exportToExcel(excelData, `후보자목록_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast({ title: "성공", description: "엑셀 파일이 다운로드되었습니다." });
+    exportToExcel(templateData, `후보자_업로드_템플릿.xlsx`);
+    toast({ title: "성공", description: "업로드 템플릿 파일이 다운로드되었습니다." });
   };
 
   if (isLoading) {
@@ -157,6 +165,9 @@ export default function CandidateManagement() {
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">후보자 관리</h1>
             <p className="text-lg text-gray-600">평가 대상 후보자를 관리할 수 있습니다.</p>
+            <p className="text-sm text-gray-500 mt-2">
+              💡 엑셀 업로드 형식: 이름, 부서, 직책, 구분, 설명 컬럼을 포함해주세요.
+            </p>
           </div>
           <div className="flex space-x-2">
             <input
@@ -178,10 +189,10 @@ export default function CandidateManagement() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={handleExcelDownload}
+              onClick={handleDownloadTemplate}
             >
               <Download className="h-4 w-4 mr-2" />
-              엑셀 다운로드
+              예시파일 다운
             </Button>
             <Button onClick={() => setIsAddingCandidate(true)}>
               <Plus className="h-4 w-4 mr-2" />
