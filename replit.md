@@ -123,7 +123,9 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 엑셀 업로드/다운로드 기능 완전 구현 (2025.07.01)
 - ✓ 파일 기반 저장소 구현으로 데이터 지속성 확보 (data.json)
 - ✓ 후보자 예시파일 다운로드 템플릿 제공
-- ✓ Supabase 연결 설정 및 문제 해결 작업 진행중
+- ✓ Supabase 연결 문제 해결 시도 (SASL 인증 및 DNS 문제로 Replit 환경 제한 확인)
+- ✓ Supabase 수동 설정 SQL 스크립트 제공 (supabase-setup.sql)
+- ✓ 현재 파일 기반 저장소로 모든 기능 완전 작동
 
 ## User Preferences
 
