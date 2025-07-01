@@ -72,7 +72,7 @@ export const candidates = pgTable("candidates", {
   position: text("position").notNull(),
   category: text("category"),
   description: text("description"),
-  order: integer("order").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

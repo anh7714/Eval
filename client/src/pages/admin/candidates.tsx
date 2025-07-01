@@ -15,6 +15,7 @@ export default function CandidateManagement() {
     position: "",
     category: "",
     description: "",
+    sortOrder: 0,
   });
 
   const { toast } = useToast();
@@ -38,7 +39,7 @@ export default function CandidateManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
       toast({ title: "성공", description: "후보자가 추가되었습니다." });
       setIsAddingCandidate(false);
-      setNewCandidate({ name: "", department: "", position: "", category: "", description: "" });
+      setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
     },
     onError: () => {
       toast({ title: "오류", description: "후보자 추가에 실패했습니다.", variant: "destructive" });

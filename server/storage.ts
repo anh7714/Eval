@@ -326,28 +326,72 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCandidates(): Promise<Candidate[]> {
-    return await db.select().from(candidates).orderBy(asc(candidates.order), asc(candidates.name));
+    if (useMemoryStorage) {
+      return memoryStore.candidates.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    }
+    return await db.select().from(candidates).orderBy(asc(candidates.sortOrder), asc(candidates.name));
   }
 
   async getActiveCandidates(): Promise<Candidate[]> {
-    return await db.select().from(candidates).where(eq(candidates.isActive, true)).orderBy(asc(candidates.order), asc(candidates.name));
+    if (useMemoryStorage) {
+      return memoryStore.candidates
+        .filter(c => c.isActive)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    }
+    return await db.select().from(candidates).where(eq(candidates.isActive, true)).orderBy(asc(candidates.sortOrder), asc(candidates.name));
   }
 
   async createCandidate(candidate: InsertCandidate): Promise<Candidate> {
+    if (useMemoryStorage) {
+      const newCandidate: Candidate = {
+        id: memoryStore.candidates.length + 1,
+        name: candidate.name,
+        department: candidate.department,
+        position: candidate.position,
+        category: candidate.category || "",
+        description: candidate.description || "",
+        sortOrder: candidate.sortOrder || 0,
+        isActive: candidate.isActive ?? true,
+        createdAt: new Date(),
+      };
+      memoryStore.candidates.push(newCandidate);
+      return newCandidate;
+    }
     const [created] = await db.insert(candidates).values(candidate).returning();
     return created;
   }
 
   async createManyCandidates(candidateList: InsertCandidate[]): Promise<Candidate[]> {
+    if (useMemoryStorage) {
+      const createdCandidates: Candidate[] = [];
+      for (const candidate of candidateList) {
+        const newCandidate = await this.createCandidate(candidate);
+        createdCandidates.push(newCandidate);
+      }
+      return createdCandidates;
+    }
     return await db.insert(candidates).values(candidateList).returning();
   }
 
   async updateCandidate(id: number, candidate: Partial<InsertCandidate>): Promise<Candidate> {
+    if (useMemoryStorage) {
+      const index = memoryStore.candidates.findIndex(c => c.id === id);
+      if (index === -1) throw new Error("Candidate not found");
+      memoryStore.candidates[index] = { ...memoryStore.candidates[index], ...candidate };
+      return memoryStore.candidates[index];
+    }
     const [updated] = await db.update(candidates).set(candidate).where(eq(candidates.id, id)).returning();
     return updated;
   }
 
   async deleteCandidate(id: number): Promise<void> {
+    if (useMemoryStorage) {
+      const index = memoryStore.candidates.findIndex(c => c.id === id);
+      if (index !== -1) {
+        memoryStore.candidates.splice(index, 1);
+      }
+      return;
+    }
     await db.delete(candidates).where(eq(candidates.id, id));
   }
 
