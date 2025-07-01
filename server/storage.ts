@@ -96,7 +96,7 @@ if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgres
     db = drizzle(sql_);
     console.log("Successfully connected to Supabase database");
   } catch (error) {
-    console.warn("Failed to connect to database, falling back to file-based storage:", error);
+    console.warn("Failed to connect to database, falling back to file-based storage:", error?.message || error);
     useMemoryStorage = true;
     
     // Load data from file as fallback
