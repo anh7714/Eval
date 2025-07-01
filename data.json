@@ -1,5 +1,20 @@
 {
-  "systemConfig": null,
+  "systemConfig": {
+    "id": 1,
+    "evaluationTitle": "종합평가시스템",
+    "systemName": null,
+    "description": null,
+    "adminEmail": null,
+    "maxEvaluators": null,
+    "maxCandidates": null,
+    "evaluationDeadline": null,
+    "allowPartialSubmission": false,
+    "enableNotifications": true,
+    "isEvaluationActive": false,
+    "allowPublicResults": false,
+    "createdAt": "2025-07-01T08:56:00.000Z",
+    "updatedAt": "2025-07-01T08:56:00.000Z"
+  },
   "admins": [
     {
       "id": 1,

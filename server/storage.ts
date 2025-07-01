@@ -87,8 +87,29 @@ if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgres
       isActive: true
     });
     memoryStore.nextId = 2;
-    saveDataToFile();
   }
+  
+  // Initialize system config if it doesn't exist
+  if (!memoryStore.systemConfig) {
+    memoryStore.systemConfig = {
+      id: 1,
+      evaluationTitle: "종합평가시스템",
+      systemName: null,
+      description: null,
+      adminEmail: null,
+      maxEvaluators: null,
+      maxCandidates: null,
+      evaluationDeadline: null,
+      allowPartialSubmission: false,
+      enableNotifications: true,
+      isEvaluationActive: false,
+      allowPublicResults: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+  
+  saveDataToFile();
 } else {
   console.log("Attempting to connect to Supabase with Connection Pooler...");
   try {
@@ -98,12 +119,14 @@ if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgres
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { 
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        ca: undefined
       },
-      connectionTimeoutMillis: 15000,
+      connectionTimeoutMillis: 30000,
       idleTimeoutMillis: 30000,
-      max: 10,
-      min: 1
+      max: 5,
+      min: 1,
+      application_name: 'replit-evaluation-system'
     });
     
     db = drizzle(pool);
