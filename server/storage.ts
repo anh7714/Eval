@@ -69,46 +69,28 @@ function saveDataToFile() {
   }
 }
 
-if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgresql://') && !process.env.DATABASE_URL.startsWith('postgres://'))) {
-  console.warn("DATABASE_URL not properly configured, using file-based storage");
-  useMemoryStorage = true;
-  
-  // Load data from file
-  loadDataFromFile();
-  
-  // Initialize with default admin if no data exists
-  if (memoryStore.admins.length === 0) {
-    memoryStore.admins.push({
-      id: 1,
-      username: 'admin',
-      password: 'admin123',
-      name: '시스템 관리자',
-      createdAt: new Date(),
-      isActive: true
-    });
-    memoryStore.nextId = 2;
-    saveDataToFile();
-  }
-} else {
-  try {
-    const sql_ = neon(process.env.DATABASE_URL);
-    db = drizzle(sql_);
-  } catch (error) {
-    console.warn("Failed to connect to database, falling back to in-memory storage:", error);
-    useMemoryStorage = true;
-    
-    // Initialize with default admin
-    memoryStore.admins.push({
-      id: 1,
-      username: 'admin',
-      password: 'admin123',
-      name: '시스템 관리자',
-      createdAt: new Date(),
-      isActive: true
-    });
-    memoryStore.nextId = 2;
-  }
+// Temporarily force file-based storage due to Supabase connection issues
+console.warn("Using file-based storage for now");
+useMemoryStorage = true;
+
+// Load data from file
+loadDataFromFile();
+
+// Initialize with default admin if no data exists
+if (memoryStore.admins.length === 0) {
+  memoryStore.admins.push({
+    id: 1,
+    username: 'admin',
+    password: 'admin123',
+    name: '시스템 관리자',
+    createdAt: new Date(),
+    isActive: true
+  });
+  memoryStore.nextId = 2;
+  saveDataToFile();
 }
+
+// Database connection code temporarily disabled for Supabase troubleshooting
 
 export interface IStorage {
   // System Config
