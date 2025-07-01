@@ -1,6 +1,8 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq, and, desc, asc, sql, count } from "drizzle-orm";
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   systemConfig,
   admins,
@@ -31,6 +33,7 @@ import {
 // Use in-memory storage if DATABASE_URL is not provided
 let db: any;
 let useMemoryStorage = false;
+const DATA_FILE = path.join(process.cwd(), 'data.json');
 
 // In-memory storage objects
 const memoryStore = {
@@ -45,20 +48,47 @@ const memoryStore = {
   nextId: 1
 };
 
+// File-based persistence functions
+function loadDataFromFile() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      Object.assign(memoryStore, data);
+      console.log('Data loaded from file:', DATA_FILE);
+    }
+  } catch (error) {
+    console.warn('Failed to load data from file:', error);
+  }
+}
+
+function saveDataToFile() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(memoryStore, null, 2));
+  } catch (error) {
+    console.warn('Failed to save data to file:', error);
+  }
+}
+
 if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgresql://') && !process.env.DATABASE_URL.startsWith('postgres://'))) {
-  console.warn("DATABASE_URL not properly configured, using in-memory storage (data will be lost on restart)");
+  console.warn("DATABASE_URL not properly configured, using file-based storage");
   useMemoryStorage = true;
   
-  // Initialize with default admin
-  memoryStore.admins.push({
-    id: 1,
-    username: 'admin',
-    password: 'admin123',
-    name: '시스템 관리자',
-    createdAt: new Date(),
-    isActive: true
-  });
-  memoryStore.nextId = 2;
+  // Load data from file
+  loadDataFromFile();
+  
+  // Initialize with default admin if no data exists
+  if (memoryStore.admins.length === 0) {
+    memoryStore.admins.push({
+      id: 1,
+      username: 'admin',
+      password: 'admin123',
+      name: '시스템 관리자',
+      createdAt: new Date(),
+      isActive: true
+    });
+    memoryStore.nextId = 2;
+    saveDataToFile();
+  }
 } else {
   try {
     const sql_ = neon(process.env.DATABASE_URL);
@@ -344,7 +374,7 @@ export class DatabaseStorage implements IStorage {
   async createCandidate(candidate: InsertCandidate): Promise<Candidate> {
     if (useMemoryStorage) {
       const newCandidate: Candidate = {
-        id: memoryStore.candidates.length + 1,
+        id: memoryStore.nextId++,
         name: candidate.name,
         department: candidate.department,
         position: candidate.position,
@@ -355,6 +385,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(),
       };
       memoryStore.candidates.push(newCandidate);
+      saveDataToFile();
       return newCandidate;
     }
     const [created] = await db.insert(candidates).values(candidate).returning();
@@ -378,6 +409,7 @@ export class DatabaseStorage implements IStorage {
       const index = memoryStore.candidates.findIndex(c => c.id === id);
       if (index === -1) throw new Error("Candidate not found");
       memoryStore.candidates[index] = { ...memoryStore.candidates[index], ...candidate };
+      saveDataToFile();
       return memoryStore.candidates[index];
     }
     const [updated] = await db.update(candidates).set(candidate).where(eq(candidates.id, id)).returning();
@@ -389,6 +421,7 @@ export class DatabaseStorage implements IStorage {
       const index = memoryStore.candidates.findIndex(c => c.id === id);
       if (index !== -1) {
         memoryStore.candidates.splice(index, 1);
+        saveDataToFile();
       }
       return;
     }

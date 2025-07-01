@@ -1,0 +1,20 @@
+{
+  "systemConfig": null,
+  "admins": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "admin123",
+      "name": "시스템 관리자",
+      "createdAt": "2025-07-01T08:16:02.223Z",
+      "isActive": true
+    }
+  ],
+  "evaluators": [],
+  "categories": [],
+  "evaluationItems": [],
+  "candidates": [],
+  "evaluations": [],
+  "submissions": [],
+  "nextId": 2
+}
