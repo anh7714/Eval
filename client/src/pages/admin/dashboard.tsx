@@ -1,57 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCheck, FileText, Target, BarChart3, Settings, TrendingUp, CheckCircle2 } from "lucide-react";
-import { Link } from "wouter";
+import { Users, UserCheck, FileText, TrendingUp } from "lucide-react";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["/api/admin/statistics"],
   });
 
-  const menuItems = [
-    { 
-      id: "evaluators", 
-      label: "평가자 관리", 
-      icon: Users, 
-      description: "평가자 추가, 수정, 삭제 및 권한 관리",
-      href: "/admin/evaluators",
-      color: "text-blue-600 bg-blue-50"
-    },
-    { 
-      id: "candidates", 
-      label: "후보자 관리", 
-      icon: UserCheck, 
-      description: "후보자 정보 관리 및 평가 배정",
-      href: "/admin/candidates",
-      color: "text-green-600 bg-green-50"
-    },
-    { 
-      id: "items", 
-      label: "평가항목 관리", 
-      icon: FileText, 
-      description: "평가 기준 및 항목 설정, 가중치 조정",
-      href: "/admin/evaluation-items",
-      color: "text-purple-600 bg-purple-50"
-    },
-    { 
-      id: "results", 
-      label: "결과 관리", 
-      icon: BarChart3, 
-      description: "평가 결과 조회, 분석 및 리포트 생성",
-      href: "/admin/results",
-      color: "text-orange-600 bg-orange-50"
-    },
-    { 
-      id: "settings", 
-      label: "시스템 설정", 
-      icon: Settings, 
-      description: "시스템 환경 설정 및 기본값 관리",
-      href: "/admin/settings",
-      color: "text-gray-600 bg-gray-50"
-    },
-  ];
+
 
   if (isLoading) {
     return (
@@ -146,29 +103,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Management Menu */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.id} href={item.href}>
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
-                  <CardContent className="p-6 text-center">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${item.color} group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
-                      {item.label}
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-                      {item.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+
       </div>
     </div>
   );
