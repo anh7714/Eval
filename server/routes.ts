@@ -148,14 +148,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/admin/system-config", requireAuth, async (req, res) => {
     try {
+      console.log("Received system config update request:", req.body);
       const validatedData = insertSystemConfigSchema.partial().parse(req.body);
+      console.log("Validated data:", validatedData);
       const config = await storage.updateSystemConfig(validatedData);
+      console.log("Updated config:", config);
       res.json(config);
     } catch (error) {
+      console.error("System config update error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to update system config" });
+      res.status(500).json({ message: "Failed to update system config", error: error.message });
     }
   });
 

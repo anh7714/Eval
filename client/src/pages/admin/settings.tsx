@@ -56,6 +56,7 @@ export default function SystemSettings() {
       const response = await fetch("/api/admin/system-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           ...config,
           maxEvaluators: parseInt(config.maxEvaluators) || null,
@@ -79,6 +80,7 @@ export default function SystemSettings() {
       const response = await fetch("/api/admin/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(passwords),
       });
       if (!response.ok) throw new Error("Failed to change password");

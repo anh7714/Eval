@@ -158,6 +158,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSystemConfig(config: Partial<InsertSystemConfig>): Promise<SystemConfig> {
+    if (useMemoryStorage) {
+      const existing = memoryStore.systemConfig;
+      if (existing) {
+        const updated = { ...existing, ...config, updatedAt: new Date() };
+        memoryStore.systemConfig = updated;
+        return updated;
+      } else {
+        const created = {
+          id: 1,
+          evaluationTitle: "종합평가시스템",
+          isEvaluationActive: true,
+          allowPublicResults: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          ...config
+        } as SystemConfig;
+        memoryStore.systemConfig = created;
+        return created;
+      }
+    }
+    
     const existing = await this.getSystemConfig();
     if (existing) {
       const [updated] = await db
