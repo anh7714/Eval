@@ -120,6 +120,10 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 관리자 계정 자동 생성 기능 구현 (admin/admin123)
 - ✓ 누락된 API 엔드포인트 추가 및 세션 인증 문제 해결
 - ✓ 관리자 비밀번호 초기화 기능 추가
+- ✓ 엑셀 업로드/다운로드 기능 완전 구현 (2025.07.01)
+- ✓ 파일 기반 저장소 구현으로 데이터 지속성 확보 (data.json)
+- ✓ 후보자 예시파일 다운로드 템플릿 제공
+- ✓ Supabase 연결 설정 및 문제 해결 작업 진행중
 
 ## User Preferences
 
