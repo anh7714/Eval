@@ -95,6 +95,25 @@ export default function SystemSettings() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to reset password");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "성공", description: "관리자 비밀번호가 admin123으로 초기화되었습니다." });
+      setAdminPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    },
+    onError: () => {
+      toast({ title: "오류", description: "비밀번호 초기화에 실패했습니다.", variant: "destructive" });
+    },
+  });
+
   const handleConfigSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateConfigMutation.mutate(systemConfig);
@@ -311,10 +330,24 @@ export default function SystemSettings() {
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={updatePasswordMutation.isPending}>
-                    <Shield className="h-4 w-4 mr-2" />
-                    {updatePasswordMutation.isPending ? "변경 중..." : "비밀번호 변경"}
-                  </Button>
+                  <div className="flex space-x-3">
+                    <Button type="submit" disabled={updatePasswordMutation.isPending}>
+                      <Shield className="h-4 w-4 mr-2" />
+                      {updatePasswordMutation.isPending ? "변경 중..." : "비밀번호 변경"}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      disabled={resetPasswordMutation.isPending}
+                      onClick={() => {
+                        if (confirm("관리자 비밀번호를 admin123으로 초기화하시겠습니까?")) {
+                          resetPasswordMutation.mutate();
+                        }
+                      }}
+                    >
+                      {resetPasswordMutation.isPending ? "초기화 중..." : "비밀번호 초기화"}
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>

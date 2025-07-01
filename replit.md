@@ -116,6 +116,10 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 기본 Tailwind CSS 및 shadcn/ui 컴포넌트 시스템 유지
 - ✓ 그라데이션 배경과 모던한 카드 레이아웃 보존
 - ✓ 반응형 디자인 및 다크모드 지원 유지
+- ✓ TanStack Query v5 호환성 수정 및 시스템 설정 저장 기능 복원 (2025.07.01)
+- ✓ 관리자 계정 자동 생성 기능 구현 (admin/admin123)
+- ✓ 누락된 API 엔드포인트 추가 및 세션 인증 문제 해결
+- ✓ 관리자 비밀번호 초기화 기능 추가
 
 ## User Preferences
 

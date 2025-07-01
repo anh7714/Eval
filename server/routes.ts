@@ -163,6 +163,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/reset-password", requireAuth, async (req, res) => {
+    try {
+      const adminId = req.session.user.id;
+      const updatedAdmin = await storage.updateAdmin(adminId, { password: "admin123" });
+      res.json({ message: "비밀번호가 admin123으로 초기화되었습니다." });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "비밀번호 초기화에 실패했습니다." });
+    }
+  });
+
   // ===== EVALUATOR MANAGEMENT ROUTES =====
   app.get("/api/evaluators", requireAuth, async (req, res) => {
     try {
