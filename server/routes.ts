@@ -30,6 +30,27 @@ function requireEvaluatorAuth(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize default admin if not exists
+  try {
+    console.log("Checking for existing admin...");
+    const existingAdmin = await storage.getAdminByUsername("admin");
+    console.log("Existing admin check result:", existingAdmin);
+    
+    if (!existingAdmin) {
+      console.log("Creating default admin account...");
+      const newAdmin = await storage.createAdmin({
+        username: "admin",
+        password: "admin",
+        name: "시스템 관리자"
+      });
+      console.log("Default admin account created:", newAdmin);
+    } else {
+      console.log("Admin account already exists:", existingAdmin.username);
+    }
+  } catch (error) {
+    console.log("Admin initialization error:", error);
+  }
+
   // Session middleware
   app.use(session({
     secret: process.env.SESSION_SECRET || 'evaluation-system-secret',
@@ -113,6 +134,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/evaluator/me", requireEvaluatorAuth, (req, res) => {
     res.json({ evaluator: req.session.evaluator });
+  });
+
+  // ===== ADMIN SYSTEM CONFIG ROUTES =====
+  app.get("/api/admin/system-config", requireAuth, async (req, res) => {
+    try {
+      const config = await storage.getSystemConfig();
+      res.json(config || {});
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch system config" });
+    }
+  });
+
+  app.put("/api/admin/system-config", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertSystemConfigSchema.partial().parse(req.body);
+      const config = await storage.updateSystemConfig(validatedData);
+      res.json(config);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update system config" });
+    }
   });
 
   // ===== EVALUATOR MANAGEMENT ROUTES =====
@@ -466,6 +510,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(progress);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch progress" });
+    }
+  });
+
+  // ===== INITIALIZATION ROUTES (for development) =====
+  app.post("/api/init/admin", async (req, res) => {
+    try {
+      const existingAdmin = await storage.getAdminByUsername("admin");
+      if (existingAdmin) {
+        return res.json({ message: "Admin already exists", admin: { username: existingAdmin.username, name: existingAdmin.name } });
+      }
+      
+      const admin = await storage.createAdmin({
+        username: "admin",
+        password: "admin",
+        name: "시스템 관리자"
+      });
+      
+      res.json({ message: "Admin created successfully", admin: { username: admin.username, name: admin.name } });
+    } catch (error) {
+      console.error("Failed to create admin:", error);
+      res.status(500).json({ message: "Failed to create admin", error: String(error) });
     }
   });
 

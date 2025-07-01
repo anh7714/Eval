@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,21 +33,23 @@ export default function SystemSettings() {
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["/api/admin/system-config"],
-    onSuccess: (data) => {
-      if (data) {
-        setSystemConfig({
-          systemName: data.systemName || "",
-          description: data.description || "",
-          adminEmail: data.adminEmail || "",
-          maxEvaluators: data.maxEvaluators?.toString() || "",
-          maxCandidates: data.maxCandidates?.toString() || "",
-          evaluationDeadline: data.evaluationDeadline || "",
-          allowPartialSubmission: data.allowPartialSubmission || false,
-          enableNotifications: data.enableNotifications || true,
-        });
-      }
-    },
   });
+
+  // Update systemConfig when data is loaded
+  useEffect(() => {
+    if (config) {
+      setSystemConfig({
+        systemName: (config as any).systemName || "",
+        description: (config as any).description || "",
+        adminEmail: (config as any).adminEmail || "",
+        maxEvaluators: (config as any).maxEvaluators?.toString() || "",
+        maxCandidates: (config as any).maxCandidates?.toString() || "",
+        evaluationDeadline: (config as any).evaluationDeadline || "",
+        allowPartialSubmission: (config as any).allowPartialSubmission || false,
+        enableNotifications: (config as any).enableNotifications || true,
+      });
+    }
+  }, [config]);
 
   const updateConfigMutation = useMutation({
     mutationFn: async (config: typeof systemConfig) => {
