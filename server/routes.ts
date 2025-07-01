@@ -337,6 +337,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/candidates/bulk", requireAuth, async (req, res) => {
+    try {
+      const { candidates } = req.body;
+      const validatedData = z.array(insertCandidateSchema).parse(candidates);
+      const createdCandidates = await storage.createManyCandidates(validatedData);
+      res.json(createdCandidates);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create candidates" });
+    }
+  });
+
   app.patch("/api/admin/candidates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
