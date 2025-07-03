@@ -431,6 +431,8 @@ export default function EvaluationItemManagement() {
               text-align: right !important;
               margin-bottom: 20px !important;
               font-size: 11px !important;
+              border-bottom: 1px solid #000 !important;
+              padding-bottom: 10px !important;
             }
             
             table { 
@@ -506,9 +508,10 @@ export default function EvaluationItemManagement() {
       
       // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
       const evaluatorInfo = selectedEvaluatorInfo || evaluator;
+      const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
       const evaluatorHeader = `
         <div class="evaluator-info">
-          평가위원: ${evaluatorInfo.name} (${evaluatorInfo.position || evaluatorInfo.department})
+          평가위원 : ${evaluatorInfo.name}${positionText} (서명)
         </div>
       `;
       
@@ -563,6 +566,8 @@ export default function EvaluationItemManagement() {
             text-align: right;
             margin-bottom: 20px;
             font-size: 11px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
           }
           table { 
             border-collapse: collapse; 
@@ -612,9 +617,10 @@ export default function EvaluationItemManagement() {
         const isFirstPage = candidateIndex === 0 && evaluatorIndex === 0;
         const pageBreakClass = isFirstPage ? '' : 'page-break';
         
+        const positionText = evaluator.position ? ` (${evaluator.position})` : '';
         const evaluatorHeader = `
           <div class="evaluator-info">
-            평가위원: ${evaluator.name} (${evaluator.position}, ${evaluator.department})
+            평가위원 : ${evaluator.name}${positionText} (서명)
           </div>
         `;
 
