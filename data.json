@@ -47,8 +47,20 @@
   ],
   "categories": [],
   "evaluationItems": [],
-  "candidates": [],
+  "candidates": [
+    {
+      "id": 4,
+      "name": "홍길동",
+      "department": "하늘나라",
+      "position": "문지기",
+      "category": "없음",
+      "description": "",
+      "sortOrder": 0,
+      "isActive": true,
+      "createdAt": "2025-07-03T06:21:49.557Z"
+    }
+  ],
   "evaluations": [],
   "submissions": [],
-  "nextId": 4
+  "nextId": 5
 }

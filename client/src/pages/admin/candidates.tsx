@@ -10,6 +10,7 @@ import { parseExcelFile, exportToExcel } from "@/lib/excel";
 
 export default function CandidateManagement() {
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);
+  const [editingCandidate, setEditingCandidate] = useState<any>(null);
   const [newCandidate, setNewCandidate] = useState({
     name: "",
     department: "",
@@ -67,6 +68,45 @@ export default function CandidateManagement() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await fetch(`/api/admin/candidates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update candidate");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
+      toast({ title: "성공", description: "후보자가 수정되었습니다." });
+      setEditingCandidate(null);
+      setIsAddingCandidate(false);
+      setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
+    },
+    onError: () => {
+      toast({ title: "오류", description: "후보자 수정에 실패했습니다.", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/admin/candidates/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete candidate");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
+      toast({ title: "성공", description: "후보자가 삭제되었습니다." });
+    },
+    onError: () => {
+      toast({ title: "오류", description: "후보자 삭제에 실패했습니다.", variant: "destructive" });
+    },
+  });
+
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
       const response = await fetch(`/api/admin/candidates/${id}`, {
@@ -85,7 +125,36 @@ export default function CandidateManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(newCandidate);
+    if (editingCandidate) {
+      updateMutation.mutate({ id: editingCandidate.id, data: newCandidate });
+    } else {
+      createMutation.mutate(newCandidate);
+    }
+  };
+
+  const handleEdit = (candidate: any) => {
+    setEditingCandidate(candidate);
+    setNewCandidate({
+      name: candidate.name,
+      department: candidate.department,
+      position: candidate.position,
+      category: candidate.category,
+      description: candidate.description || "",
+      sortOrder: candidate.sortOrder || 0,
+    });
+    setIsAddingCandidate(true);
+  };
+
+  const handleDelete = (candidate: any) => {
+    if (window.confirm(`정말로 "${candidate.name}" 후보자를 삭제하시겠습니까?`)) {
+      deleteMutation.mutate(candidate.id);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingCandidate(null);
+    setIsAddingCandidate(false);
+    setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
   };
 
   const handleExcelUpload = async (file: File) => {
@@ -204,7 +273,7 @@ export default function CandidateManagement() {
         {isAddingCandidate && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>새 후보자 추가</CardTitle>
+              <CardTitle>{editingCandidate ? "후보자 수정" : "새 후보자 추가"}</CardTitle>
               <CardDescription>후보자 정보를 입력하세요.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -252,10 +321,13 @@ export default function CandidateManagement() {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? "추가 중..." : "추가"}
+                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                    {editingCandidate ? 
+                      (updateMutation.isPending ? "수정 중..." : "수정") : 
+                      (createMutation.isPending ? "추가 중..." : "추가")
+                    }
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsAddingCandidate(false)}>
+                  <Button type="button" variant="outline" onClick={handleCancel}>
                     취소
                   </Button>
                 </div>
@@ -301,10 +373,10 @@ export default function CandidateManagement() {
                     >
                       {candidate.isActive ? "비활성화" : "활성화"}
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(candidate)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleDelete(candidate)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
