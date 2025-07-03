@@ -69,8 +69,8 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Database Connection Test - Hidden for production */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* Database Connection Test - Hidden from UI, kept for development */}
+        {false && (
           <div className="mb-16">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
