@@ -1,0 +1,925 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Download, Upload, Plus, Trash2, Edit3, Save, X, Printer } from 'lucide-react';
+
+const EvaluationSystem = () => {
+  // 컬럼 설정 관리
+  const [columnConfig, setColumnConfig] = useState([
+    { id: 'section', title: '구분', type: 'section', visible: true, required: true, width: 'w-32' },
+    { id: 'item', title: '세부 항목', type: 'text', visible: true, required: true, width: 'flex-1' },
+    { id: 'type', title: '유형', type: 'select', visible: true, required: false, width: 'w-16', options: ['정량', '정성'] },
+    { id: 'points', title: '배점', type: 'number', visible: true, required: true, width: 'w-16' },
+    { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
+  ]);
+
+  // 평가위원 정보 (실제 구현시 외부 API나 전역 상태에서 가져올 데이터)
+  const [evaluator, setEvaluator] = useState({
+    name: '', // 실제로는 외부에서 가져올 평가위원 이름
+    position: '', // 평가위원 직책
+    department: '' // 평가위원 소속
+  });
+
+  // 평가위원 정보 불러오기 (실제 구현시 useEffect로 외부에서 가져오기)
+  useEffect(() => {
+    // 실제 구현시에는 다음과 같이 외부에서 평가위원 정보를 가져옴
+    // fetchEvaluatorInfo().then(data => setEvaluator(data));
+    
+    // 임시로 빈 상태로 설정 (실제 구현시 제거)
+    setEvaluator({
+      name: '평가위원명', // 실제 구현시 외부에서 가져올 데이터
+      position: '직책',
+      department: '소속기관'
+    });
+  }, []);
+
+  // 컬럼 설정 변경 시 기존 데이터 동기화
+  useEffect(() => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => {
+          const updatedItem = { ...item };
+          columnConfig.forEach(column => {
+            if (!['section', 'item', 'type', 'points', 'score'].includes(column.id)) {
+              if (!(column.id in updatedItem)) {
+                updatedItem[column.id] = column.type === 'number' ? 0 : '';
+              }
+            }
+          });
+          return updatedItem;
+        })
+      }))
+    }));
+  }, [columnConfig]);
+
+  const [currentTemplate, setCurrentTemplate] = useState({
+    title: "제공기관 선정 심의회 평가표",
+    totalScore: 100,
+    sections: [
+      {
+        id: 'A',
+        title: '기관수행능력',
+        totalPoints: 35,
+        items: [
+          { id: 1, text: '통계SOS 사업 운영 체계화 2단 완료', type: '정성', points: 20, score: 0 },
+          { id: 2, text: '심의 및 승인 목적 확인', type: '정량', points: 5, score: 0 },
+          { id: 3, text: '기관 운영 기간', type: '정성', points: 5, score: 0 },
+          { id: 4, text: '조직구성', type: '정량', points: 5, score: 0 }
+        ]
+      },
+      {
+        id: 'B',
+        title: '인력운영',
+        totalPoints: 20,
+        items: [
+          { id: 1, text: '사업 운영 총괄자 및 담당자의 전문성', type: '정성', points: 5, score: 0 },
+          { id: 2, text: '통계SOS 사업 운영 체계화부 담당자', type: '정량', points: 5, score: 0 },
+          { id: 3, text: 'SOS서비스 수행 인력의 확보', type: '정량', points: 10, score: 0 }
+        ]
+      },
+      {
+        id: 'C',
+        title: '인건비관리',
+        totalPoints: 10,
+        items: [
+          { id: 1, text: '세부사업별 프로그램 (이용자후기시)', type: '정량', points: 5, score: 0 },
+          { id: 2, text: '주요 사고 예방 대책 관리 및 이용자 재이용관리', type: '정량', points: 5, score: 0 }
+        ]
+      },
+      {
+        id: 'D',
+        title: '공모참여',
+        totalPoints: 15,
+        items: [
+          { id: 1, text: '사업(총괄) 명가 결과', type: '정량', points: 15, score: 0 }
+        ]
+      },
+      {
+        id: 'E',
+        title: '실적평가',
+        totalPoints: 20,
+        items: [
+          { id: 1, text: '서비스 제공 건수(학업 기간)', type: '정량', points: 15, score: 0 },
+          { id: 2, text: '세금기업 명가결과 결과 (통계배너시)', type: '정량', points: 5, score: 0 }
+        ]
+      }
+    ]
+  });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const calculateSectionScore = (section) => {
+    return section.items.reduce((sum, item) => sum + (item.score || 0), 0);
+  };
+
+  const calculateSectionTotalPoints = (section) => {
+    return section.items.reduce((sum, item) => sum + (item.points || 0), 0);
+  };
+
+  const calculateTotalPoints = () => {
+    return currentTemplate.sections.reduce((sum, section) => sum + calculateSectionTotalPoints(section), 0);
+  };
+
+  const calculateTotalScore = () => {
+    return currentTemplate.sections.reduce((sum, section) => sum + calculateSectionScore(section), 0);
+  };
+
+  const updateScore = (sectionId, itemId, score) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.map(item =>
+                item.id === itemId ? { ...item, score: Math.min(score, item.points) } : item
+              )
+            }
+          : section
+      )
+    }));
+  };
+
+  const addSection = () => {
+    const newId = String.fromCharCode(65 + currentTemplate.sections.length);
+    
+    // 새 항목에 모든 컬럼 필드 추가
+    const newItem = {
+      id: 1,
+      text: '새 평가항목',
+      type: '정량',
+      points: 10,
+      score: 0
+    };
+    
+    // 커스텀 컬럼들에 대한 빈 값 추가
+    columnConfig.forEach(column => {
+      if (!['section', 'item', 'type', 'points', 'score'].includes(column.id)) {
+        newItem[column.id] = column.type === 'number' ? 0 : '';
+      }
+    });
+    
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: [...prev.sections, {
+        id: newId,
+        title: '새 평가영역',
+        totalPoints: 10,
+        items: [newItem]
+      }]
+    }));
+  };
+
+  const deleteSection = (sectionId) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.filter(section => section.id !== sectionId)
+    }));
+  };
+
+  const addItem = (sectionId) => {
+    // 새 항목에 모든 컬럼 필드 추가
+    const newItem = {
+      id: Math.max(...currentTemplate.sections.find(s => s.id === sectionId).items.map(i => i.id)) + 1,
+      text: '새 평가항목',
+      type: '정량',
+      points: 5,
+      score: 0
+    };
+    
+    // 커스텀 컬럼들에 대한 빈 값 추가
+    columnConfig.forEach(column => {
+      if (!['section', 'item', 'type', 'points', 'score'].includes(column.id)) {
+        newItem[column.id] = column.type === 'number' ? 0 : '';
+      }
+    });
+    
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: [...section.items, newItem]
+            }
+          : section
+      )
+    }));
+  };
+
+  const deleteItem = (sectionId, itemId) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.filter(item => item.id !== itemId)
+            }
+          : section
+      )
+    }));
+  };
+
+  const updateItem = (sectionId, itemId, field, value) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.map(item =>
+                item.id === itemId ? { ...item, [field]: value } : item
+              )
+            }
+          : section
+      )
+    }));
+  };
+
+  // 보이는 컬럼들만 필터링
+  const visibleColumns = columnConfig.filter(col => col.visible);
+
+  const updateSection = (sectionId, field, value) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId ? { ...section, [field]: value } : section
+      )
+    }));
+  };
+
+  const saveTemplate = () => {
+    // 현재 날짜와 시간으로 파일명 생성
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+    const fileName = `평가표_${currentTemplate.title.replace(/[^\w\s]/gi, '')}_${dateStr}_${timeStr}.json`;
+    
+    // 평가위원 정보와 컬럼 설정도 포함해서 저장
+    const templateWithAll = {
+      ...currentTemplate,
+      evaluator: evaluator,
+      columnConfig: columnConfig
+    };
+    
+    const dataStr = JSON.stringify(templateWithAll, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', fileName);
+    linkElement.click();
+    
+    // 사용자에게 저장 완료 알림
+    const notification = document.createElement('div');
+    notification.textContent = '✅ 템플릿이 저장되었습니다!';
+    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 3000);
+  };
+
+  const loadTemplate = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const template = JSON.parse(e.target.result);
+          
+          // 템플릿 유효성 검사
+          if (!template.title || !template.sections || !Array.isArray(template.sections)) {
+            throw new Error('올바르지 않은 템플릿 형식입니다.');
+          }
+          
+          // 평가위원 정보가 있으면 같이 불러오기
+          if (template.evaluator) {
+            setEvaluator(template.evaluator);
+          }
+          
+          // 컬럼 설정이 있으면 같이 불러오기
+          if (template.columnConfig) {
+            setColumnConfig(template.columnConfig);
+          }
+          
+          setCurrentTemplate(template);
+          
+          // 성공 알림
+          const notification = document.createElement('div');
+          notification.textContent = '✅ 템플릿이 성공적으로 불러와졌습니다!';
+          notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+          document.body.appendChild(notification);
+          
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 3000);
+          
+        } catch (error) {
+          // 에러 알림
+          const notification = document.createElement('div');
+          notification.textContent = '❌ ' + error.message;
+          notification.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+          document.body.appendChild(notification);
+          
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 3000);
+        }
+      };
+      reader.readAsText(file);
+    }
+    
+    // 파일 입력 초기화 (같은 파일 다시 선택 가능)
+    event.target.value = '';
+  };
+
+  const printResults = () => {
+    // 인쇄 스타일 추가
+    const printStyle = `
+      <style>
+        @media print {
+          .print\\:hidden { display: none !important; }
+          .print\\:block { display: block !important; }
+          .print\\:mb-4 { margin-bottom: 1rem !important; }
+          .print\\:text-center { text-align: center !important; }
+          .print\\:text-4xl { font-size: 2.25rem !important; }
+          .print\\:font-black { font-weight: 900 !important; }
+          .print\\:text-black { color: black !important; }
+          .print\\:border-none { border: none !important; }
+          
+          body { 
+            font-size: 12px !important; 
+            line-height: 1.4 !important;
+            margin: 0 !important;
+            padding: 20px !important;
+          }
+          
+          table { 
+            page-break-inside: avoid; 
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          
+          tr { 
+            page-break-inside: avoid; 
+          }
+          
+          .bg-blue-50 { 
+            background-color: #eff6ff !important; 
+            -webkit-print-color-adjust: exact !important;
+          }
+          
+          .bg-gray-100 { 
+            background-color: #f3f4f6 !important; 
+            -webkit-print-color-adjust: exact !important;
+          }
+          
+          .border { 
+            border: 1px solid #000 !important; 
+          }
+          
+          .border-black {
+            border-color: black !important;
+          }
+          
+          /* 제목 스타일 */
+          .max-w-6xl {
+            max-width: 100% !important;
+            margin: 0 !important;
+          }
+          
+          /* 평가위원 서명란 스타일 */
+          .mt-12 {
+            margin-top: 3rem !important;
+          }
+          
+          .border-t {
+            border-top: 2px solid #000 !important;
+          }
+          
+          .pt-8 {
+            padding-top: 2rem !important;
+          }
+        }
+      </style>
+    `;
+    
+    // 기존 head에 스타일 추가
+    const head = document.head;
+    const styleElement = document.createElement('div');
+    styleElement.innerHTML = printStyle;
+    head.appendChild(styleElement.firstChild);
+    
+    // 인쇄 실행
+    window.print();
+    
+    // 스타일 제거 (인쇄 후)
+    setTimeout(() => {
+      head.removeChild(head.lastChild);
+    }, 1000);
+  };
+
+  const resetScores = () => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => ({ ...item, score: 0 }))
+      }))
+    }));
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-lg shadow-lg p-8">
+        {/* 헤더 */}
+        <div className="flex justify-between items-center mb-8 print:mb-4">
+          <div className="flex-1 text-center print:text-center">
+            <input
+              type="text"
+              value={currentTemplate.title}
+              onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
+              className="text-3xl font-bold text-gray-800 bg-transparent border-b-2 border-transparent hover:border-blue-300 focus:border-blue-500 focus:outline-none transition-colors text-center w-full print:text-4xl print:font-black print:text-black print:border-none"
+              disabled={!isEditing}
+            />
+          </div>
+          
+          <div className="flex gap-2 print:hidden">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                isEditing 
+                  ? 'bg-green-600 text-white hover:bg-green-700' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isEditing ? <Save size={18} /> : <Edit3 size={18} />}
+            </button>
+            
+            <button
+              onClick={saveTemplate}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              title="템플릿 저장"
+            >
+              <Download size={18} />
+            </button>
+            
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              title="템플릿 불러오기"
+            >
+              <Upload size={18} />
+            </button>
+            
+            <button
+              onClick={printResults}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              title="인쇄"
+            >
+              <Printer size={18} />
+            </button>
+            
+            <button
+              onClick={resetScores}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              title="점수 초기화"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* 컬럼 설정 패널 (편집 모드일 때만 표시) */}
+        {isEditing && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 print:hidden">
+            <h3 className="text-lg font-semibold mb-3 text-blue-800">컬럼 설정</h3>
+            <div className="space-y-3">
+              <div className="space-y-3">
+                {columnConfig.map((column) => (
+                  <div key={column.id} className="p-3 bg-white rounded-lg border">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={column.visible}
+                        onChange={(e) => updateColumnConfig(column.id, 'visible', e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        disabled={column.required}
+                      />
+                      <input
+                        type="text"
+                        value={column.title}
+                        onChange={(e) => updateColumnConfig(column.id, 'title', e.target.value)}
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:border-blue-500 focus:outline-none"
+                        placeholder="컬럼 제목"
+                      />
+                      <select
+                        value={column.type}
+                        onChange={(e) => updateColumnConfig(column.id, 'type', e.target.value)}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:border-blue-500 focus:outline-none"
+                      >
+                        <option value="text">텍스트</option>
+                        <option value="number">숫자</option>
+                        <option value="select">선택</option>
+                      </select>
+                      {!column.required && (
+                        <button
+                          onClick={() => deleteColumn(column.id)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                          title="컬럼 삭제"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      {column.required && (
+                        <span className="text-xs text-gray-500 px-2">필수</span>
+                      )}
+                    </div>
+                    
+                    {column.type === 'select' && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">선택옵션:</span>
+                        <input
+                          type="text"
+                          value={column.options?.join(', ') || ''}
+                          onChange={(e) => updateColumnConfig(column.id, 'options', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:border-blue-500 focus:outline-none"
+                          placeholder="옵션1, 옵션2, 옵션3 (콤마로 구분)"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={addColumn}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  새 컬럼 추가
+                </button>
+                <div className="text-sm text-gray-600">
+                  💡 체크박스로 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 평가위원 정보 설정 (편집 모드일 때만 표시) */}
+        {isEditing && (
+          <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200 print:hidden">
+            <h3 className="text-lg font-semibold mb-3 text-yellow-800">평가위원 정보 설정</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">평가위원명</label>
+                <input
+                  type="text"
+                  value={evaluator.name}
+                  onChange={(e) => setEvaluator(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  placeholder="평가위원 이름을 입력하세요"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">직책</label>
+                <input
+                  type="text"
+                  value={evaluator.position}
+                  onChange={(e) => setEvaluator(prev => ({ ...prev, position: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  placeholder="직책을 입력하세요"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">소속기관</label>
+                <input
+                  type="text"
+                  value={evaluator.department}
+                  onChange={(e) => setEvaluator(prev => ({ ...prev, department: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                  placeholder="소속기관을 입력하세요"
+                />
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-gray-600">
+              💡 실제 구현시에는 외부 시스템에서 평가위원 정보를 자동으로 가져올 수 있습니다.
+            </div>
+          </div>
+        )}
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={loadTemplate}
+          accept=".json"
+          className="hidden"
+        />
+
+        {/* 평가표 */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse border border-gray-400 text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                {visibleColumns.map((column) => (
+                  <th 
+                    key={column.id} 
+                    className={`border border-gray-400 px-4 py-3 text-center font-bold ${
+                      column.id === 'section' ? 'w-32' : 
+                      column.id === 'item' ? '' : 
+                      column.width || 'w-20'
+                    }`}
+                  >
+                    {column.title}
+                    {column.id === 'section' && ` (${calculateTotalPoints()}점)`}
+                  </th>
+                ))}
+                {isEditing && <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20 print:hidden">관리</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {currentTemplate.sections.map((section, sectionIndex) => (
+                <React.Fragment key={section.id}>
+                  {section.items.map((item, itemIndex) => (
+                    <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
+                      {visibleColumns.map((column) => {
+                        if (column.id === 'section' && itemIndex === 0) {
+                          return (
+                            <td 
+                              key={column.id}
+                              className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-top text-center"
+                              rowSpan={section.items.length}
+                            >
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="text-center">
+                                  {isEditing ? (
+                                    <input
+                                      type="text"
+                                      value={section.title}
+                                      onChange={(e) => updateSection(section.id, 'title', e.target.value)}
+                                      className="font-bold text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none text-center"
+                                    />
+                                  ) : (
+                                    <span className="font-bold text-sm">{section.id}. {section.title}</span>
+                                  )}
+                                  <div className="text-xs text-gray-600 mt-1">
+                                    ({calculateSectionTotalPoints(section)}점)
+                                  </div>
+                                </div>
+                                {isEditing && (
+                                  <div className="flex flex-col gap-1 mt-2 print:hidden">
+                                    <button
+                                      onClick={() => addItem(section.id)}
+                                      className="text-blue-600 hover:text-blue-800 text-xs"
+                                      title="항목 추가"
+                                    >
+                                      <Plus size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => deleteSection(section.id)}
+                                      className="text-red-600 hover:text-red-800 text-xs"
+                                      title="섹션 삭제"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        } else if (column.id === 'section' && itemIndex > 0) {
+                          return null; // 섹션 컬럼은 첫 번째 행에서만 렌더링
+                        } else if (column.id === 'item') {
+                          return (
+                            <td key={column.id} className="border border-gray-400 px-4 py-3">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={item.text}
+                                  onChange={(e) => updateItem(section.id, item.id, 'text', e.target.value)}
+                                  className="w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+                                />
+                              ) : (
+                                <span className="text-sm">{item.id}. {item.text}</span>
+                              )}
+                            </td>
+                          );
+                        } else if (column.id === 'type') {
+                          return (
+                            <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                              {isEditing ? (
+                                <select
+                                  value={item.type || '정량'}
+                                  onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
+                                  className="w-full text-xs bg-transparent border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                                >
+                                  <option value="정량">정량</option>
+                                  <option value="정성">정성</option>
+                                </select>
+                              ) : (
+                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                  {item.type || '정량'}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        } else if (column.id === 'points') {
+                          return (
+                            <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={item.points}
+                                  onChange={(e) => updateItem(section.id, item.id, 'points', parseInt(e.target.value) || 0)}
+                                  className="w-full text-center text-sm bg-transparent border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                                  min="0"
+                                />
+                              ) : (
+                                <span className="text-sm font-medium">{item.points}점</span>
+                              )}
+                            </td>
+                          );
+                        } else if (column.id === 'score') {
+                          return (
+                            <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                              <input
+                                type="number"
+                                value={item.score || 0}
+                                onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
+                                className="w-full text-center text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                                min="0"
+                                max={item.points}
+                              />
+                            </td>
+                          );
+                        } else {
+                          // 커스텀 컬럼 처리
+                          return (
+                            <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                              {column.type === 'select' ? (
+                                <select
+                                  value={item[column.id] || ''}
+                                  onChange={(e) => updateItem(section.id, item.id, column.id, e.target.value)}
+                                  className="w-full text-xs bg-transparent border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                                >
+                                  <option value="">선택</option>
+                                  {column.options?.map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                  ))}
+                                </select>
+                              ) : column.type === 'number' ? (
+                                <input
+                                  type="number"
+                                  value={item[column.id] || 0}
+                                  onChange={(e) => updateItem(section.id, item.id, column.id, parseInt(e.target.value) || 0)}
+                                  className="w-full text-center text-sm bg-transparent border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                                />
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={item[column.id] || ''}
+                                  onChange={(e) => updateItem(section.id, item.id, column.id, e.target.value)}
+                                  className="w-full text-center text-sm bg-transparent border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                                />
+                              )}
+                            </td>
+                          );
+                        }
+                      })}
+                      
+                      {isEditing && (
+                        <td className="border border-gray-400 px-2 py-3 text-center print:hidden">
+                          <button
+                            onClick={() => deleteItem(section.id, item.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="항목 삭제"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+              
+              {/* 합계 행 */}
+              <tr className="bg-blue-50 font-bold">
+                {visibleColumns.map((column) => {
+                  if (column.id === 'section') {
+                    return (
+                      <td key={column.id} className="border border-gray-400 px-4 py-3 text-center">
+                        총점
+                      </td>
+                    );
+                  } else if (column.id === 'item') {
+                    return (
+                      <td key={column.id} className="border border-gray-400 px-4 py-3"></td>
+                    );
+                  } else if (column.id === 'points') {
+                    return (
+                      <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                        {calculateTotalPoints()}점
+                      </td>
+                    );
+                  } else if (column.id === 'score') {
+                    return (
+                      <td key={column.id} className="border border-gray-400 px-2 py-3 text-center text-lg">
+                        {calculateTotalScore()}점
+                      </td>
+                    );
+                  } else {
+                    return (
+                      <td key={column.id} className="border border-gray-400 px-2 py-3"></td>
+                    );
+                  }
+                })}
+                {isEditing && <td className="border border-gray-400 px-2 py-3 print:hidden"></td>}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 섹션 추가 버튼 */}
+        {isEditing && (
+          <div className="mt-6 print:hidden">
+            <button
+              onClick={addSection}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+            >
+              <Plus size={18} />
+              새 평가영역 추가
+            </button>
+          </div>
+        )}
+
+        {/* 인쇄용 평가위원 서명란 */}
+        <div className="hidden print:block mt-12 border-t pt-8">
+          <div className="flex justify-end">
+            <div className="text-right">
+              <div className="mb-4">
+                <span className="text-lg font-bold">평가위원: </span>
+                <span className="inline-block w-32 border-b border-black ml-2 pb-1 text-center">
+                  {evaluator.name}
+                </span>
+                <span className="ml-2 text-sm">({evaluator.position})</span>
+              </div>
+              <div className="mb-4">
+                <span className="text-lg font-bold">소속기관: </span>
+                <span className="inline-block w-40 border-b border-black ml-2 pb-1 text-center">
+                  {evaluator.department}
+                </span>
+              </div>
+              <div className="mb-4">
+                <span className="text-lg font-bold">서명: </span>
+                <span className="inline-block w-32 border-b border-black ml-2 pb-1"></span>
+              </div>
+              <div className="text-sm text-gray-600">
+                평가일: {new Date().toLocaleDateString('ko-KR')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 결과 요약 */}
+        <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+          <h3 className="text-lg font-bold mb-4 text-gray-800">평가 결과 요약</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {calculateTotalScore()}점
+              </div>
+              <div className="text-sm text-gray-600">총점</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {calculateTotalPoints() > 0 ? Math.round((calculateTotalScore() / calculateTotalPoints()) * 100) : 0}%
+              </div>
+              <div className="text-sm text-gray-600">달성률</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {currentTemplate.sections.length}개
+              </div>
+              <div className="text-sm text-gray-600">평가영역</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {currentTemplate.sections.reduce((sum, section) => sum + section.items.length, 0)}개
+              </div>
+              <div className="text-sm text-gray-600">평가항목</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EvaluationSystem;

@@ -25,6 +25,22 @@ export default function EvaluationItemManagement() {
     weight: "",
   });
 
+  // 컬럼 설정 관리
+  const [columnConfig, setColumnConfig] = useState([
+    { id: 'section', title: '구분', type: 'section', visible: true, required: true, width: 'w-32' },
+    { id: 'item', title: '세부 항목', type: 'text', visible: true, required: true, width: 'flex-1' },
+    { id: 'type', title: '유형', type: 'select', visible: true, required: false, width: 'w-16', options: ['정량', '정성'] },
+    { id: 'points', title: '배점', type: 'number', visible: true, required: true, width: 'w-16' },
+    { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
+  ]);
+
+  // 평가위원 정보
+  const [evaluator, setEvaluator] = useState({
+    name: '평가위원명',
+    position: '직책',
+    department: '소속기관'
+  });
+
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
     title: "제공기관 선정 심의회 평가표",
