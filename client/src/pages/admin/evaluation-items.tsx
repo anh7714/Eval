@@ -411,12 +411,23 @@ export default function EvaluationItemManagement() {
             .print\\:text-black { color: black !important; }
             .print\\:border-none { border: none !important; }
             
+            @page {
+              margin: 0 !important;
+              size: A4 !important;
+            }
+            
             body { 
               font-size: 12px !important; 
               line-height: 1.4 !important;
               margin: 0 !important;
               padding: 20px !important;
               font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
+            }
+            
+            /* 브라우저 기본 헤더/푸터 제거 */
+            html {
+              -webkit-print-color-adjust: exact !important;
+              color-adjust: exact !important;
             }
             
             .title {
@@ -548,12 +559,23 @@ export default function EvaluationItemManagement() {
       <style>
         @media print {
           .page-break { page-break-before: always; }
+          @page {
+            margin: 0;
+            size: A4;
+          }
+          
           body { 
             font-size: 12px; 
             line-height: 1.4;
             margin: 0;
             padding: 20px;
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
+          }
+          
+          /* 브라우저 기본 헤더/푸터 제거 */
+          html {
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
           }
           .title {
             text-align: center;
@@ -1120,6 +1142,8 @@ export default function EvaluationItemManagement() {
                       </Button>
                       <div className="text-xs text-gray-600">
                         선택된 평가위원과 평가대상으로 개별 심사표가 생성됩니다
+                        <br />
+                        <span className="text-orange-600 font-medium">💡 인쇄 팁:</span> 브라우저 인쇄 설정에서 '머리글 및 바닥글' 옵션을 해제하면 더 깨끗한 출력이 가능합니다
                       </div>
                     </div>
                   </div>
