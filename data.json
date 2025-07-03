@@ -25,11 +25,21 @@
       "isActive": true
     }
   ],
-  "evaluators": [],
+  "evaluators": [
+    {
+      "id": 2,
+      "name": "테스트 평가자",
+      "email": "test@example.com",
+      "department": "테스트 부서",
+      "password": "test123",
+      "isActive": true,
+      "createdAt": "2025-07-03T04:51:56.201Z"
+    }
+  ],
   "categories": [],
   "evaluationItems": [],
   "candidates": [],
   "evaluations": [],
   "submissions": [],
-  "nextId": 2
+  "nextId": 3
 }

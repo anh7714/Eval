@@ -297,33 +297,83 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllEvaluators(): Promise<Evaluator[]> {
+    if (useMemoryStorage) {
+      console.log("Getting all evaluators from memory store:", memoryStore.evaluators.length);
+      return memoryStore.evaluators;
+    }
     return await db.select().from(evaluators).orderBy(asc(evaluators.name));
   }
 
   async getActiveEvaluators(): Promise<Evaluator[]> {
+    if (useMemoryStorage) {
+      return memoryStore.evaluators.filter(e => e.isActive);
+    }
     return await db.select().from(evaluators).where(eq(evaluators.isActive, true)).orderBy(asc(evaluators.name));
   }
 
   async getEvaluatorByName(name: string): Promise<Evaluator | undefined> {
+    if (useMemoryStorage) {
+      return memoryStore.evaluators.find(e => e.name === name);
+    }
     const result = await db.select().from(evaluators).where(eq(evaluators.name, name)).limit(1);
     return result[0];
   }
 
   async createEvaluator(evaluator: InsertEvaluator): Promise<Evaluator> {
+    if (useMemoryStorage) {
+      const newEvaluator: Evaluator = {
+        id: memoryStore.nextId++,
+        name: evaluator.name,
+        email: evaluator.email || null,
+        department: evaluator.department,
+        password: evaluator.password,
+        isActive: evaluator.isActive ?? true,
+        createdAt: new Date()
+      };
+      memoryStore.evaluators.push(newEvaluator);
+      saveDataToFile();
+      return newEvaluator;
+    }
     const [created] = await db.insert(evaluators).values(evaluator).returning();
     return created;
   }
 
   async createManyEvaluators(evaluatorList: InsertEvaluator[]): Promise<Evaluator[]> {
+    if (useMemoryStorage) {
+      const createdEvaluators: Evaluator[] = [];
+      for (const evaluator of evaluatorList) {
+        const newEvaluator = await this.createEvaluator(evaluator);
+        createdEvaluators.push(newEvaluator);
+      }
+      return createdEvaluators;
+    }
     return await db.insert(evaluators).values(evaluatorList).returning();
   }
 
   async updateEvaluator(id: number, evaluator: Partial<InsertEvaluator>): Promise<Evaluator> {
+    if (useMemoryStorage) {
+      const index = memoryStore.evaluators.findIndex(e => e.id === id);
+      if (index === -1) throw new Error("Evaluator not found");
+      memoryStore.evaluators[index] = { 
+        ...memoryStore.evaluators[index], 
+        ...evaluator
+      };
+      saveDataToFile();
+      return memoryStore.evaluators[index];
+    }
     const [updated] = await db.update(evaluators).set(evaluator).where(eq(evaluators.id, id)).returning();
     return updated;
   }
 
   async deleteEvaluator(id: number): Promise<void> {
+    if (useMemoryStorage) {
+      const index = memoryStore.evaluators.findIndex(e => e.id === id);
+      if (index !== -1) {
+        memoryStore.evaluators.splice(index, 1);
+        saveDataToFile();
+      }
+      return;
+    }
     await db.delete(evaluators).where(eq(evaluators.id, id));
   }
 

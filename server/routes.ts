@@ -250,6 +250,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== ADMIN EVALUATOR ROUTES =====
+  app.get("/api/admin/evaluators", requireAuth, async (req, res) => {
+    try {
+      const evaluators = await storage.getAllEvaluators();
+      res.json(evaluators);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch evaluators" });
+    }
+  });
+
+  app.post("/api/admin/evaluators", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertEvaluatorSchema.parse(req.body);
+      const evaluator = await storage.createEvaluator(validatedData);
+      res.json(evaluator);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create evaluator" });
+    }
+  });
+
+  app.patch("/api/admin/evaluators/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertEvaluatorSchema.partial().parse(req.body);
+      const evaluator = await storage.updateEvaluator(id, validatedData);
+      res.json(evaluator);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update evaluator" });
+    }
+  });
+
+  app.delete("/api/admin/evaluators/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteEvaluator(id);
+      res.json({ message: "Evaluator deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete evaluator" });
+    }
+  });
+
   // ===== CANDIDATE MANAGEMENT ROUTES =====
   app.get("/api/candidates", async (req, res) => {
     try {
