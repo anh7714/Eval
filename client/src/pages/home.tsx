@@ -69,18 +69,20 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Database Connection Test */}
-        <div className="mb-16">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
-              데이터베이스 연결 상태
-            </h2>
-            <p className="text-slate-600 dark:text-slate-300">
-              Supabase 데이터베이스 연결을 확인합니다
-            </p>
+        {/* Database Connection Test - Hidden for production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                데이터베이스 연결 상태
+              </h2>
+              <p className="text-slate-600 dark:text-slate-300">
+                Supabase 데이터베이스 연결을 확인합니다
+              </p>
+            </div>
+            <SupabaseTest />
           </div>
-          <SupabaseTest />
-        </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-16">
