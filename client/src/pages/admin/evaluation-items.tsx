@@ -417,10 +417,10 @@ export default function EvaluationItemManagement() {
             }
             
             body { 
-              font-size: 12px !important; 
-              line-height: 1.4 !important;
+              font-size: 14px !important; 
+              line-height: 1.5 !important;
               margin: 0 !important;
-              padding: 30px !important;
+              padding: 50px !important;
               font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
             }
             
@@ -440,18 +440,25 @@ export default function EvaluationItemManagement() {
             
             .evaluation-date {
               text-align: center !important;
-              margin: 30px 0 15px 0 !important;
-              font-size: 12px !important;
+              margin: 40px 0 20px 0 !important;
+              font-size: 16px !important;
               font-weight: bold !important;
             }
             
+            .signature-separator {
+              width: 100% !important;
+              height: 2px !important;
+              background-color: #000 !important;
+              margin: 30px 0 20px 0 !important;
+            }
+            
             .evaluator-info {
-              text-align: center !important;
-              margin-top: 40px !important;
+              text-align: right !important;
+              margin-top: 20px !important;
               margin-bottom: 20px !important;
-              font-size: 12px !important;
+              font-size: 16px !important;
               border: 2px solid #000 !important;
-              padding: 15px !important;
+              padding: 20px !important;
               background-color: #f9f9f9 !important;
             }
             
@@ -459,13 +466,13 @@ export default function EvaluationItemManagement() {
               border-collapse: collapse !important; 
               width: 100% !important; 
               margin-bottom: 30px !important;
-              font-size: 11px !important;
+              font-size: 13px !important;
               border: 2px solid #000 !important;
             }
             
             th, td { 
               border: 1px solid #000 !important; 
-              padding: 10px 8px !important; 
+              padding: 12px 10px !important; 
               vertical-align: middle !important;
             }
             
@@ -473,7 +480,7 @@ export default function EvaluationItemManagement() {
               background-color: #e8e8e8 !important; 
               text-align: center !important; 
               font-weight: bold !important;
-              font-size: 11px !important;
+              font-size: 13px !important;
             }
             
             /* 각 열의 너비 조정 */
@@ -558,6 +565,7 @@ export default function EvaluationItemManagement() {
         <div class="evaluation-date">
           평가일: ${today}
         </div>
+        <div class="signature-separator"></div>
         <div class="evaluator-info">
           평가위원 : ${evaluatorInfo.name}${positionText} (서명)
         </div>
@@ -602,10 +610,10 @@ export default function EvaluationItemManagement() {
           }
           
           body { 
-            font-size: 12px; 
-            line-height: 1.4;
+            font-size: 14px; 
+            line-height: 1.5;
             margin: 0;
-            padding: 30px;
+            padding: 50px;
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
           }
           
@@ -674,13 +682,35 @@ export default function EvaluationItemManagement() {
             font-weight: bold;
           }
           
-          .evaluator-info {
+          .title {
             text-align: center;
-            margin-top: 40px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: black;
+          }
+          
+          .evaluation-date {
+            text-align: center;
+            margin: 40px 0 20px 0;
+            font-size: 16px;
+            font-weight: bold;
+          }
+          
+          .signature-separator {
+            width: 100%;
+            height: 2px;
+            background-color: #000;
+            margin: 30px 0 20px 0;
+          }
+          
+          .evaluator-info {
+            text-align: right;
+            margin-top: 20px;
             margin-bottom: 20px;
-            font-size: 12px;
+            font-size: 16px;
             border: 2px solid #000;
-            padding: 15px;
+            padding: 20px;
             background-color: #f9f9f9;
           }
           .title {
@@ -756,6 +786,7 @@ export default function EvaluationItemManagement() {
           <div class="evaluation-date">
             평가일: ${today}
           </div>
+          <div class="signature-separator"></div>
           <div class="evaluator-info">
             평가위원 : ${evaluator.name}${positionText} (서명)
           </div>
