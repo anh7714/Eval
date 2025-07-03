@@ -420,7 +420,7 @@ export default function EvaluationItemManagement() {
               font-size: 12px !important; 
               line-height: 1.4 !important;
               margin: 0 !important;
-              padding: 20px !important;
+              padding: 30px !important;
               font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
             }
             
@@ -458,23 +458,31 @@ export default function EvaluationItemManagement() {
             table { 
               border-collapse: collapse !important; 
               width: 100% !important; 
-              margin-bottom: 20px !important;
+              margin-bottom: 30px !important;
               font-size: 11px !important;
+              border: 2px solid #000 !important;
             }
             
             th, td { 
               border: 1px solid #000 !important; 
-              padding: 6px 8px !important; 
-              text-align: left !important;
+              padding: 10px 8px !important; 
               vertical-align: middle !important;
             }
             
             th { 
-              background-color: #f5f5f5 !important; 
+              background-color: #e8e8e8 !important; 
               text-align: center !important; 
               font-weight: bold !important;
-              font-size: 10px !important;
+              font-size: 11px !important;
             }
+            
+            /* 각 열의 너비 조정 */
+            .category-col { width: 12% !important; }
+            .item-col { width: 45% !important; text-align: left !important; }
+            .type-col { width: 12% !important; text-align: center !important; }
+            .points-col { width: 12% !important; text-align: center !important; }
+            .score-col { width: 12% !important; text-align: center !important; }
+            .notes-col { width: 7% !important; text-align: center !important; }
             
             .section-cell { 
               background-color: #f8f9fa !important; 
@@ -484,8 +492,19 @@ export default function EvaluationItemManagement() {
             }
             
             .total-row { 
-              background-color: #e9ecef !important; 
+              background-color: #e8e8e8 !important; 
               font-weight: bold !important; 
+            }
+            
+            .total-row td {
+              background-color: #f5f5f5 !important;
+              font-weight: bold !important;
+              text-align: center !important;
+            }
+            
+            .total-row .category-col {
+              background-color: #e8e8e8 !important;
+              text-align: center !important;
             }
             
             .score-cell {
@@ -529,7 +548,16 @@ export default function EvaluationItemManagement() {
       // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
       const evaluatorInfo = selectedEvaluatorInfo || evaluator;
       const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
-      const evaluatorHeader = `
+      const today = new Date().toLocaleDateString('ko-KR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      
+      const evaluationFooter = `
+        <div class="evaluation-date">
+          평가일: ${today}
+        </div>
         <div class="evaluator-info">
           평가위원 : ${evaluatorInfo.name}${positionText} (서명)
         </div>
@@ -544,8 +572,8 @@ export default function EvaluationItemManagement() {
             ${printStyle}
           </head>
           <body>
-            ${evaluatorHeader}
             ${printContent.innerHTML}
+            ${evaluationFooter}
           </body>
         </html>
       `);
@@ -577,7 +605,7 @@ export default function EvaluationItemManagement() {
             font-size: 12px; 
             line-height: 1.4;
             margin: 0;
-            padding: 20px;
+            padding: 30px;
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
           }
           
@@ -585,6 +613,75 @@ export default function EvaluationItemManagement() {
           html {
             -webkit-print-color-adjust: exact;
             color-adjust: exact;
+          }
+          
+          table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin-bottom: 30px;
+            font-size: 11px;
+            border: 2px solid #000;
+          }
+          
+          th, td { 
+            border: 1px solid #000; 
+            padding: 10px 8px; 
+            vertical-align: middle;
+          }
+          
+          th { 
+            background-color: #e8e8e8; 
+            text-align: center; 
+            font-weight: bold;
+            font-size: 11px;
+          }
+          
+          /* 각 열의 너비 조정 */
+          .category-col { width: 12%; }
+          .item-col { width: 45%; text-align: left; }
+          .type-col { width: 12%; text-align: center; }
+          .points-col { width: 12%; text-align: center; }
+          .score-col { width: 12%; text-align: center; }
+          .notes-col { width: 7%; text-align: center; }
+          
+          .section-cell { 
+            background-color: #f8f9fa; 
+            font-weight: bold; 
+            text-align: center;
+            vertical-align: top;
+          }
+          
+          .total-row { 
+            background-color: #e8e8e8; 
+            font-weight: bold; 
+          }
+          
+          .total-row td {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            text-align: center;
+          }
+          
+          .total-row .category-col {
+            background-color: #e8e8e8;
+            text-align: center;
+          }
+          
+          .evaluation-date {
+            text-align: center;
+            margin: 30px 0 15px 0;
+            font-size: 12px;
+            font-weight: bold;
+          }
+          
+          .evaluator-info {
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            border: 2px solid #000;
+            padding: 15px;
+            background-color: #f9f9f9;
           }
           .title {
             text-align: center;
@@ -649,7 +746,16 @@ export default function EvaluationItemManagement() {
         const pageBreakClass = isFirstPage ? '' : 'page-break';
         
         const positionText = evaluator.position ? ` (${evaluator.position})` : '';
-        const evaluatorHeader = `
+        const today = new Date().toLocaleDateString('ko-KR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        const evaluationFooter = `
+          <div class="evaluation-date">
+            평가일: ${today}
+          </div>
           <div class="evaluator-info">
             평가위원 : ${evaluator.name}${positionText} (서명)
           </div>
@@ -664,8 +770,8 @@ export default function EvaluationItemManagement() {
 
         allPrintContent += `
           <div class="${pageBreakClass}">
-            ${evaluatorHeader}
             ${titleUpdatedContent}
+            ${evaluationFooter}
           </div>
         `;
       });
