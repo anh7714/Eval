@@ -203,6 +203,39 @@ export default function EvaluationItemManagement() {
     toast({ title: "성공", description: "모든 점수가 초기화되었습니다." });
   };
 
+  const printTemplate = () => {
+    const printContent = document.getElementById('template-print-area');
+    if (printContent) {
+      const printWindow = window.open('', '_blank');
+      printWindow?.document.write(`
+        <html>
+          <head>
+            <title>평가표 출력</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+              th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+              th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
+              .section-cell { background-color: #f8f9fa; font-weight: bold; text-align: center; }
+              .center { text-align: center; }
+              .title { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+              .total-row { background-color: #f0f0f0; font-weight: bold; }
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent.innerHTML}
+          </body>
+        </html>
+      `);
+      printWindow?.document.close();
+      printWindow?.print();
+    }
+  };
+
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["/api/admin/categories"],
   });
@@ -595,6 +628,10 @@ export default function EvaluationItemManagement() {
                         <X className="h-4 w-4 mr-2" />
                         점수 초기화
                       </Button>
+                      <Button onClick={printTemplate} variant="outline" size="sm">
+                        <Printer className="h-4 w-4 mr-2" />
+                        인쇄
+                      </Button>
                       {isEditing && (
                         <Button onClick={addSection} size="sm">
                           <Plus className="h-4 w-4 mr-2" />
@@ -613,158 +650,160 @@ export default function EvaluationItemManagement() {
                     className="hidden"
                   />
 
-                  {/* 템플릿 제목 */}
-                  <div className="mb-6">
-                    <Input
-                      value={currentTemplate.title}
-                      onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
-                      className="text-xl font-bold text-center border-none text-gray-800 bg-transparent"
-                      disabled={!isEditing}
-                    />
-                    <div className="text-center text-sm text-gray-600 mt-2">
-                      총점: {calculateTotalScore()} / {currentTemplate.totalScore}점
+                  {/* 인쇄용 영역 */}
+                  <div id="template-print-area">
+                    {/* 템플릿 제목 */}
+                    <div className="mb-6">
+                      <Input
+                        value={currentTemplate.title}
+                        onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
+                        className="text-lg font-bold text-center border-none text-gray-800 bg-transparent title"
+                        disabled={!isEditing}
+                      />
                     </div>
-                  </div>
 
-                  {/* 평가표 테이블 */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-400 text-sm">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-400 px-4 py-3 text-left font-bold">구분 ({currentTemplate.totalScore}점)</th>
-                          <th className="border border-gray-400 px-4 py-3 text-left font-bold">세부 항목</th>
-                          <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">유형</th>
-                          <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">배점</th>
-                          <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">평가점수</th>
-                          {isEditing && <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">관리</th>}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentTemplate.sections.flatMap((section) => 
-                          section.items.map((item, itemIndex) => (
-                              <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
-                                {itemIndex === 0 && (
-                                  <td 
-                                    className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-top"
-                                    rowSpan={section.items.length}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        {isEditing ? (
-                                          <Input
-                                            value={section.title}
-                                            onChange={(e) => updateSection(section.id, 'title', e.target.value)}
-                                            className="font-bold text-sm bg-transparent border-b border-gray-300"
-                                          />
-                                        ) : (
-                                          <span className="font-bold text-sm">{section.id}. {section.title}</span>
-                                        )}
-                                        <div className="text-xs text-gray-600 mt-1">
-                                          ({calculateSectionScore(section)}점)
-                                        </div>
-                                      </div>
-                                      {isEditing && (
-                                        <div className="flex flex-col gap-1">
-                                          <Button
-                                            onClick={() => addItem(section.id)}
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                          >
-                                            <Plus className="h-3 w-3" />
-                                          </Button>
-                                          <Button
-                                            onClick={() => deleteSection(section.id)}
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-6 w-6 p-0"
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                )}
-                                
-                                <td className="border border-gray-400 px-4 py-2">
-                                  {isEditing ? (
-                                    <Input
-                                      value={item.text}
-                                      onChange={(e) => updateItem(section.id, item.id, 'text', e.target.value)}
-                                      className="text-sm"
-                                    />
-                                  ) : (
-                                    <span className="text-sm">{item.text}</span>
-                                  )}
-                                </td>
-                                
-                                <td className="border border-gray-400 px-2 py-2 text-center">
-                                  {isEditing ? (
-                                    <select
-                                      value={item.type}
-                                      onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
-                                      className="text-xs border rounded px-1 py-1"
+                    {/* 평가표 테이블 */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-400 text-sm">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점)</th>
+                            <th className="border border-gray-400 px-4 py-3 text-center font-bold">세부 항목</th>
+                            <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">유형</th>
+                            <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">배점</th>
+                            <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">평가점수</th>
+                            {isEditing && <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">관리</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentTemplate.sections.flatMap((section) => 
+                            section.items.map((item, itemIndex) => (
+                                <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
+                                  {itemIndex === 0 && (
+                                    <td 
+                                      className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-top text-center"
+                                      rowSpan={section.items.length}
                                     >
-                                      <option value="정량">정량</option>
-                                      <option value="정성">정성</option>
-                                    </select>
-                                  ) : (
-                                    <span className="text-xs">{item.type}</span>
+                                      <div className="flex items-center justify-between">
+                                        <div className="w-full">
+                                          {isEditing ? (
+                                            <Input
+                                              value={section.title}
+                                              onChange={(e) => updateSection(section.id, 'title', e.target.value)}
+                                              className="font-bold text-sm bg-transparent border-b border-gray-300"
+                                            />
+                                          ) : (
+                                            <span className="font-bold text-sm">{section.id}. {section.title}</span>
+                                          )}
+                                          <div className="text-xs text-gray-600 mt-1">
+                                            ({calculateSectionScore(section)}점)
+                                          </div>
+                                        </div>
+                                        {isEditing && (
+                                          <div className="flex flex-col gap-1 ml-2">
+                                            <Button
+                                              onClick={() => addItem(section.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 w-6 p-0"
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              onClick={() => deleteSection(section.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 w-6 p-0"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
                                   )}
-                                </td>
-                                
-                                <td className="border border-gray-400 px-2 py-2 text-center">
-                                  {isEditing ? (
+                                  
+                                  <td className="border border-gray-400 px-4 py-2">
+                                    {isEditing ? (
+                                      <Input
+                                        value={item.text}
+                                        onChange={(e) => updateItem(section.id, item.id, 'text', e.target.value)}
+                                        className="text-sm"
+                                      />
+                                    ) : (
+                                      <span className="text-sm">{item.text}</span>
+                                    )}
+                                  </td>
+                                  
+                                  <td className="border border-gray-400 px-2 py-2 text-center">
+                                    {isEditing ? (
+                                      <select
+                                        value={item.type}
+                                        onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
+                                        className="text-xs border rounded px-1 py-1"
+                                      >
+                                        <option value="정량">정량</option>
+                                        <option value="정성">정성</option>
+                                      </select>
+                                    ) : (
+                                      <span className="text-xs">{item.type}</span>
+                                    )}
+                                  </td>
+                                  
+                                  <td className="border border-gray-400 px-2 py-2 text-center">
+                                    {isEditing ? (
+                                      <Input
+                                        type="number"
+                                        value={item.points}
+                                        onChange={(e) => updateItem(section.id, item.id, 'points', parseInt(e.target.value) || 0)}
+                                        className="text-xs text-center w-12"
+                                      />
+                                    ) : (
+                                      <span className="text-xs">{item.points}점</span>
+                                    )}
+                                  </td>
+                                  
+                                  <td className="border border-gray-400 px-2 py-2 text-center">
                                     <Input
                                       type="number"
-                                      value={item.points}
-                                      onChange={(e) => updateItem(section.id, item.id, 'points', parseInt(e.target.value) || 0)}
-                                      className="text-xs text-center w-12"
+                                      value={item.score}
+                                      onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
+                                      max={item.points}
+                                      min={0}
+                                      className="text-xs text-center w-16"
                                     />
-                                  ) : (
-                                    <span className="text-xs">{item.points}</span>
-                                  )}
-                                </td>
-                                
-                                <td className="border border-gray-400 px-2 py-2 text-center">
-                                  <Input
-                                    type="number"
-                                    value={item.score}
-                                    onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
-                                    max={item.points}
-                                    min={0}
-                                    className="text-xs text-center w-16"
-                                  />
-                                </td>
-                                
-                                {isEditing && (
-                                  <td className="border border-gray-400 px-2 py-2 text-center">
-                                    <Button
-                                      onClick={() => deleteItem(section.id, item.id)}
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
                                   </td>
-                                )}
-                              </tr>
-                            ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* 총점 표시 */}
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold">총 평가점수</span>
-                      <span className="text-xl font-bold text-blue-600">
-                        {calculateTotalScore()} / {currentTemplate.totalScore}점 
-                        ({Math.round((calculateTotalScore() / currentTemplate.totalScore) * 100)}%)
-                      </span>
+                                  
+                                  {isEditing && (
+                                    <td className="border border-gray-400 px-2 py-2 text-center">
+                                      <Button
+                                        onClick={() => deleteItem(section.id, item.id)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </td>
+                                  )}
+                                </tr>
+                              ))
+                          )}
+                          {/* 합계 행 */}
+                          <tr className="bg-gray-100 font-bold">
+                            <td className="border border-gray-400 px-4 py-3 text-center">합계</td>
+                            <td className="border border-gray-400 px-4 py-3"></td>
+                            <td className="border border-gray-400 px-2 py-3"></td>
+                            <td className="border border-gray-400 px-2 py-3 text-center">
+                              {currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점
+                            </td>
+                            <td className="border border-gray-400 px-2 py-3 text-center">
+                              <span className="text-lg font-bold">{calculateTotalScore()}점</span>
+                            </td>
+                            {isEditing && <td className="border border-gray-400 px-2 py-3"></td>}
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </CardContent>
