@@ -438,12 +438,21 @@ export default function EvaluationItemManagement() {
               color: black !important;
             }
             
+            .evaluation-date {
+              text-align: center !important;
+              margin: 30px 0 15px 0 !important;
+              font-size: 12px !important;
+              font-weight: bold !important;
+            }
+            
             .evaluator-info {
-              text-align: right !important;
+              text-align: center !important;
+              margin-top: 40px !important;
               margin-bottom: 20px !important;
-              font-size: 11px !important;
-              border-bottom: 1px solid #000 !important;
-              padding-bottom: 10px !important;
+              font-size: 12px !important;
+              border: 2px solid #000 !important;
+              padding: 15px !important;
+              background-color: #f9f9f9 !important;
             }
             
             table { 
