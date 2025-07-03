@@ -63,8 +63,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/system/config", async (req, res) => {
     try {
       const config = await storage.getSystemConfig();
-      res.json(config || { evaluationTitle: "종합평가시스템", isEvaluationActive: true, allowPublicResults: false });
+      console.log("System config fetched:", config);
+      res.json(config || { 
+        evaluationTitle: "종합평가시스템", 
+        isEvaluationActive: false, 
+        allowPublicResults: false 
+      });
     } catch (error) {
+      console.error("Error fetching system config:", error);
       res.status(500).json({ message: "Failed to fetch system config" });
     }
   });

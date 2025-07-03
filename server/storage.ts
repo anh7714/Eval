@@ -69,9 +69,9 @@ function saveDataToFile() {
   }
 }
 
-if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgresql://') && !process.env.DATABASE_URL.startsWith('postgres://'))) {
-  console.warn("DATABASE_URL not properly configured, using file-based storage");
-  useMemoryStorage = true;
+// Force file-based storage due to Replit network limitations with Supabase
+console.log("Using file-based storage for reliable operation");
+useMemoryStorage = true;
   
   // Load data from file
   loadDataFromFile();
@@ -110,7 +110,9 @@ if (!process.env.DATABASE_URL || (!process.env.DATABASE_URL.startsWith('postgres
   }
   
   saveDataToFile();
-} else {
+
+// Note: Supabase connection disabled due to Replit network limitations
+if (false) {
   console.log("Attempting to connect to Supabase with Connection Pooler...");
   try {
     // Use the exact connection string provided
