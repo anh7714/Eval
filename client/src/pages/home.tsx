@@ -22,54 +22,54 @@ export default function HomePage() {
         </div>
 
         {/* Main Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {/* Evaluator Card */}
           <Link href="/evaluator/login">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 flex flex-col justify-between">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-52 flex flex-col justify-between">
               <div>
-                <div className="bg-blue-100 dark:bg-blue-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                <div className="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Users className="w-7 h-7 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
                   평가 위원
                 </h3>
               </div>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                채점을 진행하고 결과를 제출합니다.
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
+                시스템 설정을 관리하고 평가 결과를 집계합니다.
               </p>
             </div>
           </Link>
 
           {/* Admin Card */}
           <Link href="/admin/login">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 flex flex-col justify-between">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-52 flex flex-col justify-between">
               <div>
-                <div className="bg-green-100 dark:bg-green-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Shield className="w-8 h-8 text-green-600 dark:text-green-400" />
+                <div className="bg-green-100 dark:bg-green-900/30 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Shield className="w-7 h-7 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
                   관리자
                 </h3>
               </div>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                시스템 설정을 관리하고 결과를 집계합니다.
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
+                시스템 설정을 관리하고 평가 결과를 집계합니다.
               </p>
             </div>
           </Link>
 
           {/* Results Card */}
           <Link href="/results">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 flex flex-col justify-between">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-52 flex flex-col justify-between">
               <div>
-                <div className="bg-orange-100 dark:bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <BarChart3 className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                <div className="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <BarChart3 className="w-7 h-7 text-orange-600 dark:text-orange-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
                   채점 결과
                 </h3>
               </div>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                종합 채점 결과를 확인합니다.
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
+                시스템 설정을 관리하고 평가 결과를 집계합니다.
               </p>
             </div>
           </Link>
