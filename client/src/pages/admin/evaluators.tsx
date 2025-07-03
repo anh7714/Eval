@@ -28,6 +28,7 @@ export default function EvaluatorManagement() {
       const response = await fetch("/api/admin/evaluators", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(evaluator),
       });
       if (!response.ok) throw new Error("Failed to create evaluator");
@@ -49,6 +50,7 @@ export default function EvaluatorManagement() {
       const response = await fetch(`/api/admin/evaluators/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ isActive: !isActive }),
       });
       if (!response.ok) throw new Error("Failed to update evaluator");
