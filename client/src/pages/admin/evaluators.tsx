@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function EvaluatorManagement() {
   const [isAddingEvaluator, setIsAddingEvaluator] = useState(false);
+  const [editingEvaluator, setEditingEvaluator] = useState<any>(null);
   const [newEvaluator, setNewEvaluator] = useState({
     name: "",
     email: "",
@@ -62,9 +63,80 @@ export default function EvaluatorManagement() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await fetch(`/api/admin/evaluators/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update evaluator");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluators"] });
+      toast({ title: "성공", description: "평가자 정보가 수정되었습니다." });
+      setEditingEvaluator(null);
+    },
+    onError: () => {
+      toast({ title: "오류", description: "평가자 수정에 실패했습니다.", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/admin/evaluators/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete evaluator");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluators"] });
+      toast({ title: "성공", description: "평가자가 삭제되었습니다." });
+    },
+    onError: () => {
+      toast({ title: "오류", description: "평가자 삭제에 실패했습니다.", variant: "destructive" });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(newEvaluator);
+    if (editingEvaluator) {
+      // 수정 시 비밀번호가 비어있으면 제외
+      const updateData: any = { ...newEvaluator };
+      if (!updateData.password) {
+        delete updateData.password;
+      }
+      updateMutation.mutate({ id: editingEvaluator.id, data: updateData });
+    } else {
+      createMutation.mutate(newEvaluator);
+    }
+  };
+
+  const handleEdit = (evaluator: any) => {
+    setEditingEvaluator(evaluator);
+    setNewEvaluator({
+      name: evaluator.name,
+      email: evaluator.email || "",
+      department: evaluator.department,
+      password: "", // 비밀번호는 빈 문자열로 시작
+    });
+    setIsAddingEvaluator(true);
+  };
+
+  const handleDelete = (evaluator: any) => {
+    if (confirm(`정말로 "${evaluator.name}" 평가자를 삭제하시겠습니까?`)) {
+      deleteMutation.mutate(evaluator.id);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsAddingEvaluator(false);
+    setEditingEvaluator(null);
+    setNewEvaluator({ name: "", email: "", department: "", password: "" });
   };
 
   if (isLoading) {
@@ -105,7 +177,7 @@ export default function EvaluatorManagement() {
         {isAddingEvaluator && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>새 평가자 추가</CardTitle>
+              <CardTitle>{editingEvaluator ? "평가자 수정" : "새 평가자 추가"}</CardTitle>
               <CardDescription>평가자 정보를 입력하세요.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -142,15 +214,24 @@ export default function EvaluatorManagement() {
                       type="password"
                       value={newEvaluator.password}
                       onChange={(e) => setNewEvaluator({ ...newEvaluator, password: e.target.value })}
-                      required
+                      required={!editingEvaluator}
+                      placeholder={editingEvaluator ? "변경하지 않으려면 비워두세요" : ""}
                     />
+                    {editingEvaluator && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        비워두면 기존 비밀번호가 유지됩니다.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? "추가 중..." : "추가"}
+                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                    {editingEvaluator ? 
+                      (updateMutation.isPending ? "수정 중..." : "수정") : 
+                      (createMutation.isPending ? "추가 중..." : "추가")
+                    }
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsAddingEvaluator(false)}>
+                  <Button type="button" variant="outline" onClick={handleCancel}>
                     취소
                   </Button>
                 </div>
@@ -193,10 +274,10 @@ export default function EvaluatorManagement() {
                     >
                       {evaluator.isActive ? "비활성화" : "활성화"}
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(evaluator)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleDelete(evaluator)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

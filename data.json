@@ -34,6 +34,15 @@
       "password": "test123",
       "isActive": true,
       "createdAt": "2025-07-03T04:51:56.201Z"
+    },
+    {
+      "id": 3,
+      "name": "안형용",
+      "email": "anh7714@gmail.com",
+      "department": "어르신복지과",
+      "password": "0000",
+      "isActive": true,
+      "createdAt": "2025-07-03T05:06:09.277Z"
     }
   ],
   "categories": [],
@@ -41,5 +50,5 @@
   "candidates": [],
   "evaluations": [],
   "submissions": [],
-  "nextId": 3
+  "nextId": 4
 }
