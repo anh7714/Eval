@@ -34,7 +34,12 @@ export default function EvaluationItemManagement() {
     { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
   ]);
 
-  // 평가위원 정보
+  // 평가위원 및 평가대상 선택
+  const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
+  const [batchPrintMode, setBatchPrintMode] = useState(false);
+  
+  // 평가위원 정보 (수동 입력용)
   const [evaluator, setEvaluator] = useState({
     name: '평가위원명',
     position: '직책',
@@ -76,6 +81,25 @@ export default function EvaluationItemManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // 데이터 쿼리들
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["/api/admin/categories"],
+  });
+
+  const { data: items = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ["/api/admin/evaluation-items"],
+  });
+
+  // 평가위원 목록 가져오기
+  const { data: evaluators = [] } = useQuery({
+    queryKey: ["/api/admin/evaluators"],
+  });
+
+  // 후보자 목록 가져오기
+  const { data: candidates = [] } = useQuery({
+    queryKey: ["/api/admin/candidates"],
+  });
+
   // 컬럼 설정 변경 시 기존 데이터 동기화
   useEffect(() => {
     setCurrentTemplate(prev => ({
@@ -116,6 +140,18 @@ export default function EvaluationItemManagement() {
 
   // 보이는 컬럼들만 필터링
   const visibleColumns = columnConfig.filter(col => col.visible);
+
+  // 선택된 평가위원과 후보자 정보
+  const selectedEvaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
+  const selectedCandidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
+
+  // 동적 제목 생성
+  const getDynamicTitle = () => {
+    if (selectedCandidateInfo) {
+      return `${selectedCandidateInfo.name} 심사표`;
+    }
+    return currentTemplate.title;
+  };
 
   // 알림 함수
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -363,7 +399,6 @@ export default function EvaluationItemManagement() {
   const printTemplate = () => {
     const printContent = document.getElementById('template-print-area');
     if (printContent) {
-      // 향상된 인쇄 스타일
       const printStyle = `
         <style>
           @media print {
@@ -449,7 +484,6 @@ export default function EvaluationItemManagement() {
               display: none !important; 
             }
             
-            /* 입력 필드 스타일 */
             input {
               border: none !important;
               background: transparent !important;
@@ -470,10 +504,11 @@ export default function EvaluationItemManagement() {
         </style>
       `;
       
-      // 평가위원 정보 헤더 생성
+      // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
+      const evaluatorInfo = selectedEvaluatorInfo || evaluator;
       const evaluatorHeader = `
         <div class="evaluator-info">
-          평가위원: ${evaluator.name} (${evaluator.position}, ${evaluator.department})
+          평가위원: ${evaluatorInfo.name} (${evaluatorInfo.position || evaluatorInfo.department})
         </div>
       `;
       
@@ -481,7 +516,7 @@ export default function EvaluationItemManagement() {
       printWindow?.document.write(`
         <html>
           <head>
-            <title>평가표 출력 - ${currentTemplate.title}</title>
+            <title>평가표 출력 - ${getDynamicTitle()}</title>
             <meta charset="UTF-8">
             ${printStyle}
           </head>
@@ -498,13 +533,125 @@ export default function EvaluationItemManagement() {
     }
   };
 
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ["/api/admin/categories"],
-  });
+  // 배치 인쇄 기능
+  const printAllCombinations = () => {
+    if (candidates.length === 0 || evaluators.length === 0) {
+      showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
+      return;
+    }
 
-  const { data: items = [], isLoading: itemsLoading } = useQuery({
-    queryKey: ["/api/admin/evaluation-items"],
-  });
+    let allPrintContent = '';
+    const printStyle = `
+      <style>
+        @media print {
+          .page-break { page-break-before: always; }
+          body { 
+            font-size: 12px; 
+            line-height: 1.4;
+            margin: 0;
+            padding: 20px;
+            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
+          }
+          .title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: black;
+          }
+          .evaluator-info {
+            text-align: right;
+            margin-bottom: 20px;
+            font-size: 11px;
+          }
+          table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin-bottom: 20px;
+            font-size: 11px;
+          }
+          th, td { 
+            border: 1px solid #000; 
+            padding: 6px 8px; 
+            text-align: left;
+            vertical-align: middle;
+          }
+          th { 
+            background-color: #f5f5f5; 
+            text-align: center; 
+            font-weight: bold;
+            font-size: 10px;
+          }
+          .section-cell { 
+            background-color: #f8f9fa; 
+            font-weight: bold; 
+            text-align: center;
+            vertical-align: top;
+          }
+          .total-row { 
+            background-color: #e9ecef; 
+            font-weight: bold; 
+          }
+          .score-cell {
+            text-align: center;
+            font-weight: bold;
+          }
+          .points-cell {
+            text-align: center;
+          }
+          .type-cell {
+            text-align: center;
+            font-size: 10px;
+          }
+        }
+      </style>
+    `;
+
+    candidates.forEach((candidate: any, candidateIndex) => {
+      evaluators.forEach((evaluator: any, evaluatorIndex) => {
+        const isFirstPage = candidateIndex === 0 && evaluatorIndex === 0;
+        const pageBreakClass = isFirstPage ? '' : 'page-break';
+        
+        const evaluatorHeader = `
+          <div class="evaluator-info">
+            평가위원: ${evaluator.name} (${evaluator.position}, ${evaluator.department})
+          </div>
+        `;
+
+        const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
+        const dynamicTitle = `${candidate.name} 심사표`;
+        const titleUpdatedContent = templateContent.replace(
+          /<input[^>]*value="[^"]*"[^>]*class="[^"]*title[^"]*"[^>]*>/,
+          `<div class="title">${dynamicTitle}</div>`
+        );
+
+        allPrintContent += `
+          <div class="${pageBreakClass}">
+            ${evaluatorHeader}
+            ${titleUpdatedContent}
+          </div>
+        `;
+      });
+    });
+
+    const printWindow = window.open('', '_blank');
+    printWindow?.document.write(`
+      <html>
+        <head>
+          <title>전체 평가표 배치 인쇄</title>
+          <meta charset="UTF-8">
+          ${printStyle}
+        </head>
+        <body>
+          ${allPrintContent}
+        </body>
+      </html>
+    `);
+    printWindow?.document.close();
+    printWindow?.print();
+    
+    showNotification(`총 ${candidates.length * evaluators.length}개의 평가표가 생성되었습니다!`, 'info');
+  };
 
   const createCategoryMutation = useMutation({
     mutationFn: async (category: typeof newCategory) => {
@@ -918,10 +1065,66 @@ export default function EvaluationItemManagement() {
                     className="hidden"
                   />
 
+                  {/* 평가위원 및 평가대상 선택 */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택</label>
+                        <select
+                          value={selectedEvaluator || ''}
+                          onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">평가위원을 선택하세요</option>
+                          {(evaluators as any[]).map((evaluator: any) => (
+                            <option key={evaluator.id} value={evaluator.id}>
+                              {evaluator.name} ({evaluator.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택</label>
+                        <select
+                          value={selectedCandidate || ''}
+                          onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">평가대상을 선택하세요</option>
+                          {(candidates as any[]).map((candidate: any) => (
+                            <option key={candidate.id} value={candidate.id}>
+                              {candidate.name} ({candidate.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {/* 배치 인쇄 버튼 */}
+                    <div className="mt-4 flex items-center justify-between">
+                      <Button 
+                        onClick={printAllCombinations}
+                        variant="outline"
+                        size="sm"
+                        className="bg-white hover:bg-blue-50"
+                        disabled={candidates.length === 0 || evaluators.length === 0}
+                      >
+                        <Printer className="h-4 w-4 mr-2" />
+                        전체 배치 인쇄 ({candidates.length}명 × {evaluators.length}명)
+                      </Button>
+                      <div className="text-xs text-gray-600">
+                        선택된 평가위원과 평가대상으로 개별 심사표가 생성됩니다
+                      </div>
+                    </div>
+                  </div>
+
                   {/* 평가위원 정보 편집 (편집 모드에서만 표시) */}
                   {isEditing && (
-                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                      <h3 className="text-sm font-bold mb-3">평가위원 정보</h3>
+                    <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <h3 className="text-sm font-bold mb-3 text-yellow-800">수동 평가위원 정보 입력</h3>
+                      <div className="text-xs text-yellow-700 mb-3">
+                        위에서 평가위원을 선택하지 않은 경우 수동으로 입력할 수 있습니다.
+                      </div>
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs font-medium mb-1">이름</label>
@@ -956,11 +1159,25 @@ export default function EvaluationItemManagement() {
 
                   {/* 컬럼 관리 (편집 모드에서만 표시) */}
                   {isEditing && (
-                    <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
-                      <h3 className="text-sm font-bold mb-3">컬럼 설정</h3>
+                    <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                      <h3 className="text-sm font-bold mb-3 text-amber-800">컬럼 설정</h3>
+                      <div className="mb-4 p-3 bg-amber-100 rounded-md border-l-4 border-amber-400">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-xs text-amber-800">
+                              <strong>제목박스의 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.</strong>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         {columnConfig.map((column) => (
-                          <div key={column.id} className="flex items-center gap-2 text-xs">
+                          <div key={column.id} className="flex items-center gap-2 text-xs bg-white p-2 rounded border">
                             <Input
                               value={column.title}
                               onChange={(e) => updateColumnConfig(column.id, 'title', e.target.value)}
@@ -970,7 +1187,7 @@ export default function EvaluationItemManagement() {
                             <select
                               value={column.type}
                               onChange={(e) => updateColumnConfig(column.id, 'type', e.target.value)}
-                              className="text-xs border rounded px-2 py-1"
+                              className="text-xs border rounded px-2 py-1 bg-white"
                               disabled={column.required}
                             >
                               <option value="text">텍스트</option>
@@ -982,17 +1199,21 @@ export default function EvaluationItemManagement() {
                                 type="checkbox"
                                 checked={column.visible}
                                 onChange={(e) => updateColumnConfig(column.id, 'visible', e.target.checked)}
+                                className="rounded"
                               />
                               <span className="text-xs">표시</span>
                             </label>
+                            <div className="text-xs text-gray-500">
+                              {column.required ? '필수' : '선택'}
+                            </div>
                             {!column.required && (
                               <Button
                                 onClick={() => deleteColumn(column.id)}
                                 size="sm"
                                 variant="outline"
-                                className="h-6 w-6 p-0"
+                                className="h-6 w-6 p-0 hover:bg-red-50 hover:border-red-200"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3 w-3 text-red-500" />
                               </Button>
                             )}
                           </div>
@@ -1003,14 +1224,21 @@ export default function EvaluationItemManagement() {
 
                   {/* 인쇄용 영역 */}
                   <div id="template-print-area">
-                    {/* 템플릿 제목 */}
+                    {/* 템플릿 제목 - 동적 제목 표시 */}
                     <div className="mb-6">
-                      <Input
-                        value={currentTemplate.title}
-                        onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
-                        className="text-lg font-bold text-center border-none text-gray-800 bg-transparent title"
-                        disabled={!isEditing}
-                      />
+                      {selectedCandidateInfo ? (
+                        <div className="text-lg font-bold text-center text-gray-800 title">
+                          {getDynamicTitle()}
+                        </div>
+                      ) : (
+                        <Input
+                          value={currentTemplate.title}
+                          onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
+                          className="text-lg font-bold text-center border-none text-gray-800 bg-transparent title"
+                          disabled={!isEditing}
+                          placeholder="평가표 제목을 입력하세요"
+                        />
+                      )}
                     </div>
 
                     {/* 평가표 테이블 */}
@@ -1082,7 +1310,7 @@ export default function EvaluationItemManagement() {
                                         className="text-sm"
                                       />
                                     ) : (
-                                      <span className="text-sm">{item.text}</span>
+                                      <span className="text-sm">{itemIndex + 1}. {item.text}</span>
                                     )}
                                   </td>
                                   
