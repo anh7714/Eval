@@ -754,9 +754,9 @@ export default function EvaluationItemManagement() {
     }
   };
 
-  // 배치 인쇄 기능 - 모든 평가위원 x 모든 후보자 조합으로 자동 인쇄
+  // 배치 인쇄 기능 - 일반 인쇄와 완전히 동일한 방식으로 모든 조합 처리
   const printAllCombinations = () => {
-    if (candidates.length === 0 || evaluators.length === 0) {
+    if (!candidates || candidates.length === 0 || !evaluators || evaluators.length === 0) {
       showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
       return;
     }
@@ -767,12 +767,201 @@ export default function EvaluationItemManagement() {
       return;
     }
 
-    let allContent = '';
+    // 모든 조합 생성 및 인쇄 내용 구성
     let allPrintContent = '';
+    let isFirstPage = true;
+
+    candidates.forEach((candidate: any) => {
+      evaluators.forEach((evaluator: any) => {
+        // 평가위원 정보
+        const positionText = evaluator.position ? ` (${evaluator.position})` : '';
+        const today = new Date().toLocaleDateString('ko-KR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        // 동적 제목과 구분 정보
+        const dynamicTitle = `${candidate.name} 심사표`;
+        const categoryInfo = candidate.category || candidate.department;
+        
+        // 평가일/평가위원 정보
+        const evaluationFooter = `
+          <div class="evaluation-date">
+            평가일: ${today}
+          </div>
+          <div class="evaluator-info">
+            평가위원 : ${evaluator.name}${positionText} (서명)
+          </div>
+        `;
+        
+        // 템플릿 내용 복사 및 동적 정보 교체
+        let templateContent = printContent.innerHTML;
+        
+        // 구분 정보 교체
+        templateContent = templateContent.replace(
+          /<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
+          `<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right"><span>구분 : ${categoryInfo}</span></td>`
+        );
+        
+        // 제목 교체
+        templateContent = templateContent.replace(
+          /<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">[^<]*<\/td>/,
+          `<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">${dynamicTitle}</td>`
+        );
+        
+        // 페이지 구분 (첫 번째가 아니면 새 페이지)
+        const pageBreak = !isFirstPage ? '<div style="page-break-before: always;"></div>' : '';
+        
+        // 모든 내용 추가
+        allPrintContent += `
+          ${pageBreak}
+          ${templateContent}
+          ${evaluationFooter}
+        `;
+        
+        isFirstPage = false;
+      });
+    });
+
+    // 일반 인쇄와 완전히 동일한 스타일 사용
     const printStyle = `
       <style>
         @media print {
           .print\\:hidden { display: none !important; }
+          .print\\:block { display: block !important; }
+          .print\\:mb-4 { margin-bottom: 1rem !important; }
+          .print\\:text-center { text-align: center !important; }
+          .print\\:text-4xl { font-size: 2.25rem !important; }
+          .print\\:font-black { font-weight: 900 !important; }
+          .print\\:text-black { color: black !important; }
+          .print\\:border-none { border: none !important; }
+          
+          @page {
+            margin: 0 !important;
+            size: A4 !important;
+          }
+          
+          body { 
+            font-size: 14px !important; 
+            line-height: 1.5 !important;
+            margin: 0 !important;
+            padding: 95px 50px 50px 50px !important;
+            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
+          }
+          
+          html {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          
+          .title {
+            text-align: center !important;
+            font-size: 24px !important;
+            font-weight: bold !important;
+            margin-bottom: 15px !important;
+            color: black !important;
+          }
+          
+          .evaluation-date {
+            text-align: center !important;
+            margin: 40px 0 20px 0 !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+          }
+          
+          .evaluator-info {
+            text-align: right !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+            font-size: 20px !important;
+            font-weight: bold !important;
+            padding: 20px !important;
+            text-decoration: underline !important;
+          }
+          
+          table { 
+            border-collapse: collapse !important; 
+            width: 100% !important; 
+            margin-bottom: 30px !important;
+            font-size: 13px !important;
+            border: 2px solid #666 !important;
+          }
+          
+          th, td { 
+            border: 1px solid #666 !important; 
+            padding: 12px 10px !important; 
+            vertical-align: middle !important;
+            text-align: left !important;
+          }
+          
+          th { 
+            background-color: #e8e8e8 !important; 
+            text-align: center !important;
+            font-weight: bold !important;
+          }
+          
+          .points-cell { text-align: center !important; }
+          .score-cell { text-align: center !important; }
+          .type-cell { text-align: center !important; }
+          
+          .section-row { 
+            background-color: #f0f0f0 !important; 
+            font-weight: bold !important; 
+          }
+          
+          .total-row { 
+            background-color: #e8e8e8 !important; 
+            font-weight: bold !important; 
+          }
+          
+          .section-cell .text-xs {
+            text-align: center !important;
+          }
+          
+          .no-print { 
+            display: none !important; 
+          }
+          
+          input {
+            border: none !important;
+            background: transparent !important;
+            font-size: inherit !important;
+            font-weight: inherit !important;
+            text-align: inherit !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          
+          select {
+            border: none !important;
+            background: transparent !important;
+            font-size: inherit !important;
+          }
+        }
+      </style>
+    `;
+
+    // 배치 인쇄 실행
+    const printWindow = window.open('', '_blank');
+    printWindow?.document.write(`
+      <html>
+        <head>
+          <title>전체 평가표 배치 인쇄</title>
+          <meta charset="UTF-8">
+          ${printStyle}
+        </head>
+        <body>
+          ${allPrintContent}
+        </body>
+      </html>
+    `);
+    printWindow?.document.close();
+    printWindow?.print();
+    
+    showNotification(`총 ${(candidates as any[]).length * (evaluators as any[]).length}개의 평가표를 배치 인쇄합니다!`, 'info');
+  };
           .print\\:block { display: block !important; }
           .print\\:mb-4 { margin-bottom: 1rem !important; }
           .print\\:text-center { text-align: center !important; }
