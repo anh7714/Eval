@@ -152,10 +152,7 @@ async function initializeSchema() {
     if (existingConfig.length === 0) {
       await db.insert(systemConfig).values({
         evaluationTitle: "종합평가시스템",
-        allowPartialSubmission: false,
-        enableNotifications: true,
-        isEvaluationActive: false,
-        allowPublicResults: false
+        isEvaluationActive: false
       });
       console.log("Default system config created");
     }
@@ -329,15 +326,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminByUsername(username: string): Promise<Admin | undefined> {
-    if (useMemoryStorage) {
+    if (useMemoryStorage || !db) {
       return memoryStore.admins.find(admin => admin.username === username);
     }
-    const admin = await db
-      .select()
-      .from(admins)
-      .where(eq(admins.username, username))
-      .limit(1);
-    return admin[0];
+    try {
+      const admin = await db
+        .select()
+        .from(admins)
+        .where(eq(admins.username, username))
+        .limit(1);
+      return admin[0];
+    } catch (error) {
+      console.log("Database query failed, falling back to memory storage");
+      useMemoryStorage = true;
+      return memoryStore.admins.find(admin => admin.username === username);
+    }
   }
 
   async createAdmin(admin: InsertAdmin): Promise<Admin> {

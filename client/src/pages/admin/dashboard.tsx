@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCheck, FileText, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, UserCheck, FileText, TrendingUp, Database, Download } from "lucide-react";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
@@ -103,6 +104,64 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Supabase Migration Section */}
+        <div className="mt-12">
+          <Card className="border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-blue-800 dark:text-blue-200">
+                <Database className="w-6 h-6" />
+                Supabase 데이터 마이그레이션
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="mb-2">현재 파일 기반 저장소를 사용 중입니다. 다중 컴퓨터 접근을 위해 Supabase 데이터베이스로 마이그레이션할 수 있습니다.</p>
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border">
+                  <h4 className="font-semibold mb-2">마이그레이션 단계:</h4>
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    <li>아래 버튼으로 SQL 파일 다운로드</li>
+                    <li>Supabase 대시보드 → SQL Editor에서 실행</li>
+                    <li>DATABASE_URL 환경변수 확인</li>
+                    <li>시스템 재시작</li>
+                  </ol>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/admin/export-sql');
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'supabase_migration.sql';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      } else {
+                        console.error('SQL 내보내기 실패');
+                      }
+                    } catch (error) {
+                      console.error('SQL 내보내기 오류:', error);
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  SQL 파일 다운로드
+                </Button>
+                
+                <Badge variant="outline" className="px-3 py-1">
+                  파일 기반 모드
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
       </div>
     </div>

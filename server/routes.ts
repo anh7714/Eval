@@ -873,6 +873,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export data as SQL for manual migration to Supabase
+  app.get('/api/admin/export-sql', requireAuth, async (req, res) => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const dataPath = path.join(process.cwd(), 'data.json');
+      
+      if (!fs.existsSync(dataPath)) {
+        return res.status(404).json({ message: "No data file found to export" });
+      }
+      
+      const fileData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+      let sqlStatements = [];
+      
+      // Clean up existing data
+      sqlStatements.push('-- Data Migration SQL for Supabase');
+      sqlStatements.push('-- Execute this in Supabase SQL Editor');
+      sqlStatements.push('');
+      sqlStatements.push('-- Clean up existing data');
+      sqlStatements.push('DELETE FROM evaluation_submissions;');
+      sqlStatements.push('DELETE FROM evaluations;');
+      sqlStatements.push('DELETE FROM evaluation_items;');
+      sqlStatements.push('DELETE FROM evaluation_categories;');
+      sqlStatements.push('DELETE FROM candidates;');
+      sqlStatements.push('DELETE FROM evaluators;');
+      sqlStatements.push('UPDATE system_config SET evaluation_title = \'종합평가시스템\', is_evaluation_active = false WHERE id = 1;');
+      sqlStatements.push('');
+      
+      // Insert evaluators
+      if (fileData.evaluators && fileData.evaluators.length > 0) {
+        sqlStatements.push('-- Insert evaluators');
+        for (const evaluator of fileData.evaluators) {
+          const name = evaluator.name.replace(/'/g, "''");
+          const dept = (evaluator.department || '').replace(/'/g, "''");
+          const email = evaluator.email ? `'${evaluator.email.replace(/'/g, "''")}'` : 'NULL';
+          sqlStatements.push(`INSERT INTO evaluators (name, password, department, email, is_active) VALUES ('${name}', '${evaluator.password}', '${dept}', ${email}, ${evaluator.isActive !== false});`);
+        }
+        sqlStatements.push('');
+      }
+      
+      // Insert categories
+      if (fileData.evaluationCategories && fileData.evaluationCategories.length > 0) {
+        sqlStatements.push('-- Insert evaluation categories');
+        for (const category of fileData.evaluationCategories) {
+          const name = category.name.replace(/'/g, "''");
+          const code = (category.code || 'CAT' + category.id).replace(/'/g, "''");
+          const desc = category.description ? `'${category.description.replace(/'/g, "''")}'` : 'NULL';
+          sqlStatements.push(`INSERT INTO evaluation_categories (id, category_code, category_name, description, sort_order, is_active) VALUES (${category.id}, '${code}', '${name}', ${desc}, ${category.sortOrder || 0}, ${category.isActive !== false});`);
+        }
+        sqlStatements.push('');
+      }
+      
+      // Insert evaluation items
+      if (fileData.evaluationItems && fileData.evaluationItems.length > 0) {
+        sqlStatements.push('-- Insert evaluation items');
+        for (const item of fileData.evaluationItems) {
+          const name = item.name.replace(/'/g, "''");
+          const code = (item.code || 'ITEM' + item.id).replace(/'/g, "''");
+          const desc = item.description ? `'${item.description.replace(/'/g, "''")}'` : 'NULL';
+          sqlStatements.push(`INSERT INTO evaluation_items (id, category_id, item_code, item_name, description, max_score, weight, sort_order, is_active) VALUES (${item.id}, ${item.categoryId}, '${code}', '${name}', ${desc}, ${item.maxScore || 10}, ${item.weight || 1.0}, ${item.sortOrder || 0}, ${item.isActive !== false});`);
+        }
+        sqlStatements.push('');
+      }
+      
+      // Insert candidates  
+      if (fileData.candidates && fileData.candidates.length > 0) {
+        sqlStatements.push('-- Insert candidates');
+        for (const candidate of fileData.candidates) {
+          const name = candidate.name.replace(/'/g, "''");
+          const dept = candidate.department.replace(/'/g, "''");
+          const pos = candidate.position.replace(/'/g, "''");
+          const cat = (candidate.category || '').replace(/'/g, "''");
+          const desc = (candidate.description || '').replace(/'/g, "''");
+          sqlStatements.push(`INSERT INTO candidates (id, name, department, position, category, description, sort_order, is_active) VALUES (${candidate.id}, '${name}', '${dept}', '${pos}', '${cat}', '${desc}', ${candidate.sortOrder || 0}, ${candidate.isActive !== false});`);
+        }
+        sqlStatements.push('');
+      }
+      
+      // Insert evaluations
+      if (fileData.evaluations && fileData.evaluations.length > 0) {
+        sqlStatements.push('-- Insert evaluations');
+        for (const evaluation of fileData.evaluations) {
+          const score = parseInt(evaluation.score) || 0;
+          const maxScore = evaluation.maxScore || 10;
+          const comments = evaluation.comment ? `'${evaluation.comment.replace(/'/g, "''")}'` : 'NULL';
+          sqlStatements.push(`INSERT INTO evaluations (evaluator_id, candidate_id, item_id, score, max_score, comments, is_final) VALUES (${evaluation.evaluatorId}, ${evaluation.candidateId}, ${evaluation.itemId}, ${score}, ${maxScore}, ${comments}, ${evaluation.isSubmitted || false});`);
+        }
+        sqlStatements.push('');
+      }
+      
+      // Insert submissions
+      if (fileData.evaluationSubmissions && fileData.evaluationSubmissions.length > 0) {
+        sqlStatements.push('-- Insert evaluation submissions');
+        for (const submission of fileData.evaluationSubmissions) {
+          sqlStatements.push(`INSERT INTO evaluation_submissions (evaluator_id, candidate_id, submitted_at) VALUES (${submission.evaluatorId}, ${submission.candidateId}, NOW());`);
+        }
+        sqlStatements.push('');
+      }
+      
+      sqlStatements.push('-- Migration completed');
+      const sqlContent = sqlStatements.join('\n');
+      
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename="supabase_migration.sql"');
+      res.send(sqlContent);
+    } catch (error) {
+      console.error("SQL export error:", error);
+      res.status(500).json({ 
+        message: "SQL export failed", 
+        error: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

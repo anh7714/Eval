@@ -6,16 +6,10 @@ import { z } from "zod";
 export const systemConfig = pgTable("system_config", {
   id: serial("id").primaryKey(),
   evaluationTitle: text("evaluation_title").notNull().default("종합평가시스템"),
-  systemName: text("system_name"),
-  description: text("description"),
-  adminEmail: text("admin_email"),
-  maxEvaluators: integer("max_evaluators"),
-  maxCandidates: integer("max_candidates"),
-  evaluationDeadline: text("evaluation_deadline"),
-  allowPartialSubmission: boolean("allow_partial_submission").default(false),
-  enableNotifications: boolean("enable_notifications").default(true),
-  isEvaluationActive: boolean("is_evaluation_active").notNull().default(true),
-  allowPublicResults: boolean("allow_public_results").notNull().default(false),
+  isEvaluationActive: boolean("is_evaluation_active").notNull().default(false),
+  evaluationStartDate: timestamp("evaluation_start_date"),
+  evaluationEndDate: timestamp("evaluation_end_date"),
+  maxScore: integer("max_score").default(100),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -46,10 +40,10 @@ export const evaluators = pgTable("evaluators", {
 // Evaluation Categories
 export const evaluationCategories = pgTable("evaluation_categories", {
   id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
+  categoryCode: text("category_code").notNull(),
+  categoryName: text("category_name").notNull(),
   description: text("description"),
-  order: integer("order").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
 });
 
@@ -57,12 +51,12 @@ export const evaluationCategories = pgTable("evaluation_categories", {
 export const evaluationItems = pgTable("evaluation_items", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id").references(() => evaluationCategories.id).notNull(),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
+  itemCode: text("item_code").notNull(),
+  itemName: text("item_name").notNull(),
   description: text("description"),
-  maxScore: integer("max_score").notNull(),
+  maxScore: integer("max_score").notNull().default(10),
   weight: decimal("weight", { precision: 5, scale: 2 }).notNull().default("1.00"),
-  order: integer("order").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
 });
 
@@ -85,10 +79,10 @@ export const evaluations = pgTable("evaluations", {
   evaluatorId: integer("evaluator_id").references(() => evaluators.id).notNull(),
   candidateId: integer("candidate_id").references(() => candidates.id).notNull(),
   itemId: integer("item_id").references(() => evaluationItems.id).notNull(),
-  score: decimal("score", { precision: 5, scale: 2 }).notNull(),
-  comment: text("comment"),
-  isSubmitted: boolean("is_submitted").notNull().default(false),
-  submittedAt: timestamp("submitted_at"),
+  score: integer("score").notNull(),
+  maxScore: integer("max_score").notNull(),
+  comments: text("comments"),
+  isFinal: boolean("is_final").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -98,9 +92,7 @@ export const evaluationSubmissions = pgTable("evaluation_submissions", {
   id: serial("id").primaryKey(),
   evaluatorId: integer("evaluator_id").references(() => evaluators.id).notNull(),
   candidateId: integer("candidate_id").references(() => candidates.id).notNull(),
-  isCompleted: boolean("is_completed").notNull().default(false),
-  submittedAt: timestamp("submitted_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
 // Create insert schemas
