@@ -35,7 +35,7 @@ export default function HomePage() {
                 </h3>
               </div>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
-                채점을 진행하고 결과를 제출합니다.
+                평가를 진행하고 결과를 제출합니다.
               </p>
             </div>
           </Link>
