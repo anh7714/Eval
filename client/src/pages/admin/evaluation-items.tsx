@@ -515,15 +515,17 @@ export default function EvaluationItemManagement() {
               border-right: none !important;
             }
             
-            /* 제목 표 첫 번째 행 */
+            /* 제목 표 첫 번째 행 - 가운데 구분선 제거 */
             table:first-child tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
+              border-right: none !important;
             }
             
             table:first-child tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
+              border-left: none !important;
               text-align: right !important;
             }
             
@@ -823,15 +825,17 @@ export default function EvaluationItemManagement() {
             border-right: none !important;
           }
           
-          /* 제목 표 첫 번째 행 */
+          /* 제목 표 첫 번째 행 - 가운데 구분선 제거 */
           table:first-child tr:first-child td:first-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
+            border-right: none !important;
           }
           
           table:first-child tr:first-child td:last-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
+            border-left: none !important;
             text-align: right !important;
           }
           
