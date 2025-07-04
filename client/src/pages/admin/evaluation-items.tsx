@@ -774,10 +774,14 @@ export default function EvaluationItemManagement() {
           .print\\:text-black { color: black !important; }
           .print\\:border-none { border: none !important; }
           
-          .page-break { page-break-before: always !important; }
           @page {
             margin: 0 !important;
             size: A4 !important;
+          }
+          
+          .page-content {
+            page-break-after: always !important;
+            height: 100vh !important;
           }
           
           body { 
@@ -1016,12 +1020,14 @@ export default function EvaluationItemManagement() {
           `<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">${dynamicTitle}</td>`
         );
 
-        allPrintContent += `
-          <div class="${pageBreakClass}" style="page-break-after: always;">
+        const pageContent = `
+          <div class="page-content">
             ${titleUpdatedContent}
             ${evaluationFooter}
           </div>
         `;
+        
+        allPrintContent += pageContent;
       });
     });
 
