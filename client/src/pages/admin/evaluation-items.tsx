@@ -586,11 +586,19 @@ export default function EvaluationItemManagement() {
               border-right: none !important;
             }
             
-            /* 상하 선 두껍게 */
-            table:last-child td,
-            table:last-child th {
+            /* 첫 번째 행의 윗선만 굵게 */
+            table:last-child thead tr:first-child th {
               border-top: 2px solid #666 !important;
+            }
+            
+            /* 마지막 행의 아래선만 굵게 */
+            table:last-child tbody tr:last-child td {
               border-bottom: 2px solid #666 !important;
+            }
+            
+            /* rowSpan이 있는 첫 번째 열의 우측 선 강제 표시 */
+            table:last-child td[rowspan] {
+              border-right: 1px solid #666 !important;
             }
 
             
@@ -897,11 +905,19 @@ export default function EvaluationItemManagement() {
             border-right: none !important;
           }
           
-          /* 상하 선 두껍게 */
-          table:last-child td,
-          table:last-child th {
+          /* 첫 번째 행의 윗선만 굵게 */
+          table:last-child thead tr:first-child th {
             border-top: 2px solid #666 !important;
+          }
+          
+          /* 마지막 행의 아래선만 굵게 */
+          table:last-child tbody tr:last-child td {
             border-bottom: 2px solid #666 !important;
+          }
+          
+          /* rowSpan이 있는 첫 번째 열의 우측 선 강제 표시 */
+          table:last-child td[rowspan] {
+            border-right: 1px solid #666 !important;
           }
           
           /* 각 열의 너비 조정 */
