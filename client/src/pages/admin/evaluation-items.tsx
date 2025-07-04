@@ -519,11 +519,13 @@ export default function EvaluationItemManagement() {
             table:first-child tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
+              border-right: none !important;
             }
             
             table:first-child tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
+              border-left: none !important;
               text-align: right !important;
             }
             
@@ -827,11 +829,13 @@ export default function EvaluationItemManagement() {
           table:first-child tr:first-child td:first-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
+            border-right: none !important;
           }
           
           table:first-child tr:first-child td:last-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
+            border-left: none !important;
             text-align: right !important;
           }
           
@@ -928,7 +932,6 @@ export default function EvaluationItemManagement() {
             font-size: 20px !important;
             font-weight: bold !important;
             padding: 20px !important;
-            text-decoration: underline !important;
           }
           
           /* 각 평가 시트를 새 페이지에서 시작하도록 강제 */
