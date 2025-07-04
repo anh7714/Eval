@@ -1,6 +1,4 @@
-import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, asc, desc } from 'drizzle-orm';
+import { createClient } from '@supabase/supabase-js';
 import {
   systemConfig,
   admins,

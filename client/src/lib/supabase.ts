@@ -3,11 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create supabase client only if environment variables are available
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 // Database types for type safety
 export interface Database {
@@ -144,6 +143,10 @@ export interface Database {
 // Test connection function
 export async function testSupabaseConnection() {
   try {
+    if (!supabase) {
+      throw new Error('Supabase client not available - missing environment variables');
+    }
+    
     const { data, error } = await supabase
       .from('system_config')
       .select('*')
