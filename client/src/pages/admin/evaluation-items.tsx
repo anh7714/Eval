@@ -420,7 +420,7 @@ export default function EvaluationItemManagement() {
               font-size: 14px !important; 
               line-height: 1.5 !important;
               margin: 0 !important;
-              padding: 50px !important;
+              padding: 80px 50px 50px 50px !important;
               font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
             }
             
@@ -432,10 +432,17 @@ export default function EvaluationItemManagement() {
             
             .title {
               text-align: center !important;
-              font-size: 20px !important;
+              font-size: 24px !important;
               font-weight: bold !important;
-              margin-bottom: 30px !important;
+              margin-bottom: 15px !important;
               color: black !important;
+            }
+            
+            .title-separator {
+              width: 100% !important;
+              height: 2px !important;
+              background-color: #666 !important;
+              margin: 15px 0 30px 0 !important;
             }
             
             .evaluation-date {
@@ -448,7 +455,7 @@ export default function EvaluationItemManagement() {
             .signature-separator {
               width: 100% !important;
               height: 2px !important;
-              background-color: #000 !important;
+              background-color: #666 !important;
               margin: 30px 0 20px 0 !important;
             }
             
@@ -456,10 +463,9 @@ export default function EvaluationItemManagement() {
               text-align: right !important;
               margin-top: 20px !important;
               margin-bottom: 20px !important;
-              font-size: 16px !important;
-              border: 2px solid #000 !important;
+              font-size: 20px !important;
+              font-weight: bold !important;
               padding: 20px !important;
-              background-color: #f9f9f9 !important;
             }
             
             table { 
@@ -467,11 +473,11 @@ export default function EvaluationItemManagement() {
               width: 100% !important; 
               margin-bottom: 30px !important;
               font-size: 13px !important;
-              border: 2px solid #000 !important;
+              border: 2px solid #666 !important;
             }
             
             th, td { 
-              border: 1px solid #000 !important; 
+              border: 1px solid #666 !important; 
               padding: 12px 10px !important; 
               vertical-align: middle !important;
             }
@@ -731,11 +737,12 @@ export default function EvaluationItemManagement() {
             border-collapse: collapse; 
             width: 100%; 
             margin-bottom: 20px;
-            font-size: 11px;
+            font-size: 13px;
+            border: 2px solid #666;
           }
           th, td { 
-            border: 1px solid #000; 
-            padding: 6px 8px; 
+            border: 1px solid #666; 
+            padding: 12px 10px; 
             text-align: left;
             vertical-align: middle;
           }
@@ -796,7 +803,7 @@ export default function EvaluationItemManagement() {
         const dynamicTitle = `${candidate.name} 심사표`;
         const titleUpdatedContent = templateContent.replace(
           /<input[^>]*value="[^"]*"[^>]*class="[^"]*title[^"]*"[^>]*>/,
-          `<div class="title">${dynamicTitle}</div>`
+          `<div class="title">${dynamicTitle}</div><div class="title-separator"></div>`
         );
 
         allPrintContent += `
@@ -1403,17 +1410,23 @@ export default function EvaluationItemManagement() {
                     {/* 템플릿 제목 - 동적 제목 표시 */}
                     <div className="mb-6">
                       {selectedCandidateInfo ? (
-                        <div className="text-lg font-bold text-center text-gray-800 title">
-                          {getDynamicTitle()}
+                        <div>
+                          <div className="text-lg font-bold text-center text-gray-800 title">
+                            {getDynamicTitle()}
+                          </div>
+                          <div className="title-separator"></div>
                         </div>
                       ) : (
-                        <Input
-                          value={currentTemplate.title}
-                          onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
-                          className="text-lg font-bold text-center border-none text-gray-800 bg-transparent title"
-                          disabled={!isEditing}
-                          placeholder="평가표 제목을 입력하세요"
-                        />
+                        <div>
+                          <Input
+                            value={currentTemplate.title}
+                            onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
+                            className="text-lg font-bold text-center border-none text-gray-800 bg-transparent title"
+                            disabled={!isEditing}
+                            placeholder="평가표 제목을 입력하세요"
+                          />
+                          <div className="title-separator"></div>
+                        </div>
                       )}
                     </div>
 
