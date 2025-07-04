@@ -525,6 +525,11 @@ export default function EvaluationItemManagement() {
               font-size: 18px !important;
             }
             
+            /* 데이터 표의 가로 구분선 추가 */
+            table:last-child .section-cell {
+              border-bottom: 1px solid #666 !important;
+            }
+            
             /* 데이터 표만의 스타일 */
             table:last-child {
               margin-top: 0 !important;
@@ -570,15 +575,27 @@ export default function EvaluationItemManagement() {
               font-size: 10px !important;
             }
             
-            /* 데이터 표의 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
-            table:last-child td:nth-child(3), 
+            /* 유형 열 강제 가운데 정렬 */
+            table:last-child td:nth-child(3) {
+              text-align: center !important;
+              vertical-align: middle !important;
+              padding: 12px 10px !important;
+            }
+            
+            table:last-child td:nth-child(3) .text-xs {
+              text-align: center !important;
+              display: block !important;
+              margin: 0 auto !important;
+              width: 100% !important;
+            }
+            
+            /* 데이터 표의 배점, 평가점수 열 가운데 정렬 강제 적용 */
             table:last-child td:nth-child(4), 
             table:last-child td:nth-child(5) {
               text-align: center !important;
               vertical-align: middle !important;
             }
             
-            table:last-child td:nth-child(3) *, 
             table:last-child td:nth-child(4) *, 
             table:last-child td:nth-child(5) * {
               text-align: center !important;
@@ -587,7 +604,6 @@ export default function EvaluationItemManagement() {
               align-items: center !important;
             }
             
-            table:last-child td:nth-child(3) input, 
             table:last-child td:nth-child(4) input, 
             table:last-child td:nth-child(5) input {
               text-align: center !important;
@@ -596,7 +612,6 @@ export default function EvaluationItemManagement() {
               padding: 0 !important;
             }
             
-            table:last-child td:nth-child(3) span, 
             table:last-child td:nth-child(4) span, 
             table:last-child td:nth-child(5) span {
               display: flex !important;
