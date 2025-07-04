@@ -32,7 +32,6 @@ function Router() {
       <Route path="/evaluator/login" component={EvaluatorLogin} />
       <Route path="/evaluator/dashboard" component={EvaluatorDashboard} />
       <Route path="/evaluator/evaluation/:candidateId" component={EvaluationForm} />
-      <Route path="/evaluation-management" component={EvaluatorDashboard} />
       <Route path="/results" component={Results} />
       <Route component={NotFound} />
     </Switch>

@@ -97,7 +97,7 @@ export default function ResultsPage() {
         {/* 헤더와 탭 */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-8">
-            <h1 className="text-4xl font-bold text-gray-900">종합평가시스템</h1>
+            <h1 className="text-4xl font-bold text-gray-900">평가관리시스템</h1>
           </div>
           
           <Button onClick={handleExportResults} className="flex items-center space-x-2">
@@ -106,14 +106,138 @@ export default function ResultsPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full mb-6">
-            <TabsTrigger value="overview">개요</TabsTrigger>
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid grid-cols-5 w-full mb-6">
+            <TabsTrigger value="dashboard">대시보드</TabsTrigger>
+            <TabsTrigger value="evaluations">평가하기</TabsTrigger>
             <TabsTrigger value="ranking">순위</TabsTrigger>
             <TabsTrigger value="detailed">상세 결과</TabsTrigger>
             <TabsTrigger value="statistics">통계</TabsTrigger>
           </TabsList>
               
+          <TabsContent value="dashboard">
+            {/* Progress Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">전체 진행률</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {totalCandidates > 0 ? ((completedCandidates / totalCandidates) * 100).toFixed(1) : 0}%
+                  </div>
+                  <Progress value={totalCandidates > 0 ? (completedCandidates / totalCandidates) * 100 : 0} className="mt-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    전체 평가 진행률
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">완료된 평가</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{completedCandidates}</div>
+                  <p className="text-xs text-muted-foreground">
+                    전체 {totalCandidates}개 중
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">평균 점수</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {averageScore.toFixed(1)}%
+                  </div>
+                  <p className="text-xs text-muted-foreground">전체 평균</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 평가 기준 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <FileText className="h-5 w-5" />
+                  <span>평가 기준</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <div className="text-green-600 font-semibold text-lg">90% 이상</div>
+                    <div className="text-sm text-green-700">우수</div>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="text-blue-600 font-semibold text-lg">80-89%</div>
+                    <div className="text-sm text-blue-700">양호</div>
+                  </div>
+                  <div className="p-4 bg-yellow-50 rounded-lg">
+                    <div className="text-yellow-600 font-semibold text-lg">70-79%</div>
+                    <div className="text-sm text-yellow-700">보통</div>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="text-gray-600 font-semibold text-lg">70% 미만</div>
+                    <div className="text-sm text-gray-700">개선필요</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="evaluations">
+            <Card>
+              <CardHeader>
+                <CardTitle>평가 진행 현황</CardTitle>
+                <CardDescription>후보자별 평가 현황을 확인할 수 있습니다</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {filteredResults.length > 0 ? (
+                    filteredResults.map((result: CandidateResult) => (
+                      <div key={result.candidate.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <Users className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-lg">{result.candidate.name}</h3>
+                              <p className="text-gray-600">{result.candidate.department} · {result.candidate.position}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <Badge variant={result.completedEvaluations > 0 ? "default" : "outline"}>
+                              {result.completedEvaluations > 0 ? "평가 완료" : "평가 대기"}
+                            </Badge>
+                            <div className="text-right">
+                              <div className="font-semibold">{result.percentage.toFixed(1)}%</div>
+                              <div className="text-sm text-gray-500">
+                                {result.completedEvaluations}/{result.evaluatorCount} 완료
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">평가 데이터가 없습니다</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="overview">
             {/* 통계 카드 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
