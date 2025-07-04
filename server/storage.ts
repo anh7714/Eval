@@ -80,12 +80,82 @@ function saveDataToFile() {
   }
 }
 
-// Force file-based storage due to Replit SASL authentication issues with Supabase
-console.log("Using file-based storage due to Replit network limitations with Supabase");
-useMemoryStorage = true;
+// Database connection initialization
+async function initializeDatabase() {
+  try {
+    if (process.env.DATABASE_URL) {
+      console.log("Attempting to connect to Supabase database...");
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false
+        },
+        // Additional connection options for better compatibility
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+      });
+      
+      // Test the connection
+      const testClient = await pool.connect();
+      await testClient.query('SELECT 1');
+      testClient.release();
+      
+      db = drizzle(pool);
+      useMemoryStorage = false;
+      console.log("Successfully connected to Supabase database");
+      
+      // Initialize database schema if needed
+      await initializeSchema();
+    } else {
+      throw new Error("DATABASE_URL not provided");
+    }
+  } catch (error) {
+    console.log("Database connection failed, falling back to file-based storage:", error);
+    useMemoryStorage = true;
+    // Load data from file when using memory storage
+    loadDataFromFile();
+  }
+}
 
-// Load data from file
-loadDataFromFile();
+// Initialize database schema
+async function initializeSchema() {
+  if (!db) return;
+  
+  try {
+    // Create admin if not exists
+    const existingAdmin = await db.select().from(admins).limit(1);
+    if (existingAdmin.length === 0) {
+      await db.insert(admins).values({
+        username: 'admin',
+        password: 'admin123',
+        name: '시스템 관리자',
+        isActive: true
+      });
+      console.log("Default admin account created");
+    }
+    
+    // Create system config if not exists
+    const existingConfig = await db.select().from(systemConfig).limit(1);
+    if (existingConfig.length === 0) {
+      await db.insert(systemConfig).values({
+        evaluationTitle: "종합평가시스템",
+        allowPartialSubmission: false,
+        enableNotifications: true,
+        isEvaluationActive: false,
+        allowPublicResults: false
+      });
+      console.log("Default system config created");
+    }
+  } catch (error) {
+    console.log("Schema initialization failed:", error);
+  }
+}
+
+// Initialize database connection
+(async () => {
+  await initializeDatabase();
+})();
 
 // Initialize with default admin if no data exists
 if (memoryStore.admins.length === 0) {

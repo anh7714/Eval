@@ -12,8 +12,8 @@
     "enableNotifications": true,
     "isEvaluationActive": false,
     "allowPublicResults": false,
-    "createdAt": "2025-07-01T08:56:00.000Z",
-    "updatedAt": "2025-07-01T08:56:00.000Z"
+    "createdAt": "2025-07-04T17:13:22.567Z",
+    "updatedAt": "2025-07-04T17:13:22.567Z"
   },
   "admins": [
     {
@@ -21,114 +21,15 @@
       "username": "admin",
       "password": "admin123",
       "name": "시스템 관리자",
-      "createdAt": "2025-07-01T08:16:02.223Z",
+      "createdAt": "2025-07-04T17:13:22.567Z",
       "isActive": true
     }
   ],
-  "evaluators": [
-    {
-      "id": 2,
-      "name": "테스트 평가자",
-      "email": "test@example.com",
-      "department": "테스트 부서",
-      "password": "test123",
-      "isActive": true,
-      "createdAt": "2025-07-03T04:51:56.201Z"
-    },
-    {
-      "id": 3,
-      "name": "안형용",
-      "email": "anh7714@gmail.com",
-      "department": "어르신복지과",
-      "password": "0000",
-      "isActive": true,
-      "createdAt": "2025-07-03T05:06:09.277Z"
-    }
-  ],
+  "evaluators": [],
   "evaluationCategories": [],
   "evaluationItems": [],
-  "candidates": [
-    {
-      "id": 10,
-      "name": "구름빵",
-      "department": "노리",
-      "position": "ㅇㅇ",
-      "category": "신규",
-      "description": "",
-      "sortOrder": 0,
-      "isActive": true,
-      "createdAt": "2025-07-04T16:39:41.559Z"
-    },
-    {
-      "id": 8,
-      "name": "김천지",
-      "department": "ㅇㅇ",
-      "position": "ㅇㅇ",
-      "category": "신규",
-      "description": "",
-      "sortOrder": 0,
-      "isActive": true,
-      "createdAt": "2025-07-04T16:38:56.330Z"
-    },
-    {
-      "id": 9,
-      "name": "선풍기",
-      "department": "ㅇㅋ",
-      "position": "ㅇ러",
-      "category": "신규",
-      "description": "",
-      "sortOrder": 0,
-      "isActive": true,
-      "createdAt": "2025-07-04T16:39:09.626Z"
-    },
-    {
-      "id": 4,
-      "name": "얼음장",
-      "department": "하늘나라",
-      "position": "문지기",
-      "category": "신규",
-      "description": "",
-      "sortOrder": 0,
-      "isActive": true,
-      "createdAt": "2025-07-03T06:21:49.557Z"
-    },
-    {
-      "id": 5,
-      "name": "홍길동",
-      "department": "기획팀",
-      "position": "과장",
-      "category": "재협약",
-      "description": "기획업무 담당",
-      "sortOrder": 0,
-      "isActive": true,
-      "createdAt": "2025-07-04T16:37:27.201Z"
-    },
-    {
-      "id": 6,
-      "name": "김영희",
-      "department": "마케팅팀",
-      "position": "대리",
-      "category": "신규",
-      "description": "마케팅 전략 수립",
-      "sortOrder": 1,
-      "isActive": true,
-      "createdAt": "2025-07-04T16:37:27.202Z"
-    },
-    {
-      "id": 7,
-      "name": "박철수",
-      "department": "개발팀",
-      "position": "팀장",
-      "category": "재협약",
-      "description": "시스템 개발 총괄",
-      "sortOrder": 2,
-      "isActive": true,
-      "createdAt": "2025-07-04T16:37:27.202Z"
-    }
-  ],
+  "candidates": [],
   "evaluations": [],
   "evaluationSubmissions": [],
-  "nextId": 11,
-  "categories": [],
-  "submissions": []
+  "nextId": 2
 }
