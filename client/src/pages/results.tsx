@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,6 +28,17 @@ interface CandidateResult {
 export default function ResultsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+
+  useEffect(() => {
+    const handleTabChange = (event: CustomEvent) => {
+      setActiveTab(event.detail);
+    };
+
+    window.addEventListener('tabChange', handleTabChange as EventListener);
+    return () => {
+      window.removeEventListener('tabChange', handleTabChange as EventListener);
+    };
+  }, []);
 
   const { data: results = [], isLoading: resultsLoading } = useQuery({
     queryKey: ["/api/results"],
@@ -458,78 +469,6 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 최상단 헤더 네비게이션 */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold text-blue-600">종합평가시스템</h1>
-              <nav className="flex space-x-6">
-                <button 
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === 'dashboard' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  대시보드
-                </button>
-                <button 
-                  onClick={() => setActiveTab('evaluations')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === 'evaluations' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  평가하기
-                </button>
-                <button 
-                  onClick={() => setActiveTab('ranking')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === 'ranking' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  순위
-                </button>
-                <button 
-                  onClick={() => setActiveTab('detailed')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === 'detailed' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  상세 결과
-                </button>
-                <button 
-                  onClick={() => setActiveTab('statistics')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === 'statistics' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  통계
-                </button>
-              </nav>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                홈
-              </Button>
-              <Button onClick={handleExportResults} size="sm">
-                내보내기
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 py-8">
 
         {/* 콘텐츠 영역 */}

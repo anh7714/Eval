@@ -12,6 +12,7 @@ export default function Header() {
 
   const isAdmin = location.startsWith("/admin");
   const isEvaluator = location.startsWith("/evaluator");
+  const isResults = location === "/results";
   const isHome = location === "/";
 
   const handleLogout = async () => {
@@ -78,6 +79,26 @@ export default function Header() {
                     평가 대시보드
                   </Button>
                 </Link>
+              </nav>
+            )}
+            
+            {isResults && (
+              <nav className="hidden md:flex space-x-1">
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'dashboard' }))}>
+                  대시보드
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'evaluations' }))}>
+                  평가하기
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'ranking' }))}>
+                  순위
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'detailed' }))}>
+                  상세 결과
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'statistics' }))}>
+                  통계
+                </Button>
               </nav>
             )}
           </div>
