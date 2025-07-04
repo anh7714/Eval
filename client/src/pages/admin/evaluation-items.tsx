@@ -754,13 +754,20 @@ export default function EvaluationItemManagement() {
     }
   };
 
-  // 배치 인쇄 기능
+  // 배치 인쇄 기능 - 모든 평가위원 x 모든 후보자 조합으로 자동 인쇄
   const printAllCombinations = () => {
     if (candidates.length === 0 || evaluators.length === 0) {
       showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
       return;
     }
 
+    const printContent = document.getElementById('template-print-area');
+    if (!printContent) {
+      showNotification('인쇄할 내용을 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    let allContent = '';
     let allPrintContent = '';
     const printStyle = `
       <style>
@@ -1020,8 +1027,9 @@ export default function EvaluationItemManagement() {
           `<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">${dynamicTitle}</td>`
         );
 
+        // 각 페이지 내용 추가 - 첫 번째가 아니면 페이지 구분
         const pageContent = `
-          <div class="page-content">
+          <div ${!isFirstPage ? 'style="page-break-before: always;"' : ''}>
             ${titleUpdatedContent}
             ${evaluationFooter}
           </div>
