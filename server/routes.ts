@@ -4,6 +4,14 @@ import session from "express-session";
 import { storage } from "./storage";
 import { insertAdminSchema, insertEvaluatorSchema, insertCandidateSchema, insertEvaluationCategorySchema, insertEvaluationItemSchema, insertEvaluationSchema, insertSystemConfigSchema } from "@shared/schema";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { 
+  admins, systemConfig, evaluators, evaluationCategories, 
+  evaluationItems, candidates, evaluations, evaluationSubmissions 
+} from "../shared/schema";
 
 // Extend session data interface
 declare module 'express-session' {
@@ -685,9 +693,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Starting data migration to Supabase...");
       
       // Create the database connection with proper SSL settings
-      const { Pool } = require('pg');
-      const { drizzle } = require('drizzle-orm/node-postgres');
-      
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
@@ -697,15 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const dbConnection = drizzle(pool);
       
-      // Import schema
-      const { 
-        admins, systemConfig, evaluators, evaluationCategories, 
-        evaluationItems, candidates, evaluations, evaluationSubmissions 
-      } = require('../shared/schema');
-      
       // Read data from file
-      const fs = require('fs');
-      const path = require('path');
       const dataPath = path.join(process.cwd(), 'data.json');
       
       if (!fs.existsSync(dataPath)) {
@@ -876,8 +873,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export data as SQL for manual migration to Supabase
   app.get('/api/admin/export-sql', requireAuth, async (req, res) => {
     try {
-      const fs = require('fs');
-      const path = require('path');
       const dataPath = path.join(process.cwd(), 'data.json');
       
       if (!fs.existsSync(dataPath)) {
