@@ -12,8 +12,8 @@
     "enableNotifications": true,
     "isEvaluationActive": false,
     "allowPublicResults": false,
-    "createdAt": "2025-07-04T18:08:14.045Z",
-    "updatedAt": "2025-07-04T18:08:14.045Z"
+    "createdAt": "2025-07-04T18:22:10.612Z",
+    "updatedAt": "2025-07-04T18:22:10.612Z"
   },
   "admins": [
     {
@@ -21,26 +21,15 @@
       "username": "admin",
       "password": "admin123",
       "name": "시스템 관리자",
-      "createdAt": "2025-07-04T18:08:10.097Z",
+      "createdAt": "2025-07-04T18:22:06.901Z",
       "isActive": true
     }
   ],
-  "evaluators": [
-    {
-      "id": 2,
-      "name": "안형용",
-      "email": "anh7714@gmail.com",
-      "department": "어르신복지과",
-      "password": "0000",
-      "isActive": true,
-      "createdAt": "2025-07-04T18:09:04.440Z",
-      "updatedAt": "2025-07-04T18:09:04.440Z"
-    }
-  ],
+  "evaluators": [],
   "evaluationCategories": [],
   "evaluationItems": [],
   "candidates": [],
   "evaluations": [],
   "evaluationSubmissions": [],
-  "nextId": 3
+  "nextId": 2
 }

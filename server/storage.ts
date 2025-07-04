@@ -32,6 +32,27 @@ import * as path from 'path';
 
 const DATA_FILE = path.join(process.cwd(), 'data.json');
 
+// File-based storage functions
+function loadDataFromFile() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      Object.assign(memoryStore, data);
+      console.log('Data loaded from file:', DATA_FILE);
+    }
+  } catch (error) {
+    console.warn('Failed to load data from file:', error);
+  }
+}
+
+function saveDataToFile() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(memoryStore, null, 2));
+  } catch (error) {
+    console.warn('Failed to save data to file:', error);
+  }
+}
+
 interface MemoryStore {
   systemConfig: SystemConfig | null;
   admins: Admin[];
@@ -57,9 +78,7 @@ const memoryStore: MemoryStore = {
 };
 
 let db: ReturnType<typeof drizzle>;
-// System is now Supabase-only - no memory storage fallback
-
-// Supabase-only storage system - no file-based fallback
+let useMemoryStorage = true;
 
 // Database connection initialization
 async function initializeDatabase() {
@@ -128,11 +147,11 @@ async function initializeDatabase() {
       
     } catch (directError) {
       console.log("❌ Direct connection also failed:", directError.message);
-      console.log("🔄 System configured for Supabase only - connection required");
+      console.log("🔄 Falling back to file-based storage system");
       
-      // Force exit instead of fallback to ensure Supabase requirement
-      console.log("Please verify Supabase DATABASE_URL and try again");
-      process.exit(1);
+      // Fall back to file-based storage
+      useMemoryStorage = true;
+      loadDataFromFile();
     }
   }
 }
@@ -1188,3 +1207,8 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+export async function initializeStorage() {
+  // Storage initialization is handled in the IIFE above
+  console.log("Storage system initialized");
+}

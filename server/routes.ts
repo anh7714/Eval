@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
-import { storage } from "./storage-supabase";
+import { storage } from "./storage";
 import { insertAdminSchema, insertEvaluatorSchema, insertCandidateSchema, insertEvaluationCategorySchema, insertEvaluationItemSchema, insertEvaluationSchema, insertSystemConfigSchema } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
