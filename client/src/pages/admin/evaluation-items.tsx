@@ -480,15 +480,20 @@ export default function EvaluationItemManagement() {
               text-decoration: underline !important;
             }
             
-            table { 
+            /* 제목 표만의 스타일 */
+            table:first-child { 
               border-collapse: collapse !important; 
               width: 100% !important; 
-              margin-bottom: 30px !important;
+              margin-bottom: 20px !important;
               font-size: 13px !important;
               border: 2px solid #666 !important;
+              border-left: none !important;
+              border-right: none !important;
             }
             
-            th, td { 
+            /* 제목 표만의 셀 스타일 */
+            table:first-child th, 
+            table:first-child td { 
               border: 1px solid #666 !important; 
               padding: 12px 10px !important; 
               vertical-align: middle !important;
@@ -502,12 +507,7 @@ export default function EvaluationItemManagement() {
               font-size: 13px !important;
             }
             
-            /* 제목 표만의 특별 스타일 */
-            table:first-child {
-              margin-bottom: 20px !important;
-              border-left: none !important;
-              border-right: none !important;
-            }
+            /* 제목 표 추가 스타일 */
             
             /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
             table:first-child td {
@@ -529,26 +529,7 @@ export default function EvaluationItemManagement() {
               text-align: right !important;
             }
             
-            /* 두 번째 표(데이터 표)의 모든 세로선 강제 복원 */
-            table:nth-of-type(2) td:not(:first-child):not(:last-child),
-            table:nth-of-type(2) th:not(:first-child):not(:last-child) {
-              border-left: 1px solid #666 !important;
-              border-right: 1px solid #666 !important;
-            }
-            
-            /* 첫 번째 열 - 우측 선만 */
-            table:nth-of-type(2) td:first-child,
-            table:nth-of-type(2) th:first-child {
-              border-left: none !important;
-              border-right: 1px solid #666 !important;
-            }
-            
-            /* 마지막 열 - 좌측 선만 */
-            table:nth-of-type(2) td:last-child,
-            table:nth-of-type(2) th:last-child {
-              border-left: 1px solid #666 !important;
-              border-right: none !important;
-            }
+
             
             /* 제목 표 두 번째 행 */
             table:first-child tr:last-child td {
@@ -589,15 +570,7 @@ export default function EvaluationItemManagement() {
               border-right: none !important;
             }
             
-            /* 첫 번째 행의 윗선만 굵게 */
-            .print-area table:nth-of-type(2) thead tr:first-child th {
-              border-top: 2px solid #666 !important;
-            }
-            
-            /* 마지막 행의 아래선만 굵게 */
-            .print-area table:nth-of-type(2) tbody tr:last-child td {
-              border-bottom: 2px solid #666 !important;
-            }
+
 
             
             /* 각 열의 너비 조정 */
