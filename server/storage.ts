@@ -83,45 +83,44 @@ function saveDataToFile() {
 // Force file-based storage due to Replit SASL authentication issues with Supabase
 console.log("Using file-based storage due to Replit network limitations with Supabase");
 useMemoryStorage = true;
-  
-  // Load data from file
-  loadDataFromFile();
-  
-  // Initialize with default admin if no data exists
-  if (memoryStore.admins.length === 0) {
-    memoryStore.admins.push({
-      id: 1,
-      username: 'admin',
-      password: 'admin123',
-      name: '시스템 관리자',
-      createdAt: new Date(),
-      isActive: true
-    });
-    memoryStore.nextId = 2;
-  }
-  
-  // Initialize system config if it doesn't exist
-  if (!memoryStore.systemConfig) {
-    memoryStore.systemConfig = {
-      id: 1,
-      evaluationTitle: "종합평가시스템",
-      systemName: null,
-      description: null,
-      adminEmail: null,
-      maxEvaluators: null,
-      maxCandidates: null,
-      evaluationDeadline: null,
-      allowPartialSubmission: false,
-      enableNotifications: true,
-      isEvaluationActive: false,
-      allowPublicResults: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-  }
-  
-  saveDataToFile();
+
+// Load data from file
+loadDataFromFile();
+
+// Initialize with default admin if no data exists
+if (memoryStore.admins.length === 0) {
+  memoryStore.admins.push({
+    id: 1,
+    username: 'admin',
+    password: 'admin123',
+    name: '시스템 관리자',
+    createdAt: new Date(),
+    isActive: true
+  });
+  memoryStore.nextId = 2;
 }
+
+// Initialize system config if it doesn't exist
+if (!memoryStore.systemConfig) {
+  memoryStore.systemConfig = {
+    id: 1,
+    evaluationTitle: "종합평가시스템",
+    systemName: null,
+    description: null,
+    adminEmail: null,
+    maxEvaluators: null,
+    maxCandidates: null,
+    evaluationDeadline: null,
+    allowPartialSubmission: false,
+    enableNotifications: true,
+    isEvaluationActive: false,
+    allowPublicResults: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+}
+
+saveDataToFile();
 
 export interface IStorage {
   // System Config

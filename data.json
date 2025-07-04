@@ -45,7 +45,7 @@
       "createdAt": "2025-07-03T05:06:09.277Z"
     }
   ],
-  "categories": [],
+  "evaluationCategories": [],
   "evaluationItems": [],
   "candidates": [
     {
@@ -127,6 +127,8 @@
     }
   ],
   "evaluations": [],
-  "submissions": [],
-  "nextId": 11
+  "evaluationSubmissions": [],
+  "nextId": 11,
+  "categories": [],
+  "submissions": []
 }
