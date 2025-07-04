@@ -779,13 +779,13 @@ export default function EvaluationItemManagement() {
                     <td style="border: 1px solid #666; padding: 8px; font-size: 11px;">
                       ${itemIndex + 1}. ${item.text}
                     </td>
-                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
                       ${item.type}
                     </td>
-                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
                       ${item.points}점
                     </td>
-                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
                       0
                     </td>
                   </tr>
@@ -794,13 +794,13 @@ export default function EvaluationItemManagement() {
             }).join('')}
             <!-- 합계 행 -->
             <tr style="background-color: #e8e8e8; font-weight: bold;">
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8;">합계</td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle;">합계</td>
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
                 ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
               </td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
                 ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
               </td>
             </tr>
@@ -1123,13 +1123,13 @@ export default function EvaluationItemManagement() {
                       <td style="border: 1px solid #666; padding: 8px; font-size: 11px;">
                         ${itemIndex + 1}. ${item.text}
                       </td>
-                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
                         ${item.type}
                       </td>
-                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
                         ${item.points}점
                       </td>
-                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
                         0
                       </td>
                     </tr>
@@ -1138,13 +1138,13 @@ export default function EvaluationItemManagement() {
               }).join('')}
               <!-- 합계 행 -->
               <tr style="background-color: #e8e8e8; font-weight: bold;">
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8;">합계</td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle;">합계</td>
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
                   ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
                 </td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
                   ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
                 </td>
               </tr>
