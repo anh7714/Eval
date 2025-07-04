@@ -40,7 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating default admin account...");
       const newAdmin = await storage.createAdmin({
         username: "admin",
-        password: "admin",
+        password: "admin123",
         name: "시스템 관리자"
       });
       console.log("Default admin account created:", newAdmin);

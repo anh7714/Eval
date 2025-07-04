@@ -344,7 +344,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAdmin(admin: InsertAdmin): Promise<Admin> {
-    if (useMemoryStorage) {
+    if (useMemoryStorage || !db) {
       const newAdmin: Admin = {
         id: memoryStore.nextId++,
         ...admin,
@@ -356,11 +356,25 @@ export class DatabaseStorage implements IStorage {
       return newAdmin;
     }
     
-    const inserted = await db
-      .insert(admins)
-      .values({ ...admin, createdAt: new Date(), isActive: true })
-      .returning();
-    return inserted[0];
+    try {
+      const inserted = await db
+        .insert(admins)
+        .values({ ...admin, createdAt: new Date(), isActive: true })
+        .returning();
+      return inserted[0];
+    } catch (error) {
+      console.log("Database admin creation failed, falling back to memory storage");
+      useMemoryStorage = true;
+      const newAdmin: Admin = {
+        id: memoryStore.nextId++,
+        ...admin,
+        createdAt: new Date(),
+        isActive: true
+      };
+      memoryStore.admins.push(newAdmin);
+      saveDataToFile();
+      return newAdmin;
+    }
   }
 
   async updateAdmin(id: number, admin: Partial<InsertAdmin>): Promise<Admin> {
