@@ -569,11 +569,28 @@ export default function EvaluationItemManagement() {
               margin-top: 0 !important;
             }
             
-            /* 데이터 표 세로선 제거 (기존 규칙 무효화) */
+            /* 데이터 표 - 모든 테두리 먼저 그리기 */
             table:last-child td,
             table:last-child th {
+              border: 1px solid #666 !important;
+            }
+            
+            /* 좌우 외곽선만 제거 */
+            table:last-child td:first-child,
+            table:last-child th:first-child {
               border-left: none !important;
+            }
+            
+            table:last-child td:last-child,
+            table:last-child th:last-child {
               border-right: none !important;
+            }
+            
+            /* 상하 선 두껍게 */
+            table:last-child td,
+            table:last-child th {
+              border-top: 2px solid #666 !important;
+              border-bottom: 2px solid #666 !important;
             }
 
             
@@ -847,26 +864,7 @@ export default function EvaluationItemManagement() {
             text-align: right !important;
           }
           
-          /* 두 번째 표(데이터 표)의 모든 세로선 강제 복원 */
-          table:nth-of-type(2) td:not(:first-child):not(:last-child),
-          table:nth-of-type(2) th:not(:first-child):not(:last-child) {
-            border-left: 1px solid #666 !important;
-            border-right: 1px solid #666 !important;
-          }
-          
-          /* 첫 번째 열 - 우측 선만 */
-          table:nth-of-type(2) td:first-child,
-          table:nth-of-type(2) th:first-child {
-            border-left: none !important;
-            border-right: 1px solid #666 !important;
-          }
-          
-          /* 마지막 열 - 좌측 선만 */
-          table:nth-of-type(2) td:last-child,
-          table:nth-of-type(2) th:last-child {
-            border-left: 1px solid #666 !important;
-            border-right: none !important;
-          }
+
           
           /* 제목 표 두 번째 행 */
           table:first-child tr:last-child td {
@@ -882,11 +880,28 @@ export default function EvaluationItemManagement() {
             margin-top: 0 !important;
           }
           
-          /* 데이터 표 세로선 제거 (기존 규칙 무효화) */
+          /* 데이터 표 - 모든 테두리 먼저 그리기 */
           table:last-child td,
           table:last-child th {
+            border: 1px solid #666 !important;
+          }
+          
+          /* 좌우 외곽선만 제거 */
+          table:last-child td:first-child,
+          table:last-child th:first-child {
             border-left: none !important;
+          }
+          
+          table:last-child td:last-child,
+          table:last-child th:last-child {
             border-right: none !important;
+          }
+          
+          /* 상하 선 두껍게 */
+          table:last-child td,
+          table:last-child th {
+            border-top: 2px solid #666 !important;
+            border-bottom: 2px solid #666 !important;
           }
           
           /* 각 열의 너비 조정 */
