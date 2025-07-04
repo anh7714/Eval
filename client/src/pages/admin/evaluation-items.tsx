@@ -1676,31 +1676,37 @@ export default function EvaluationItemManagement() {
                                   {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
                                     <td key={column.id} className={`border border-gray-400 px-2 py-2 text-center ${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : ''}`}>
                                       {column.id === 'score' ? (
-                                        <Input
-                                          type="number"
-                                          value={item.score}
-                                          onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
-                                          max={item.points}
-                                          min={0}
-                                          className="text-xs text-center w-16"
-                                        />
+                                        <div className="flex justify-center items-center">
+                                          <Input
+                                            type="number"
+                                            value={item.score}
+                                            onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
+                                            max={item.points}
+                                            min={0}
+                                            className="text-xs text-center w-16 mx-auto"
+                                          />
+                                        </div>
                                       ) : isEditing ? (
                                         column.id === 'type' ? (
-                                          <select
-                                            value={item.type}
-                                            onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
-                                            className="text-xs border rounded px-1 py-1"
-                                          >
-                                            <option value="정량">정량</option>
-                                            <option value="정성">정성</option>
-                                          </select>
+                                          <div className="flex justify-center items-center">
+                                            <select
+                                              value={item.type}
+                                              onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
+                                              className="text-xs border rounded px-1 py-1 text-center mx-auto"
+                                            >
+                                              <option value="정량">정량</option>
+                                              <option value="정성">정성</option>
+                                            </select>
+                                          </div>
                                         ) : (
-                                          <Input
-                                            type={column.type === 'number' ? 'number' : 'text'}
-                                            value={item[column.id] || (column.type === 'number' ? 0 : '')}
-                                            onChange={(e) => updateItem(section.id, item.id, column.id, column.type === 'number' ? (parseInt(e.target.value) || 0) : e.target.value)}
-                                            className="text-xs text-center w-12"
-                                          />
+                                          <div className="flex justify-center items-center">
+                                            <Input
+                                              type={column.type === 'number' ? 'number' : 'text'}
+                                              value={item[column.id] || (column.type === 'number' ? 0 : '')}
+                                              onChange={(e) => updateItem(section.id, item.id, column.id, column.type === 'number' ? (parseInt(e.target.value) || 0) : e.target.value)}
+                                              className="text-xs text-center w-12 mx-auto"
+                                            />
+                                          </div>
                                         )
                                       ) : (
                                         <span className="text-xs">
