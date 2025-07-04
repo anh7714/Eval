@@ -485,7 +485,7 @@ export default function EvaluationItemManagement() {
               width: 100% !important; 
               margin-bottom: 30px !important;
               font-size: 13px !important;
-              border: none !important;
+              border: 2px solid #666 !important;
             }
             
             th, td { 
@@ -519,13 +519,11 @@ export default function EvaluationItemManagement() {
             table:first-child tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
-              border-right: none !important;
             }
             
             table:first-child tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
-              border-left: none !important;
               text-align: right !important;
             }
             
@@ -548,7 +546,7 @@ export default function EvaluationItemManagement() {
               margin-top: 0 !important;
             }
             
-            /* 데이터 표의 기본 테두리 */
+            /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
             table:last-child td,
             table:last-child th {
               border-top: 1px solid #666 !important;
@@ -557,13 +555,12 @@ export default function EvaluationItemManagement() {
               border-right: 1px solid #666 !important;
             }
             
-            /* 데이터 표 맨 왼쪽 열의 왼쪽 테두리 제거 */
+            /* 데이터 표 좌우 끝선 제거 */
             table:last-child td:first-child,
             table:last-child th:first-child {
               border-left: none !important;
             }
             
-            /* 데이터 표 맨 오른쪽 열의 오른쪽 테두리 제거 */
             table:last-child td:last-child,
             table:last-child th:last-child {
               border-right: none !important;
@@ -601,31 +598,14 @@ export default function EvaluationItemManagement() {
               vertical-align: top !important;
             }
             
-            /* 합계 행 스타일 - 헤더와 동일하게 */
             .total-row { 
               background-color: #e8e8e8 !important; 
               font-weight: bold !important; 
             }
             
-            .total-row td {
+            .total-row .category-col {
               background-color: #e8e8e8 !important;
-              padding: 12px 10px !important;
-              font-weight: bold !important;
               text-align: center !important;
-              border-top: 1px solid #666 !important;
-              border-bottom: 1px solid #666 !important;
-              border-left: 1px solid #666 !important;
-              border-right: 1px solid #666 !important;
-            }
-            
-            /* 합계 행 첫 번째 셀 - 왼쪽 테두리 제거 */
-            .total-row td:first-child {
-              border-left: none !important;
-            }
-            
-            /* 합계 행 마지막 셀 - 오른쪽 테두리 제거 */
-            .total-row td:last-child {
-              border-right: none !important;
             }
             
             .score-cell {
@@ -798,7 +778,7 @@ export default function EvaluationItemManagement() {
             font-size: 14px; 
             line-height: 1.5;
             margin: 0 !important;
-            padding: 80px 50px 50px 50px !important;
+            padding: 0 !important;
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
           }
           
@@ -847,13 +827,11 @@ export default function EvaluationItemManagement() {
           table:first-child tr:first-child td:first-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
-            border-right: none !important;
           }
           
           table:first-child tr:first-child td:last-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
-            border-left: none !important;
             text-align: right !important;
           }
           
@@ -871,22 +849,12 @@ export default function EvaluationItemManagement() {
             margin-top: 0 !important;
           }
           
-          /* 데이터 표의 기본 테두리 */
-          table:last-child td,
-          table:last-child th {
-            border-top: 1px solid #666 !important;
-            border-bottom: 1px solid #666 !important;
-            border-left: 1px solid #666 !important;
-            border-right: 1px solid #666 !important;
-          }
-          
-          /* 데이터 표 맨 왼쪽 열의 왼쪽 테두리 제거 */
+          /* 데이터 표 좌우 끝선 제거 */
           table:last-child td:first-child,
           table:last-child th:first-child {
             border-left: none !important;
           }
           
-          /* 데이터 표 맨 오른쪽 열의 오른쪽 테두리 제거 */
           table:last-child td:last-child,
           table:last-child th:last-child {
             border-right: none !important;
@@ -923,31 +891,14 @@ export default function EvaluationItemManagement() {
             vertical-align: top !important;
           }
           
-          /* 합계 행 스타일 - 헤더와 동일하게 */
           .total-row { 
             background-color: #e8e8e8 !important; 
             font-weight: bold !important; 
           }
           
-          .total-row td {
+          .total-row .category-col {
             background-color: #e8e8e8 !important;
-            padding: 12px 10px !important;
-            font-weight: bold !important;
             text-align: center !important;
-            border-top: 1px solid #666 !important;
-            border-bottom: 1px solid #666 !important;
-            border-left: 1px solid #666 !important;
-            border-right: 1px solid #666 !important;
-          }
-          
-          /* 합계 행 첫 번째 셀 - 왼쪽 테두리 제거 */
-          .total-row td:first-child {
-            border-left: none !important;
-          }
-          
-          /* 합계 행 마지막 셀 - 오른쪽 테두리 제거 */
-          .total-row td:last-child {
-            border-right: none !important;
           }
           
           .score-cell {
@@ -1023,12 +974,26 @@ export default function EvaluationItemManagement() {
           }
           
           .evaluation-content {
+            padding: 50px !important;
             margin: 0 !important;
             height: calc(100vh - 100px) !important;
             overflow: hidden !important;
           }
           
           /* 페이지 경계 처리 */
+          .evaluation-sheet::after {
+            content: "" !important;
+            display: block !important;
+            height: 1px !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            visibility: hidden !important;
+          }
+          
+          .evaluation-sheet:last-child::after {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
           
           .total-row td {
             background-color: #f5f5f5;
