@@ -534,6 +534,15 @@ export default function EvaluationItemManagement() {
             table:last-child {
               margin-top: 0 !important;
             }
+            
+            /* 데이터 표의 모든 셀에 세로 구분선 확실히 적용 */
+            table:last-child td,
+            table:last-child th {
+              border-left: 1px solid #666 !important;
+              border-right: 1px solid #666 !important;
+              border-top: 1px solid #666 !important;
+              border-bottom: 1px solid #666 !important;
+            }
 
             
             /* 각 열의 너비 조정 */
@@ -582,11 +591,21 @@ export default function EvaluationItemManagement() {
               padding: 12px 10px !important;
             }
             
+            table:last-child td:nth-child(3) * {
+              text-align: center !important;
+              margin: 0 auto !important;
+              display: block !important;
+              width: 100% !important;
+            }
+            
             table:last-child td:nth-child(3) .text-xs {
               text-align: center !important;
-              display: block !important;
+              display: flex !important;
+              justify-content: center !important;
+              align-items: center !important;
               margin: 0 auto !important;
               width: 100% !important;
+              height: 100% !important;
             }
             
             /* 데이터 표의 배점, 평가점수 열 가운데 정렬 강제 적용 */
