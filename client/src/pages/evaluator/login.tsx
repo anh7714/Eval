@@ -16,9 +16,9 @@ export default function EvaluatorLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // 등록된 평가자 목록 불러오기
+  // 등록된 평가자 목록 불러오기 (공개 엔드포인트 사용)
   const { data: evaluators, isLoading: evaluatorsLoading } = useQuery({
-    queryKey: ["/api/admin/evaluators"],
+    queryKey: ["/api/evaluators"],
     refetchOnWindowFocus: false,
   });
 
