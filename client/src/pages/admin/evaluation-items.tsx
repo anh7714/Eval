@@ -597,10 +597,6 @@ export default function EvaluationItemManagement() {
         </div>
       `;
       
-      // 구분 정보 헤더 추가
-      const categoryHeader = selectedCandidateInfo ? 
-        `<div class="category-info">구분 : ${selectedCandidateInfo.category || selectedCandidateInfo.department}</div>` : '';
-      
       const printWindow = window.open('', '_blank');
       printWindow?.document.write(`
         <html>
@@ -610,7 +606,6 @@ export default function EvaluationItemManagement() {
             ${printStyle}
           </head>
           <body>
-            ${categoryHeader}
             ${printContent.innerHTML}
             ${evaluationFooter}
           </body>
@@ -833,16 +828,18 @@ export default function EvaluationItemManagement() {
         const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
         const dynamicTitle = `${candidate.name} 심사표`;
         const categoryInfo = candidate.category || candidate.department;
-        const categoryHeader = `<div class="category-info">구분 : ${categoryInfo}</div>`;
         
+        // 표 헤더에 구분 정보와 제목을 포함하도록 수정
         const titleUpdatedContent = templateContent.replace(
-          /<input[^>]*value="[^"]*"[^>]*class="[^"]*title[^"]*"[^>]*>/,
-          `<div class="title">${dynamicTitle}</div><div class="title-separator"></div>`
+          /<div class="text-lg font-bold text-center flex-1 title">[^<]*<\/div>/,
+          `<div class="text-lg font-bold text-center flex-1 title">${dynamicTitle}</div>`
+        ).replace(
+          /<span>구분 : [^<]*<\/span>/g,
+          `<span>구분 : ${categoryInfo}</span>`
         );
 
         allPrintContent += `
           <div class="${pageBreakClass}">
-            ${categoryHeader}
             ${titleUpdatedContent}
             ${evaluationFooter}
           </div>
@@ -1442,39 +1439,31 @@ export default function EvaluationItemManagement() {
 
                   {/* 인쇄용 영역 */}
                   <div id="template-print-area">
-                    {/* 헤더 영역 - 분류 정보 표시 */}
-                    {selectedCandidateInfo && (
-                      <div className="mb-4 text-right text-sm">
-                        <span className="category-info">구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
-                      </div>
-                    )}
-                    
-                    {/* 템플릿 제목 - 동적 제목 표시 */}
-                    <div className="mb-6">
-                      {selectedCandidateInfo ? (
-                        <div>
-                          <div className="text-lg font-bold text-center text-gray-800 title">
-                            {getDynamicTitle()}
-                          </div>
-                          <div className="title-separator"></div>
-                        </div>
-                      ) : (
-                        <div>
-                          <Input
-                            value={currentTemplate.title}
-                            onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
-                            className="text-lg font-bold text-center border-none text-gray-800 bg-transparent title"
-                            disabled={!isEditing}
-                            placeholder="평가표 제목을 입력하세요"
-                          />
-                          <div className="title-separator"></div>
-                        </div>
-                      )}
-                    </div>
-
                     {/* 평가표 테이블 */}
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse border border-gray-400 text-sm">
+                        {/* 표 안에 제목과 구분 헤더 */}
+                        <thead>
+                          <tr>
+                            <td colSpan={5} className="border border-gray-400 p-0">
+                              <div className="flex justify-between items-center p-2">
+                                <div className="text-sm">
+                                  {selectedCandidateInfo && (
+                                    <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                                  )}
+                                </div>
+                                <div className="text-lg font-bold text-center flex-1 title">
+                                  {selectedCandidateInfo ? getDynamicTitle() : currentTemplate.title}
+                                </div>
+                                <div className="text-sm">
+                                  {selectedCandidateInfo && (
+                                    <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        </thead>
                         <thead>
                           <tr className="bg-gray-100">
                             <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점)</th>
