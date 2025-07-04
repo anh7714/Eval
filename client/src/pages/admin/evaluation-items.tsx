@@ -777,8 +777,8 @@ export default function EvaluationItemManagement() {
           body { 
             font-size: 14px; 
             line-height: 1.5;
-            margin: 0;
-            padding: 50px;
+            margin: 0 !important;
+            padding: 0 !important;
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
           }
           
@@ -937,11 +937,14 @@ export default function EvaluationItemManagement() {
             break-before: page !important;
             page-break-after: always !important;
             break-after: page !important;
-            min-height: 100vh !important;
-            height: auto !important;
-            overflow: visible !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
             display: block !important;
             box-sizing: border-box !important;
+            position: relative !important;
           }
           
           /* 첫 번째 평가 시트는 페이지 나누기 없음 */
@@ -956,25 +959,40 @@ export default function EvaluationItemManagement() {
             break-after: auto !important;
           }
           
-          /* 각 평가 시트가 한 페이지에 완전히 들어가도록 */
-          .evaluation-sheet > * {
+          /* 각 평가 시트 내부 요소들 */
+          .evaluation-sheet table,
+          .evaluation-sheet div {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
           
-          /* 더 강력한 페이지 나누기 처리 */
-          .evaluation-sheet::before {
+          /* 완전한 페이지 분리를 위한 추가 처리 */
+          .evaluation-sheet {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          
+          .evaluation-content {
+            padding: 50px !important;
+            margin: 0 !important;
+            height: calc(100vh - 100px) !important;
+            overflow: hidden !important;
+          }
+          
+          /* 페이지 경계 처리 */
+          .evaluation-sheet::after {
             content: "" !important;
             display: block !important;
-            page-break-before: always !important;
-            break-before: page !important;
-            height: 0 !important;
+            height: 1px !important;
+            page-break-after: always !important;
+            break-after: page !important;
             visibility: hidden !important;
           }
           
-          .evaluation-sheet:first-child::before {
-            page-break-before: auto !important;
-            break-before: auto !important;
+          .evaluation-sheet:last-child::after {
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
           
           .total-row td {
@@ -1129,9 +1147,11 @@ export default function EvaluationItemManagement() {
         );
 
         allPrintContent += `
-          <div class="${pageBreakClass} evaluation-sheet">
-            ${titleUpdatedContent}
-            ${evaluationFooter}
+          <div class="evaluation-sheet ${pageBreakClass}">
+            <div class="evaluation-content">
+              ${titleUpdatedContent}
+              ${evaluationFooter}
+            </div>
           </div>
         `;
       });
