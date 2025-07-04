@@ -540,33 +540,43 @@ export default function EvaluationItemManagement() {
               padding: 20px !important;
             }
             
-            /* 데이터 표의 가로 구분선 추가 */
-            .print-area table:nth-of-type(2) .section-cell {
+            /* 데이터 표의 가로 구분선 추가 - 높은 우선순위 */
+            #template-print-area.print-area table:nth-of-type(2) .section-cell {
               border-bottom: 1px solid #666 !important;
             }
             
-            /* 데이터 표 완전 초기화 및 재설정 */
-            .print-area table:nth-of-type(2) {
+            /* 데이터 표 완전 초기화 및 재설정 - 높은 우선순위 */
+            #template-print-area.print-area table:nth-of-type(2) {
               border-collapse: collapse !important;
               margin-top: 0 !important;
               width: 100% !important;
             }
             
-            /* 데이터 표 - 모든 셀에 완전한 테두리 적용 */
-            .print-area table:nth-of-type(2) td,
-            .print-area table:nth-of-type(2) th {
+            /* 데이터 표 - 모든 셀에 완전한 테두리 적용 - 높은 우선순위 */
+            #template-print-area.print-area table:nth-of-type(2) td,
+            #template-print-area.print-area table:nth-of-type(2) th {
               border: 1px solid #666 !important;
+              border-width: 1px !important;
+              border-style: solid !important;
+              border-color: #666 !important;
               padding: 8px !important;
+              box-sizing: border-box !important;
             }
             
-            /* 데이터 표 - 좌우 외곽선만 제거 */
-            .print-area table:nth-of-type(2) td:first-child,
-            .print-area table:nth-of-type(2) th:first-child {
+            /* 강제로 내부 세로선 표시 */
+            #template-print-area.print-area table:nth-of-type(2) td + td,
+            #template-print-area.print-area table:nth-of-type(2) th + th {
+              border-left: 1px solid #666 !important;
+            }
+            
+            /* 데이터 표 - 좌우 외곽선만 제거 - 높은 우선순위 */
+            #template-print-area.print-area table:nth-of-type(2) td:first-child,
+            #template-print-area.print-area table:nth-of-type(2) th:first-child {
               border-left: none !important;
             }
             
-            .print-area table:nth-of-type(2) td:last-child,
-            .print-area table:nth-of-type(2) th:last-child {
+            #template-print-area.print-area table:nth-of-type(2) td:last-child,
+            #template-print-area.print-area table:nth-of-type(2) th:last-child {
               border-right: none !important;
             }
             
