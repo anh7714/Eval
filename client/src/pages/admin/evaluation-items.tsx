@@ -529,21 +529,24 @@ export default function EvaluationItemManagement() {
               text-align: right !important;
             }
             
-            /* 두 번째 표(데이터 표)의 모든 세로선 유지 */
-            table:nth-of-type(2) td,
-            table:nth-of-type(2) th {
+            /* 두 번째 표(데이터 표)의 모든 세로선 강제 복원 */
+            table:nth-of-type(2) td:not(:first-child):not(:last-child),
+            table:nth-of-type(2) th:not(:first-child):not(:last-child) {
               border-left: 1px solid #666 !important;
               border-right: 1px solid #666 !important;
             }
             
-            /* 데이터 표 좌우 끝선만 제거 */
+            /* 첫 번째 열 - 우측 선만 */
             table:nth-of-type(2) td:first-child,
             table:nth-of-type(2) th:first-child {
               border-left: none !important;
+              border-right: 1px solid #666 !important;
             }
             
+            /* 마지막 열 - 좌측 선만 */
             table:nth-of-type(2) td:last-child,
             table:nth-of-type(2) th:last-child {
+              border-left: 1px solid #666 !important;
               border-right: none !important;
             }
             
@@ -844,21 +847,24 @@ export default function EvaluationItemManagement() {
             text-align: right !important;
           }
           
-          /* 두 번째 표(데이터 표)의 모든 세로선 유지 */
-          table:nth-of-type(2) td,
-          table:nth-of-type(2) th {
+          /* 두 번째 표(데이터 표)의 모든 세로선 강제 복원 */
+          table:nth-of-type(2) td:not(:first-child):not(:last-child),
+          table:nth-of-type(2) th:not(:first-child):not(:last-child) {
             border-left: 1px solid #666 !important;
             border-right: 1px solid #666 !important;
           }
           
-          /* 데이터 표 좌우 끝선만 제거 */
+          /* 첫 번째 열 - 우측 선만 */
           table:nth-of-type(2) td:first-child,
           table:nth-of-type(2) th:first-child {
             border-left: none !important;
+            border-right: 1px solid #666 !important;
           }
           
+          /* 마지막 열 - 좌측 선만 */
           table:nth-of-type(2) td:last-child,
           table:nth-of-type(2) th:last-child {
+            border-left: 1px solid #666 !important;
             border-right: none !important;
           }
           
