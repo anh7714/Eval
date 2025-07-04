@@ -57,7 +57,7 @@ const memoryStore: MemoryStore = {
 };
 
 let db: ReturnType<typeof drizzle>;
-let useMemoryStorage = true;
+let useMemoryStorage = false; // Force database usage
 
 // File-based persistence functions
 function loadDataFromFile() {

@@ -678,6 +678,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Data migration endpoint
+  app.post("/api/admin/migrate-data", async (req, res) => {
+    try {
+      // Force switch to database storage for migration
+      console.log("Starting data migration to Supabase...");
+      
+      // Create the database connection with proper SSL settings
+      const { Pool } = require('pg');
+      const { drizzle } = require('drizzle-orm/node-postgres');
+      
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false
+        }
+      });
+      
+      const dbConnection = drizzle(pool);
+      
+      // Import schema
+      const { 
+        admins, systemConfig, evaluators, evaluationCategories, 
+        evaluationItems, candidates, evaluations, evaluationSubmissions 
+      } = require('../shared/schema');
+      
+      // Read data from file
+      const fs = require('fs');
+      const path = require('path');
+      const dataPath = path.join(process.cwd(), 'data.json');
+      
+      if (!fs.existsSync(dataPath)) {
+        return res.status(404).json({ message: "No data file found to migrate" });
+      }
+      
+      const fileData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+      
+      // Clear existing data (optional)
+      await dbConnection.delete(evaluationSubmissions);
+      await dbConnection.delete(evaluations);
+      await dbConnection.delete(evaluationItems);
+      await dbConnection.delete(evaluationCategories);
+      await dbConnection.delete(candidates);
+      await dbConnection.delete(evaluators);
+      await dbConnection.delete(systemConfig);
+      await dbConnection.delete(admins);
+      
+      // Migrate data
+      let migrated = {
+        admins: 0,
+        systemConfig: 0,
+        evaluators: 0,
+        categories: 0,
+        items: 0,
+        candidates: 0,
+        evaluations: 0,
+        submissions: 0
+      };
+      
+      // Migrate admins
+      if (fileData.admins && fileData.admins.length > 0) {
+        for (const admin of fileData.admins) {
+          await dbConnection.insert(admins).values({
+            username: admin.username,
+            password: admin.password,
+            name: admin.name,
+            isActive: admin.isActive || true
+          });
+          migrated.admins++;
+        }
+      }
+      
+      // Migrate system config
+      if (fileData.systemConfig) {
+        await dbConnection.insert(systemConfig).values({
+          evaluationTitle: fileData.systemConfig.evaluationTitle || "종합평가시스템",
+          systemName: fileData.systemConfig.systemName,
+          description: fileData.systemConfig.description,
+          adminEmail: fileData.systemConfig.adminEmail,
+          maxEvaluators: fileData.systemConfig.maxEvaluators,
+          maxCandidates: fileData.systemConfig.maxCandidates,
+          evaluationDeadline: fileData.systemConfig.evaluationDeadline ? new Date(fileData.systemConfig.evaluationDeadline) : null,
+          allowPartialSubmission: fileData.systemConfig.allowPartialSubmission || false,
+          enableNotifications: fileData.systemConfig.enableNotifications !== false,
+          isEvaluationActive: fileData.systemConfig.isEvaluationActive || false,
+          allowPublicResults: fileData.systemConfig.allowPublicResults || false
+        });
+        migrated.systemConfig++;
+      }
+      
+      // Migrate evaluators
+      if (fileData.evaluators && fileData.evaluators.length > 0) {
+        for (const evaluator of fileData.evaluators) {
+          await dbConnection.insert(evaluators).values({
+            name: evaluator.name,
+            password: evaluator.password,
+            department: evaluator.department || "",
+            email: evaluator.email,
+            sortOrder: evaluator.sortOrder || 0,
+            isActive: evaluator.isActive !== false
+          });
+          migrated.evaluators++;
+        }
+      }
+      
+      // Migrate categories
+      if (fileData.evaluationCategories && fileData.evaluationCategories.length > 0) {
+        for (const category of fileData.evaluationCategories) {
+          await dbConnection.insert(evaluationCategories).values({
+            name: category.name,
+            description: category.description,
+            sortOrder: category.sortOrder || 0,
+            isActive: category.isActive !== false
+          });
+          migrated.categories++;
+        }
+      }
+      
+      // Migrate evaluation items
+      if (fileData.evaluationItems && fileData.evaluationItems.length > 0) {
+        for (const item of fileData.evaluationItems) {
+          await dbConnection.insert(evaluationItems).values({
+            categoryId: item.categoryId,
+            name: item.name,
+            description: item.description,
+            type: item.type || "score",
+            maxScore: item.maxScore || 100,
+            sortOrder: item.sortOrder || 0,
+            isActive: item.isActive !== false
+          });
+          migrated.items++;
+        }
+      }
+      
+      // Migrate candidates
+      if (fileData.candidates && fileData.candidates.length > 0) {
+        for (const candidate of fileData.candidates) {
+          await dbConnection.insert(candidates).values({
+            name: candidate.name,
+            department: candidate.department || "",
+            position: candidate.position || "",
+            email: candidate.email,
+            phone: candidate.phone,
+            sortOrder: candidate.sortOrder || 0,
+            isActive: candidate.isActive !== false
+          });
+          migrated.candidates++;
+        }
+      }
+      
+      // Migrate evaluations
+      if (fileData.evaluations && fileData.evaluations.length > 0) {
+        for (const evaluation of fileData.evaluations) {
+          await dbConnection.insert(evaluations).values({
+            evaluatorId: evaluation.evaluatorId,
+            candidateId: evaluation.candidateId,
+            itemId: evaluation.itemId,
+            score: evaluation.score || "0",
+            comment: evaluation.comment || evaluation.comments,
+            isSubmitted: evaluation.isSubmitted || false,
+            submittedAt: evaluation.submittedAt ? new Date(evaluation.submittedAt) : null
+          });
+          migrated.evaluations++;
+        }
+      }
+      
+      // Migrate evaluation submissions
+      if (fileData.evaluationSubmissions && fileData.evaluationSubmissions.length > 0) {
+        for (const submission of fileData.evaluationSubmissions) {
+          await dbConnection.insert(evaluationSubmissions).values({
+            evaluatorId: submission.evaluatorId,
+            candidateId: submission.candidateId,
+            submittedAt: submission.submittedAt ? new Date(submission.submittedAt) : new Date(),
+            isCompleted: submission.isCompleted !== false
+          });
+          migrated.submissions++;
+        }
+      }
+      
+      await pool.end();
+      
+      console.log("Data migration completed successfully:", migrated);
+      res.json({ 
+        message: "Data migration completed successfully", 
+        migrated 
+      });
+      
+    } catch (error) {
+      console.error("Data migration failed:", error);
+      res.status(500).json({ 
+        message: "Data migration failed", 
+        error: String(error) 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
