@@ -40,12 +40,12 @@ export default function CandidateManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
-      toast({ title: "성공", description: "후보자가 추가되었습니다." });
+      toast({ title: "성공", description: "평가대상이 추가되었습니다." });
       setIsAddingCandidate(false);
       setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
     },
     onError: () => {
-      toast({ title: "오류", description: "후보자 추가에 실패했습니다.", variant: "destructive" });
+      toast({ title: "오류", description: "평가대상 추가에 실패했습니다.", variant: "destructive" });
     },
   });
 
@@ -61,10 +61,10 @@ export default function CandidateManagement() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
-      toast({ title: "성공", description: `${data.length}명의 후보자가 추가되었습니다.` });
+      toast({ title: "성공", description: `${data.length}명의 평가대상이 추가되었습니다.` });
     },
     onError: () => {
-      toast({ title: "오류", description: "후보자 일괄 추가에 실패했습니다.", variant: "destructive" });
+      toast({ title: "오류", description: "평가대상 일괄 추가에 실패했습니다.", variant: "destructive" });
     },
   });
 
@@ -80,13 +80,13 @@ export default function CandidateManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
-      toast({ title: "성공", description: "후보자가 수정되었습니다." });
+      toast({ title: "성공", description: "평가대상이 수정되었습니다." });
       setEditingCandidate(null);
       setIsAddingCandidate(false);
       setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
     },
     onError: () => {
-      toast({ title: "오류", description: "후보자 수정에 실패했습니다.", variant: "destructive" });
+      toast({ title: "오류", description: "평가대상 수정에 실패했습니다.", variant: "destructive" });
     },
   });
 
@@ -100,10 +100,10 @@ export default function CandidateManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
-      toast({ title: "성공", description: "후보자가 삭제되었습니다." });
+      toast({ title: "성공", description: "평가대상이 삭제되었습니다." });
     },
     onError: () => {
-      toast({ title: "오류", description: "후보자 삭제에 실패했습니다.", variant: "destructive" });
+      toast({ title: "오류", description: "평가대상 삭제에 실패했습니다.", variant: "destructive" });
     },
   });
 
@@ -119,7 +119,7 @@ export default function CandidateManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
-      toast({ title: "성공", description: "후보자 상태가 변경되었습니다." });
+      toast({ title: "성공", description: "평가대상 상태가 변경되었습니다." });
     },
   });
 
@@ -146,7 +146,7 @@ export default function CandidateManagement() {
   };
 
   const handleDelete = (candidate: any) => {
-    if (window.confirm(`정말로 "${candidate.name}" 후보자를 삭제하시겠습니까?`)) {
+    if (window.confirm(`정말로 "${candidate.name}" 평가대상을 삭제하시겠습니까?`)) {
       deleteMutation.mutate(candidate.id);
     }
   };
@@ -212,7 +212,7 @@ export default function CandidateManagement() {
       }
     ];
 
-    exportToExcel(templateData, `후보자_업로드_템플릿.xlsx`);
+    exportToExcel(templateData, `평가대상_업로드_템플릿.xlsx`);
     toast({ title: "성공", description: "업로드 템플릿 파일이 다운로드되었습니다." });
   };
 
@@ -232,8 +232,8 @@ export default function CandidateManagement() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">후보자 관리</h1>
-            <p className="text-lg text-gray-600">평가 대상 후보자를 관리할 수 있습니다.</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">평가대상 관리</h1>
+            <p className="text-lg text-gray-600">평가 대상을 관리할 수 있습니다.</p>
             <p className="text-sm text-gray-500 mt-2">
               💡 엑셀 업로드 형식: 이름, 부서, 직책, 구분, 설명 컬럼을 포함해주세요.
             </p>
@@ -265,7 +265,7 @@ export default function CandidateManagement() {
             </Button>
             <Button onClick={() => setIsAddingCandidate(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              후보자 추가
+              평가대상 추가
             </Button>
           </div>
         </div>
@@ -273,8 +273,8 @@ export default function CandidateManagement() {
         {isAddingCandidate && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>{editingCandidate ? "후보자 수정" : "새 후보자 추가"}</CardTitle>
-              <CardDescription>후보자 정보를 입력하세요.</CardDescription>
+              <CardTitle>{editingCandidate ? "평가대상 수정" : "새 평가대상 추가"}</CardTitle>
+              <CardDescription>평가대상 정보를 입력하세요.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -316,7 +316,7 @@ export default function CandidateManagement() {
                     <Input
                       value={newCandidate.description}
                       onChange={(e) => setNewCandidate({ ...newCandidate, description: e.target.value })}
-                      placeholder="후보자에 대한 간단한 설명"
+                      placeholder="평가대상에 대한 간단한 설명"
                     />
                   </div>
                 </div>
@@ -338,8 +338,8 @@ export default function CandidateManagement() {
 
         <Card>
           <CardHeader>
-            <CardTitle>후보자 목록</CardTitle>
-            <CardDescription>총 {(candidates as any[])?.length || 0}명의 후보자가 등록되어 있습니다.</CardDescription>
+            <CardTitle>평가대상 목록</CardTitle>
+            <CardDescription>총 {(candidates as any[])?.length || 0}명의 평가대상이 등록되어 있습니다.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

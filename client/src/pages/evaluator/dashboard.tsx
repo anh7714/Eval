@@ -177,8 +177,8 @@ export default function EvaluatorDashboard() {
             {/* Candidates List */}
             <Card>
               <CardHeader>
-                <CardTitle>평가 대상 후보자</CardTitle>
-                <CardDescription>각 후보자를 클릭하여 평가를 시작하거나 결과를 확인하세요</CardDescription>
+                <CardTitle>평가대상</CardTitle>
+                <CardDescription>각 평가대상을 클릭하여 평가를 시작하거나 결과를 확인하세요</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -214,7 +214,7 @@ export default function EvaluatorDashboard() {
                   )) || (
                     <div className="col-span-2 text-center py-8">
                       <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">평가할 후보자가 없습니다</p>
+                      <p className="text-gray-500">평가할 평가대상이 없습니다</p>
                       <p className="text-sm text-gray-400">관리자가 평가 대상자를 배정할 때까지 기다려주세요</p>
                     </div>
                   )}
@@ -227,7 +227,7 @@ export default function EvaluatorDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>평가 진행</CardTitle>
-                <CardDescription>후보자별 평가 현황을 확인하고 평가를 진행하세요</CardDescription>
+                <CardDescription>평가대상별 평가 현황을 확인하고 평가를 진행하세요</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -270,7 +270,7 @@ export default function EvaluatorDashboard() {
                     <Trophy className="h-5 w-5 text-yellow-500" />
                     <span>상위 성과자</span>
                   </CardTitle>
-                  <CardDescription>최고 점수를 받은 후보자들</CardDescription>
+                  <CardDescription>최고 점수를 받은 평가대상들</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -310,7 +310,7 @@ export default function EvaluatorDashboard() {
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle>상세 결과</CardTitle>
-                    <CardDescription>모든 후보자의 평가 결과</CardDescription>
+                    <CardDescription>모든 평가대상의 평가 결과</CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
                     <select
@@ -405,7 +405,7 @@ export default function EvaluatorDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>점수 분포</CardTitle>
-                  <CardDescription>후보자별 점수 분포 현황</CardDescription>
+                  <CardDescription>평가대상별 점수 분포 현황</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -468,7 +468,7 @@ export default function EvaluatorDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">전체 후보자</CardTitle>
+                  <CardTitle className="text-sm font-medium">전체 평가대상</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>

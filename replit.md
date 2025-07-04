@@ -144,6 +144,9 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 실용적인 합격/불합격 처리 로직 및 기준점수 시스템
 - ✓ 관리자 화면과 동일한 상단 헤더 네비게이션 구조
 - ✓ 불필요한 중복 코드 제거 및 깔끔한 코드 구조화
+- ✓ 용어 통일: "후보자" → "평가대상"으로 전면 변경 (2025.07.04)
+- ✓ 헤더 메뉴, 관리자 화면, 평가자 화면 모든 UI 텍스트 수정
+- ✓ 일관된 용어 사용으로 사용자 혼동 방지
 
 ## User Preferences
 

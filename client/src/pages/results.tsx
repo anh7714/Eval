@@ -375,7 +375,7 @@ export default function ResultsPage() {
               ) : (
                 <div className="text-center py-8">
                   <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <p className="text-gray-500">모든 후보자가 기준점수를 충족했습니다</p>
+                  <p className="text-gray-500">모든 평가대상이 기준점수를 충족했습니다</p>
                 </div>
               )}
             </CardContent>
@@ -470,7 +470,7 @@ export default function ResultsPage() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>상세 결과</CardTitle>
-          <CardDescription>모든 후보자의 평가 결과를 확인할 수 있습니다</CardDescription>
+          <CardDescription>모든 평가대상의 평가 결과를 확인할 수 있습니다</CardDescription>
         </div>
         <div className="flex items-center space-x-2">
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>

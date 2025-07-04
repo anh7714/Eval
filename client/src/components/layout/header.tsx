@@ -50,7 +50,7 @@ export default function Header() {
                 </Link>
                 <Link href="/admin/candidates">
                   <Button variant={location === "/admin/candidates" ? "default" : "ghost"} size="sm">
-                    후보자 관리
+                    평가대상 관리
                   </Button>
                 </Link>
                 <Link href="/admin/evaluation-items">
