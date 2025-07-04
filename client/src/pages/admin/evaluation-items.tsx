@@ -597,9 +597,9 @@ export default function EvaluationItemManagement() {
         </div>
       `;
       
-      // 분류 정보 헤더 추가
+      // 구분 정보 헤더 추가
       const categoryHeader = selectedCandidateInfo ? 
-        `<div class="category-info">분류 : ${selectedCandidateInfo.category || selectedCandidateInfo.department}</div>` : '';
+        `<div class="category-info">구분 : ${selectedCandidateInfo.category || selectedCandidateInfo.department}</div>` : '';
       
       const printWindow = window.open('', '_blank');
       printWindow?.document.write(`
@@ -833,7 +833,7 @@ export default function EvaluationItemManagement() {
         const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
         const dynamicTitle = `${candidate.name} 심사표`;
         const categoryInfo = candidate.category || candidate.department;
-        const categoryHeader = `<div class="category-info">분류 : ${categoryInfo}</div>`;
+        const categoryHeader = `<div class="category-info">구분 : ${categoryInfo}</div>`;
         
         const titleUpdatedContent = templateContent.replace(
           /<input[^>]*value="[^"]*"[^>]*class="[^"]*title[^"]*"[^>]*>/,
@@ -1445,7 +1445,7 @@ export default function EvaluationItemManagement() {
                     {/* 헤더 영역 - 분류 정보 표시 */}
                     {selectedCandidateInfo && (
                       <div className="mb-4 text-right text-sm">
-                        <span className="category-info">분류 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                        <span className="category-info">구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
                       </div>
                     )}
                     
