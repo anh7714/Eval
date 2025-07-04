@@ -1003,22 +1003,21 @@ export default function EvaluationItemManagement() {
           </div>
         `;
 
-        const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
-        const dynamicTitle = `${candidate.name} 심사표`;
+        // 개별 인쇄와 동일한 방식으로 printContent 가져오기
+        const printContent = document.getElementById('template-print-area');
+        if (!printContent) return;
+        
+        const candidateTitle = `${candidate.name} 심사표`;
         const categoryInfo = candidate.category || candidate.department;
         
-        // 새로운 표 구조로 제목과 구분 정보 교체
-        let titleUpdatedContent = templateContent.replace(
-          /<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
-          `<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right"><span>구분 : ${categoryInfo}</span></td>`
-        ).replace(
-          /<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">[^<]*<\/td>/,
-          `<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">${dynamicTitle}</td>`
-        );
+        // 개별 인쇄와 동일한 방식으로 내용 업데이트
+        let updatedContent = printContent.innerHTML
+          .replace(/심사표/g, candidateTitle)
+          .replace(/구분 : [^<]*/g, `구분 : ${categoryInfo}`);
 
         allPrintContent += `
-          <div class="${pageBreakClass}" style="page-break-after: always;">
-            ${titleUpdatedContent}
+          <div class="${pageBreakClass}">
+            ${updatedContent}
             ${evaluationFooter}
           </div>
         `;
