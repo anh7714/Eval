@@ -482,6 +482,7 @@ export default function EvaluationItemManagement() {
               border: 1px solid #666 !important; 
               padding: 12px 10px !important; 
               vertical-align: middle !important;
+              text-align: left !important;
             }
             
             th { 
@@ -564,6 +565,22 @@ export default function EvaluationItemManagement() {
             .score-col { width: 12% !important; text-align: center !important; }
             .notes-col { width: 7% !important; text-align: center !important; }
             
+            /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3),
+            table:last-child td:nth-child(4), 
+            table:last-child td:nth-child(5) {
+              text-align: center !important;
+              vertical-align: middle !important;
+            }
+            
+            /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
+            table:last-child td:nth-child(3) *,
+            table:last-child td:nth-child(4) *,
+            table:last-child td:nth-child(5) * {
+              text-align: center !important;
+              margin: 0 auto !important;
+            }
+            
             .section-cell { 
               background-color: #f8f9fa !important; 
               font-weight: bold !important; 
@@ -596,11 +613,31 @@ export default function EvaluationItemManagement() {
             
 
             
-            /* 데이터 표의 배점, 평가점수 열 가운데 정렬 강제 적용 */
+            /* 데이터 표의 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3), 
             table:last-child td:nth-child(4), 
             table:last-child td:nth-child(5) {
               text-align: center !important;
               vertical-align: middle !important;
+            }
+            
+            /* 인쇄 시 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3) *,
+            table:last-child td:nth-child(4) *,
+            table:last-child td:nth-child(5) * {
+              text-align: center !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              display: block !important;
+            }
+            
+            /* 숫자 데이터를 위한 추가 스타일 */
+            table:last-child td:nth-child(3) span,
+            table:last-child td:nth-child(4) span,
+            table:last-child td:nth-child(5) span {
+              text-align: center !important;
+              width: 100% !important;
+              display: inline-block !important;
             }
             
             table:last-child td:nth-child(4) *, 
