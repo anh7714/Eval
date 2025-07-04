@@ -123,7 +123,7 @@ export default function EvaluationItemManagement() {
 
   // 템플릿 관련 함수들
   const calculateSectionScore = (section: any) => {
-    return section.items.reduce((sum: number, item: any) => sum + (item.score || 0), 0);
+    return section.items.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
   };
 
   const calculateSectionTotalPoints = (section: any) => {
@@ -534,6 +534,11 @@ export default function EvaluationItemManagement() {
               font-size: 10px !important;
             }
             
+            /* 구분 영역의 총점 가운데 정렬 */
+            .section-cell .text-xs {
+              text-align: center !important;
+            }
+            
             .no-print { 
               display: none !important; 
             }
@@ -571,10 +576,10 @@ export default function EvaluationItemManagement() {
         <div class="evaluation-date">
           평가일: ${today}
         </div>
-        <div class="signature-separator"></div>
         <div class="evaluator-info">
           평가위원 : ${evaluatorInfo.name}${positionText} (서명)
         </div>
+        <div class="signature-separator"></div>
       `;
       
       const printWindow = window.open('', '_blank');
@@ -793,10 +798,10 @@ export default function EvaluationItemManagement() {
           <div class="evaluation-date">
             평가일: ${today}
           </div>
-          <div class="signature-separator"></div>
           <div class="evaluator-info">
             평가위원 : ${evaluator.name}${positionText} (서명)
           </div>
+          <div class="signature-separator"></div>
         `;
 
         const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
@@ -1463,7 +1468,7 @@ export default function EvaluationItemManagement() {
                                           ) : (
                                             <span className="font-bold text-sm">{section.id}. {section.title}</span>
                                           )}
-                                          <div className="text-xs text-gray-600 mt-1">
+                                          <div className="text-xs text-gray-600 mt-1 text-center">
                                             ({calculateSectionScore(section)}점)
                                           </div>
                                         </div>
