@@ -38,7 +38,7 @@ export default function EvaluationItemManagement() {
   const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   const [batchPrintMode, setBatchPrintMode] = useState(false);
-  
+
   // 평가위원 정보 (수동 입력용)
   const [evaluator, setEvaluator] = useState({
     name: '평가위원명',
@@ -135,7 +135,7 @@ export default function EvaluationItemManagement() {
   };
 
   const calculateTotalScore = () => {
-    return currentTemplate.sections.reduce((sum, section) => sum + calculateSectionScore(section), 0);
+    return currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0);
   };
 
   // 보이는 컬럼들만 필터링
@@ -160,13 +160,248 @@ export default function EvaluationItemManagement() {
     notification.textContent = message;
     notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50`;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
       if (document.body.contains(notification)) {
         document.body.removeChild(notification);
       }
     }, 3000);
   };
+
+  // 🎯 통합된 평가표 HTML 생성 함수 (일반/배치/개별 인쇄 모두 공통 사용)
+  const generateEvaluationHTML = (evaluatorInfo, candidateInfo, templateData = currentTemplate) => {
+    const today = new Date().toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    // 동적 컬럼 생성
+    const visibleColumns = columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id));
+
+    // 제목 및 카테고리 정보 결정
+    const candidateTitle = candidateInfo ? `${candidateInfo.name} 심사표` : templateData.title;
+    const categoryInfo = candidateInfo ? (candidateInfo.category || candidateInfo.department || '') : '';
+
+    // 평가위원 정보 결정
+    const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
+
+    // 총 배점 계산
+    const totalPoints = templateData.sections.reduce((sum, section) => 
+      sum + section.items.reduce((itemSum, item) => itemSum + (item.points || 0), 0), 0
+    );
+
+    // 총 점수 계산
+    const totalScore = templateData.sections.reduce((sum, section) => 
+      sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0
+    );
+
+    return `
+      <!-- 제목과 구분 정보 표 -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
+        <tr>
+          <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
+            <span>구분 : ${categoryInfo}</span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
+            ${candidateTitle}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 평가 항목 표 -->
+      <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">구분 (${totalPoints}점)</th>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">세부 항목</th>
+            ${visibleColumns.map(column => `
+              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">
+                ${column.title}
+              </th>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${templateData.sections.map(section => {
+            return section.items.map((item, itemIndex) => {
+              return `
+                <tr>
+                  ${itemIndex === 0 ? `
+                    <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top; font-size: 12px;">
+                      ${section.id}. ${section.title}<br>
+                      <span style="font-size: 10px; color: #666;">(${section.items.reduce((sum, sectionItem) => sum + (sectionItem.points || 0), 0)}점)</span>
+                    </td>
+                  ` : ''}
+                  <td style="border: 1px solid #666; padding: 8px; font-size: 12px;">
+                    ${itemIndex + 1}. ${item.text}
+                  </td>
+                  ${visibleColumns.map(column => `
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px; vertical-align: middle;" class="${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : 'custom-cell'}">
+                      ${column.id === 'points' ? `${item[column.id] || 0}점` : 
+                       column.id === 'score' ? `${item[column.id] || 0}점` :
+                       column.id === 'type' ? (item[column.id] || '') :
+                       (item[column.id] || '')}
+                    </td>
+                  `).join('')}
+                </tr>
+              `;
+            }).join('');
+          }).join('')}
+          <!-- 합계 행 -->
+          <tr style="background-color: #e8e8e8; font-weight: bold;">
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle; font-size: 13px;">합계</td>
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+            ${visibleColumns.map(column => `
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px; vertical-align: middle;">
+                ${column.id === 'points' ? `${totalPoints}점` : 
+                  column.id === 'score' ? `${totalScore}점` : 
+                  ''}
+              </td>
+            `).join('')}
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="evaluation-date">
+        평가일: ${today}
+      </div>
+      <div class="evaluator-info">
+        평가위원 : ${evaluatorInfo.name}${positionText} (서명)
+      </div>
+    `;
+  };
+
+  // 🎯 통합 인쇄 스타일 (모든 인쇄 함수에서 공통 사용)
+  const getPrintStyle = () => `
+    <style>
+      @media print {
+        @page {
+          margin: 0 !important;
+          size: A4 !important;
+        }
+
+        body {
+          font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+
+        .evaluation-page {
+          padding: 95px 50px 50px 50px !important;
+          page-break-after: always !important;
+          break-after: page !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          min-height: 100vh !important;
+          box-sizing: border-box !important;
+        }
+
+        .evaluation-page:last-child {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+
+        .title {
+          text-align: center !important;
+          font-size: 24px !important;
+          font-weight: bold !important;
+          margin-bottom: 15px !important;
+          color: black !important;
+        }
+
+        .evaluator-info {
+          text-align: right !important;
+          font-size: 16px !important;
+          font-weight: bold !important;
+          margin-top: 20px !important;
+          margin-bottom: 20px !important;
+          padding: 0 10px;
+          text-decoration: underline !important;
+        }
+
+        .evaluation-date {
+          text-align: center !important;
+          font-size: 16px !important;
+          font-weight: bold !important;
+          margin-top: 20px !important;
+          margin-bottom: 20px !important;
+        }
+
+        table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          margin-bottom: 30px !important;
+          font-size: 13px !important;
+          border: 2px solid #666 !important;
+        }
+
+        th, td {
+          border: 1px solid #666 !important;
+          padding: 12px 10px !important;
+          vertical-align: middle !important;
+        }
+
+        th {
+          background-color: #e8e8e8 !important;
+          text-align: center !important;
+          font-weight: bold !important;
+        }
+
+        .evaluation-page table:nth-of-type(1),
+        .evaluation-page table:nth-of-type(2) {
+          border-left: none !important;
+          border-right: none !important;
+        }
+
+        .evaluation-page table:nth-of-type(1) td:first-child,
+        .evaluation-page table:nth-of-type(1) th:first-child,
+        .evaluation-page table:nth-of-type(2) td:first-child,
+        .evaluation-page table:nth-of-type(2) th:first-child {
+          border-left: none !important;
+        }
+
+        .evaluation-page table:nth-of-type(1) td:last-child,
+        .evaluation-page table:nth-of-type(1) th:last-child,
+        .evaluation-page table:nth-of-type(2) td:last-child,
+        .evaluation-page table:nth-of-type(2) th:last-child {
+          border-right: none !important;
+        }
+
+        .type-cell,
+        .points-cell,
+        .score-cell,
+        .custom-cell {
+          text-align: center !important;
+        }
+
+        .section-cell {
+          background-color: #f8f9fa !important;
+          font-weight: bold !important;
+          text-align: center !important;
+          vertical-align: top !important;
+        }
+
+        .no-print {
+          display: none !important;
+        }
+
+        input, select {
+          border: none !important;
+          background: transparent !important;
+          font-size: inherit !important;
+          text-align: center !important;
+          width: 100% !important;
+        }
+      }
+    </style>
+  `;
 
   // 컬럼 설정 관리 함수들
   const updateColumnConfig = (columnId: string, field: string, value: any) => {
@@ -186,7 +421,7 @@ export default function EvaluationItemManagement() {
       required: false,
       width: 'w-20'
     };
-    
+
     // 배점(points) 앞에 새 컬럼 삽입
     setColumnConfig(prev => {
       const pointsIndex = prev.findIndex(col => col.id === 'points');
@@ -197,7 +432,7 @@ export default function EvaluationItemManagement() {
       newConfig.splice(pointsIndex, 0, newColumn);
       return newConfig;
     });
-    
+
     // 기존 데이터에 새 컬럼 필드 추가
     setCurrentTemplate(prev => ({
       ...prev,
@@ -209,7 +444,7 @@ export default function EvaluationItemManagement() {
         }))
       }))
     }));
-    
+
     showNotification('새 컬럼이 추가되었습니다!');
   };
 
@@ -219,9 +454,9 @@ export default function EvaluationItemManagement() {
       showNotification('필수 컬럼은 삭제할 수 없습니다.', 'error');
       return;
     }
-    
+
     setColumnConfig(prev => prev.filter(col => col.id !== columnId));
-    
+
     // 기존 데이터에서 해당 컬럼 필드 제거
     setCurrentTemplate(prev => ({
       ...prev,
@@ -234,7 +469,7 @@ export default function EvaluationItemManagement() {
         })
       }))
     }));
-    
+
     showNotification('컬럼이 삭제되었습니다!');
   };
 
@@ -339,22 +574,22 @@ export default function EvaluationItemManagement() {
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
     const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
     const fileName = `평가표_${currentTemplate.title.replace(/[^\w\s]/gi, '')}_${dateStr}_${timeStr}.json`;
-    
+
     // 평가위원 정보와 컬럼 설정도 포함해서 저장
     const templateWithAll = {
       ...currentTemplate,
       evaluator: evaluator,
       columnConfig: columnConfig
     };
-    
+
     const dataStr = JSON.stringify(templateWithAll, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
+
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', fileName);
     linkElement.click();
-    
+
     showNotification('✅ 템플릿이 저장되었습니다!');
   };
 
@@ -365,36 +600,37 @@ export default function EvaluationItemManagement() {
       reader.onload = (e) => {
         try {
           const template = JSON.parse(e.target?.result as string);
-          
+
           // 템플릿 유효성 검사
           if (!template.title || !template.sections || !Array.isArray(template.sections)) {
             throw new Error('올바르지 않은 템플릿 형식입니다.');
           }
-          
+
           // 평가위원 정보가 있으면 같이 불러오기
           if (template.evaluator) {
             setEvaluator(template.evaluator);
           }
-          
+
           // 컬럼 설정이 있으면 같이 불러오기
           if (template.columnConfig) {
             setColumnConfig(template.columnConfig);
           }
-          
+
           setCurrentTemplate(template);
           showNotification('✅ 템플릿이 성공적으로 불러와졌습니다!', 'info');
-          
+
         } catch (error: any) {
           showNotification('❌ ' + error.message, 'error');
         }
       };
       reader.readAsText(file);
     }
-    
+
     // 파일 입력 초기화 (같은 파일 다시 선택 가능)
     event.target.value = '';
   };
 
+  // 점수 초기화 함수
   const resetScores = () => {
     setCurrentTemplate(prev => ({
       ...prev,
@@ -403,433 +639,50 @@ export default function EvaluationItemManagement() {
         items: section.items.map(item => ({ ...item, score: 0 }))
       }))
     }));
-    toast({ title: "성공", description: "모든 점수가 초기화되었습니다." });
+    showNotification('모든 점수가 초기화되었습니다!', 'success');
   };
 
+  // 🎯 일반 인쇄 기능 (통합 함수 사용)
   const printTemplate = () => {
-    const printContent = document.getElementById('template-print-area');
-    if (printContent) {
-      const printStyle = `
-        <style>
-          @media print {
-            .print\\:hidden { display: none !important; }
-            .print\\:block { display: block !important; }
-            .print\\:mb-4 { margin-bottom: 1rem !important; }
-            .print\\:text-center { text-align: center !important; }
-            .print\\:text-4xl { font-size: 2.25rem !important; }
-            .print\\:font-black { font-weight: 900 !important; }
-            .print\\:text-black { color: black !important; }
-            .print\\:border-none { border: none !important; }
-            
-            @page {
-              margin: 0 !important;
-              size: A4 !important;
-            }
-            
-            body { 
-              font-size: 14px !important; 
-              line-height: 1.5 !important;
-              margin: 0 !important;
-              padding: 95px 50px 50px 50px !important;
-              font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
-            }
-            
-            /* 브라우저 기본 헤더/푸터 제거 */
-            html {
-              -webkit-print-color-adjust: exact !important;
-              color-adjust: exact !important;
-            }
-            
-            .title {
-              text-align: center !important;
-              font-size: 24px !important;
-              font-weight: bold !important;
-              margin-bottom: 15px !important;
-              color: black !important;
-            }
-            
-            .title-separator {
-              width: 100% !important;
-              height: 2px !important;
-              background-color: #666 !important;
-              margin: 15px 0 30px 0 !important;
-            }
-            
-            .category-info {
-              text-align: right !important;
-              font-size: 14px !important;
-              font-weight: bold !important;
-              margin-bottom: 20px !important;
-              display: block !important;
-            }
-            
-            .evaluation-date {
-              text-align: center !important;
-              margin: 40px 0 20px 0 !important;
-              font-size: 16px !important;
-              font-weight: bold !important;
-            }
-            
-            .evaluator-info {
-              text-align: right !important;
-              margin-top: 20px !important;
-              margin-bottom: 20px !important;
-              font-size: 20px !important;
-              font-weight: bold !important;
-              padding: 20px !important;
-              text-decoration: underline !important;
-            }
-            
-            table { 
-              border-collapse: collapse !important; 
-              width: 100% !important; 
-              margin-bottom: 30px !important;
-              font-size: 13px !important;
-              border: 2px solid #666 !important;
-            }
-            
-            th, td { 
-              border: 1px solid #666 !important; 
-              padding: 12px 10px !important; 
-              vertical-align: middle !important;
-              text-align: left !important;
-            }
-            
-            th { 
-              background-color: #e8e8e8 !important; 
-              text-align: center !important; 
-              font-weight: bold !important;
-              font-size: 13px !important;
-            }
-            
-            /* 제목 표만의 특별 스타일 */
-            table:first-child {
-              margin-bottom: 20px !important;
-              border-left: none !important;
-              border-right: none !important;
-            }
-            
-            /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
-            table:first-child td {
-              border-left: none !important;
-              border-right: none !important;
-            }
-            
-            /* 제목 표 첫 번째 행 */
-            table:first-child tr:first-child td:first-child {
-              border-top: 1px solid #666 !important;
-              border-bottom: none !important;
-            }
-            
-            table:first-child tr:first-child td:last-child {
-              border-top: 1px solid #666 !important;
-              border-bottom: none !important;
-              text-align: right !important;
-            }
-            
-            /* 제목 표 두 번째 행 */
-            table:first-child tr:last-child td {
-              border-top: 1px solid #666 !important;
-              border-bottom: 1px solid #666 !important;
-              text-align: center !important;
-              font-weight: bold !important;
-              font-size: 18px !important;
-            }
-            
-            /* 데이터 표의 가로 구분선 추가 */
-            table:last-child .section-cell {
-              border-bottom: 1px solid #666 !important;
-            }
-            
-            /* 데이터 표만의 스타일 */
-            table:last-child {
-              margin-top: 0 !important;
-            }
-            
-            /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
-            table:last-child td,
-            table:last-child th {
-              border-top: 1px solid #666 !important;
-              border-bottom: 1px solid #666 !important;
-              border-left: 1px solid #666 !important;
-              border-right: 1px solid #666 !important;
-            }
-            
-            /* 데이터 표 좌우 끝선 제거 */
-            table:last-child td:first-child,
-            table:last-child th:first-child {
-              border-left: none !important;
-            }
-            
-            table:last-child td:last-child,
-            table:last-child th:last-child {
-              border-right: none !important;
-            }
+    // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
+    const evaluatorInfo = selectedEvaluatorInfo || evaluator;
 
-            
-            /* 각 열의 너비 조정 */
-            .category-col { width: 12% !important; }
-            .item-col { width: 45% !important; text-align: left !important; }
-            .type-col { width: 12% !important; text-align: center !important; }
-            .points-col { width: 12% !important; text-align: center !important; }
-            .score-col { width: 12% !important; text-align: center !important; }
-            .notes-col { width: 7% !important; text-align: center !important; }
-            
-            /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
-            table:last-child td:nth-child(3),
-            table:last-child td:nth-child(4), 
-            table:last-child td:nth-child(5) {
-              text-align: center !important;
-              vertical-align: middle !important;
-            }
-            
-            /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
-            table:last-child td:nth-child(3) *,
-            table:last-child td:nth-child(4) *,
-            table:last-child td:nth-child(5) * {
-              text-align: center !important;
-              margin: 0 auto !important;
-            }
-            
-            .section-cell { 
-              background-color: #f8f9fa !important; 
-              font-weight: bold !important; 
-              text-align: center !important;
-              vertical-align: top !important;
-            }
-            
-            .total-row { 
-              background-color: #e8e8e8 !important; 
-              font-weight: bold !important; 
-            }
-            
-            .total-row .category-col {
-              background-color: #e8e8e8 !important;
-              text-align: center !important;
-            }
-            
-            .score-cell {
-              text-align: center !important;
-              font-weight: bold !important;
-            }
-            
-            .points-cell {
-              text-align: center !important;
-            }
-            
-            .type-cell {
-              text-align: center !important;
-            }
-            
+    // 평가대상 정보 결정
+    const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
 
-            
-            /* 데이터 표의 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
-            table:last-child td:nth-child(3), 
-            table:last-child td:nth-child(4), 
-            table:last-child td:nth-child(5) {
-              text-align: center !important;
-              vertical-align: middle !important;
-            }
-            
-            /* 인쇄 시 가운데 정렬 강제 적용 */
-            table:last-child td:nth-child(3) *,
-            table:last-child td:nth-child(4) *,
-            table:last-child td:nth-child(5) * {
-              text-align: center !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              display: block !important;
-            }
-            
-            /* 숫자 데이터를 위한 추가 스타일 */
-            table:last-child td:nth-child(3) span,
-            table:last-child td:nth-child(4) span,
-            table:last-child td:nth-child(5) span {
-              text-align: center !important;
-              width: 100% !important;
-              display: inline-block !important;
-            }
-            
-            table:last-child td:nth-child(4) *, 
-            table:last-child td:nth-child(5) * {
-              text-align: center !important;
-              margin: 0 auto !important;
-              justify-content: center !important;
-              align-items: center !important;
-            }
-            
-            table:last-child td:nth-child(4) input, 
-            table:last-child td:nth-child(5) input {
-              text-align: center !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            
-            table:last-child td:nth-child(4) span, 
-            table:last-child td:nth-child(5) span {
-              display: flex !important;
-              justify-content: center !important;
-              align-items: center !important;
-              width: 100% !important;
-              height: 100% !important;
-            }
-            
-            /* 합계 행 가운데 정렬 */
-            table:last-child .total-row td {
-              text-align: center !important;
-              vertical-align: middle !important;
-            }
-            
-            table:last-child .total-row td * {
-              text-align: center !important;
-              margin: 0 auto !important;
-            }
-            
-            /* 구분 영역의 총점 가운데 정렬 */
-            .section-cell .text-xs {
-              text-align: center !important;
-            }
-            
-            .no-print { 
-              display: none !important; 
-            }
-            
-            input {
-              border: none !important;
-              background: transparent !important;
-              font-size: inherit !important;
-              font-weight: inherit !important;
-              text-align: inherit !important;
-              width: 100% !important;
-              padding: 0 !important;
-              margin: 0 !important;
-            }
-            
-            select {
-              border: none !important;
-              background: transparent !important;
-              font-size: inherit !important;
-            }
-          }
-        </style>
-      `;
-      
-      // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
-      const evaluatorInfo = selectedEvaluatorInfo || evaluator;
-      const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
-      const today = new Date().toLocaleDateString('ko-KR', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-      
-      const evaluationFooter = `
-        <div class="evaluation-date">
-          평가일: ${today}
-        </div>
-        <div class="evaluator-info">
-          평가위원 : ${evaluatorInfo.name}${positionText} (서명)
-        </div>
-      `;
-      
-      // 화면과 정확히 동일한 평가표 구조 생성
-      const dynamicTitle = getDynamicTitle();
-      const candidateData = candidates.find((c: any) => c.id === selectedCandidate);
-      const categoryInfo = candidateData?.category || candidateData?.department || '';
-      
-      // 화면과 동일한 평가표 HTML 구조
-      const evaluationContent = `
-        <!-- 제목과 구분 정보 표 -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
-          <tr>
-            <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
-              <span>구분 : ${categoryInfo}</span>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
-              ${dynamicTitle}
-            </td>
-          </tr>
-        </table>
+    // 통합 HTML 생성 함수 사용
+    const evaluationContent = generateEvaluationHTML(evaluatorInfo, candidateInfo);
 
-        <!-- 평가 항목 표 -->
-        <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
-          <thead>
-            <tr>
-              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">구분 (배점)</th>
-              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">세부 항목</th>
-              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">유형</th>
-              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">배점</th>
-              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">평가점수</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${currentTemplate.sections.map(section => {
-              return section.items.map((item, itemIndex) => {
-                return `
-                  <tr>
-                    ${itemIndex === 0 ? `
-                      <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top;">
-                        ${section.id}. ${section.title}<br>
-                        <span style="font-size: 10px; color: #666;">(${calculateSectionScore(section)}점)</span>
-                      </td>
-                    ` : ''}
-                    <td style="border: 1px solid #666; padding: 8px; font-size: 11px;">
-                      ${itemIndex + 1}. ${item.text}
-                    </td>
-                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
-                      ${item.type}
-                    </td>
-                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
-                      ${item.points}점
-                    </td>
-                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
-                      0
-                    </td>
-                  </tr>
-                `;
-              }).join('');
-            }).join('')}
-            <!-- 합계 행 -->
-            <tr style="background-color: #e8e8e8; font-weight: bold;">
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle;">합계</td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
-                ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
-              </td>
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
-                ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      `;
+    // 제목 결정
+    const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : currentTemplate.title;
 
-      const printWindow = window.open('', '_blank');
-      printWindow?.document.write(`
-        <html>
-          <head>
-            <title>평가표 출력 - ${dynamicTitle}</title>
-            <meta charset="UTF-8">
-            ${printStyle}
-          </head>
-          <body>
-            ${evaluationContent}
-            ${evaluationFooter}
-          </body>
-        </html>
-      `);
-      printWindow?.document.close();
-      printWindow?.print();
-      
-      showNotification('인쇄 미리보기가 열렸습니다!', 'info');
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+      return;
     }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>평가표 출력 - ${dynamicTitle}</title>
+          <meta charset="UTF-8">
+          ${getPrintStyle()}
+        </head>
+        <body>
+          <div class="evaluation-page">
+            ${evaluationContent}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+
+    showNotification('인쇄 미리보기가 열렸습니다!', 'info');
   };
 
-  // 배치 인쇄 기능
+  // 🎯 배치 인쇄 기능 (통합 함수 사용) + 추후 확장 대비
   const printAllCombinations = () => {
     if (candidates.length === 0 || evaluators.length === 0) {
       showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
@@ -837,347 +690,105 @@ export default function EvaluationItemManagement() {
     }
 
     let allPrintContent = '';
-    const printStyle = `
-      <style>
-        @media print {
-          .print\\:hidden { display: none !important; }
-          .print\\:block { display: block !important; }
-          .print\\:mb-4 { margin-bottom: 1rem !important; }
-          .print\\:text-center { text-align: center !important; }
-          .print\\:text-4xl { font-size: 2.25rem !important; }
-          .print\\:font-black { font-weight: 900 !important; }
-          .print\\:text-black { color: black !important; }
-          .print\\:border-none { border: none !important; }
-          
-          .page-break { page-break-before: always !important; }
-          @page {
-            margin: 0 !important;
-            size: A4 !important;
-          }
-          
-          body { 
-            font-size: 14px !important; 
-            line-height: 1.5 !important;
-            margin: 0 !important;
-            padding: 95px 50px 50px 50px !important;
-            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
-          }
-          
-          /* 브라우저 기본 헤더/푸터 제거 */
-          html {
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          
-          .title {
-            text-align: center !important;
-            font-size: 24px !important;
-            font-weight: bold !important;
-            margin-bottom: 15px !important;
-            color: black !important;
-          }
-          
-          .title-separator {
-            width: 100% !important;
-            height: 2px !important;
-            background-color: #666 !important;
-            margin: 15px 0 30px 0 !important;
-          }
-          
-          .category-info {
-            text-align: right !important;
-            font-size: 14px !important;
-            font-weight: bold !important;
-            margin-bottom: 20px !important;
-            display: block !important;
-          }
-          
-          .evaluation-date {
-            text-align: center !important;
-            margin: 40px 0 20px 0 !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-          }
-          
-          .evaluator-info {
-            text-align: right !important;
-            margin-top: 20px !important;
-            margin-bottom: 20px !important;
-            font-size: 20px !important;
-            font-weight: bold !important;
-            padding: 20px !important;
-            text-decoration: underline !important;
-          }
-          
-          table { 
-            border-collapse: collapse !important; 
-            width: 100% !important; 
-            margin-bottom: 30px !important;
-            font-size: 13px !important;
-            border: 2px solid #666 !important;
-          }
-          
-          th, td { 
-            border: 1px solid #666 !important; 
-            padding: 12px 10px !important; 
-            vertical-align: middle !important;
-            text-align: left !important;
-          }
-          
-          th { 
-            background-color: #e8e8e8 !important; 
-            text-align: center !important;
-            font-weight: bold !important;
-          }
-          
-          .points-cell { text-align: center !important; }
-          .score-cell { text-align: center !important; }
-          .type-cell { text-align: center !important; }
-          
-          .section-row { 
-            background-color: #f0f0f0 !important; 
-            font-weight: bold !important; 
-          }
-          
-          .total-row { 
-            background-color: #e8e8e8 !important; 
-            font-weight: bold !important; 
-          }
-          
-          input {
-            border: none !important;
-            background: transparent !important;
-            font-size: inherit !important;
-            font-weight: inherit !important;
-            text-align: inherit !important;
-            width: 100% !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          
-          select {
-            border: none !important;
-            background: transparent !important;
-            font-size: inherit !important;
-          }
-          
-          .title {
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 30px;
-            color: black;
-          }
-          
-          .evaluation-date {
-            text-align: center;
-            margin: 40px 0 20px 0;
-            font-size: 16px;
-            font-weight: bold;
-          }
-          
-          .evaluator-info {
-            text-align: right;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            font-size: 20px;
-            font-weight: bold;
-            padding: 20px;
-            border-bottom: 2px solid #000;
-          }
-          .title {
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 30px;
-            color: black;
-          }
-          .evaluator-info {
-            text-align: right;
-            margin-bottom: 20px;
-            font-size: 11px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 10px;
-          }
-          table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            margin-bottom: 20px;
-            font-size: 13px;
-            border: 2px solid #666;
-          }
-          th, td { 
-            border: 1px solid #666; 
-            padding: 12px 10px; 
-            text-align: left;
-            vertical-align: middle;
-          }
-          th { 
-            background-color: #f5f5f5; 
-            text-align: center; 
-            font-weight: bold;
-            font-size: 10px;
-          }
-          .section-cell { 
-            background-color: #f8f9fa; 
-            font-weight: bold; 
-            text-align: center;
-            vertical-align: top;
-          }
-          .total-row { 
-            background-color: #e9ecef; 
-            font-weight: bold; 
-          }
-          .score-cell {
-            text-align: center;
-            font-weight: bold;
-          }
-          .points-cell {
-            text-align: center;
-          }
-          .type-cell {
-            text-align: center;
-            font-size: 10px;
-          }
-          
-          /* 테이블 데이터 가운데 정렬 강제 적용 */
-          td:nth-child(3), td:nth-child(4), td:nth-child(5) {
-            text-align: center !important;
-          }
-          
-          td:nth-child(3) span, td:nth-child(4) span, td:nth-child(5) span {
-            text-align: center !important;
-            display: block !important;
-          }
-          
-          td:nth-child(3) input, td:nth-child(4) input, td:nth-child(5) input {
-            text-align: center !important;
-          }
-        }
-      </style>
-    `;
+    const totalPages = candidates.length * evaluators.length;
 
-    candidates.forEach((candidate: any, candidateIndex) => {
-      evaluators.forEach((evaluator: any, evaluatorIndex) => {
-        const isFirstPage = candidateIndex === 0 && evaluatorIndex === 0;
-        const pageBreakClass = isFirstPage ? '' : 'page-break';
-        
-        const positionText = evaluator.position ? ` (${evaluator.position})` : '';
-        const today = new Date().toLocaleDateString('ko-KR', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        });
-        
-        const evaluationFooter = `
-          <div class="evaluation-date">
-            평가일: ${today}
-          </div>
-          <div class="evaluator-info">
-            평가위원 : ${evaluator.name}${positionText} (서명)
-          </div>
-        `;
-
-        // 화면과 정확히 동일한 평가표 구조 생성
-        const candidateTitle = `${candidate.name} 심사표`;
-        const categoryInfo = candidate.category || candidate.department;
-        
-        // 화면과 동일한 평가표 HTML 구조
-        const evaluationContent = `
-          <!-- 제목과 구분 정보 표 -->
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
-            <tr>
-              <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
-                <span>구분 : ${categoryInfo}</span>
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
-                ${candidateTitle}
-              </td>
-            </tr>
-          </table>
-
-          <!-- 평가 항목 표 -->
-          <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
-            <thead>
-              <tr>
-                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">구분 (배점)</th>
-                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">세부 항목</th>
-                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">유형</th>
-                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">배점</th>
-                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">평가점수</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${currentTemplate.sections.map(section => {
-                return section.items.map((item, itemIndex) => {
-                  return `
-                    <tr>
-                      ${itemIndex === 0 ? `
-                        <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top;">
-                          ${section.id}. ${section.title}<br>
-                          <span style="font-size: 10px; color: #666;">(${calculateSectionScore(section)}점)</span>
-                        </td>
-                      ` : ''}
-                      <td style="border: 1px solid #666; padding: 8px; font-size: 11px;">
-                        ${itemIndex + 1}. ${item.text}
-                      </td>
-                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
-                        ${item.type}
-                      </td>
-                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
-                        ${item.points}점
-                      </td>
-                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px; vertical-align: middle;">
-                        0
-                      </td>
-                    </tr>
-                  `;
-                }).join('');
-              }).join('')}
-              <!-- 합계 행 -->
-              <tr style="background-color: #e8e8e8; font-weight: bold;">
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle;">합계</td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
-                  ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
-                </td>
-                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px; vertical-align: middle;">
-                  ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        `;
+    candidates.forEach((candidate, candidateIndex) => {
+      evaluators.forEach((evaluator, evaluatorIndex) => {
+        // 🎯 일반 인쇄와 완전히 동일한 로직 사용
+        const evaluationContent = generateEvaluationHTML(evaluator, candidate);
 
         allPrintContent += `
-          <div class="${pageBreakClass}">
+          <div class="evaluation-page">
             ${evaluationContent}
-            ${evaluationFooter}
           </div>
         `;
       });
     });
 
     const printWindow = window.open('', '_blank');
-    printWindow?.document.write(`
+    if (!printWindow) {
+      showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+      return;
+    }
+
+    printWindow.document.write(`
       <html>
         <head>
-          <title>전체 평가표 배치 인쇄</title>
+          <title>전체 평가표 배치 인쇄 (${totalPages}페이지)</title>
           <meta charset="UTF-8">
-          ${printStyle}
+          ${getPrintStyle()}
         </head>
         <body>
           ${allPrintContent}
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            };
+          </script>
         </body>
       </html>
     `);
-    printWindow?.document.close();
-    printWindow?.print();
-    
-    showNotification(`총 ${candidates.length * evaluators.length}개의 평가표가 생성되었습니다!`, 'info');
+
+    printWindow.document.close();
+    showNotification(`총 ${totalPages}개의 평가표가 생성되었습니다!`, 'info');
+  };
+
+  // 🚀 추후 확장용: 평가위원별 일괄 인쇄
+  const printByEvaluator = (evaluatorId) => {
+    const evaluator = evaluators.find(e => e.id === evaluatorId);
+    if (!evaluator || candidates.length === 0) return;
+
+    let printContent = '';
+    candidates.forEach(candidate => {
+      const evaluationContent = generateEvaluationHTML(evaluator, candidate);
+      printContent += `<div class="evaluation-page">${evaluationContent}</div>`;
+    });
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${evaluator.name} 평가위원 전체 평가표</title>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>${printContent}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  // 🚀 추후 확장용: 평가대상별 일괄 인쇄
+  const printByCandidate = (candidateId) => {
+    const candidate = candidates.find(c => c.id === candidateId);
+    if (!candidate || evaluators.length === 0) return;
+
+    let printContent = '';
+    evaluators.forEach(evaluator => {
+      const evaluationContent = generateEvaluationHTML(evaluator, candidate);
+      printContent += `<div class="evaluation-page">${evaluationContent}</div>`;
+    });
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${candidate.name} 평가대상 전체 평가표</title>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>${printContent}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   const createCategoryMutation = useMutation({
@@ -1627,21 +1238,70 @@ export default function EvaluationItemManagement() {
                         </select>
                       </div>
                     </div>
-                    {/* 배치 인쇄 버튼 */}
-                    <div className="mt-4 flex items-center justify-between">
-                      <Button 
-                        onClick={printAllCombinations}
-                        variant="outline"
-                        size="sm"
-                        className="bg-white hover:bg-blue-50"
-                        disabled={candidates.length === 0 || evaluators.length === 0}
-                      >
-                        <Printer className="h-4 w-4 mr-2" />
-                        전체 배치 인쇄 ({candidates.length}명 × {evaluators.length}명)
-                      </Button>
-                      <div className="text-xs text-gray-600">
-                        선택된 평가위원과 평가대상으로 개별 심사표가 생성됩니다
-                        <br />
+
+                    {/* 🚀 개선된 인쇄 옵션 (추후 확장 대비) */}
+                    <div className="mt-4 space-y-3">
+                      {/* 전체 배치 인쇄 */}
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-blue-800">전체 배치 인쇄</div>
+                          <div className="text-xs text-gray-600">모든 평가위원 × 모든 평가대상 ({candidates.length}명 × {evaluators.length}명 = {candidates.length * evaluators.length}페이지)</div>
+                        </div>
+                        <Button 
+                          onClick={printAllCombinations}
+                          variant="default"
+                          size="sm"
+                          disabled={candidates.length === 0 || evaluators.length === 0}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          전체 인쇄
+                        </Button>
+                      </div>
+
+                      {/* 🚀 추후 확장용: 개별 선택 인쇄 옵션들 */}
+                      {(candidates.length > 0 && evaluators.length > 0) && (
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* 평가위원별 인쇄 */}
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="font-medium text-sm text-gray-700 mb-2">평가위원별 일괄 인쇄</div>
+                            <div className="text-xs text-gray-500 mb-2">특정 평가위원의 모든 평가표</div>
+                            <select 
+                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
+                              onChange={(e) => e.target.value && printByEvaluator(parseInt(e.target.value))}
+                              defaultValue=""
+                            >
+                              <option value="">평가위원 선택</option>
+                              {evaluators.map((evaluator: any) => (
+                                <option key={evaluator.id} value={evaluator.id}>
+                                  {evaluator.name} ({candidates.length}페이지)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* 평가대상별 인쇄 */}
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="font-medium text-sm text-gray-700 mb-2">평가대상별 일괄 인쇄</div>
+                            <div className="text-xs text-gray-500 mb-2">특정 평가대상의 모든 평가표</div>
+                            <select 
+                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
+                              onChange={(e) => e.target.value && printByCandidate(parseInt(e.target.value))}
+                              defaultValue=""
+                            >
+                              <option value="">평가대상 선택</option>
+                              {candidates.map((candidate: any) => (
+                                <option key={candidate.id} value={candidate.id}>
+                                  {candidate.name} ({evaluators.length}페이지)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 인쇄 팁 */}
+                      <div className="text-xs text-gray-600 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
                         <span className="text-orange-600 font-medium">💡 인쇄 팁:</span> 브라우저 인쇄 설정에서 '머리글 및 바닥글' 옵션을 해제하면 더 깨끗한 출력이 가능합니다
                       </div>
                     </div>
@@ -1835,7 +1495,7 @@ export default function EvaluationItemManagement() {
                                       </div>
                                     </td>
                                   )}
-                                  
+
                                   <td className="border border-gray-400 px-4 py-2">
                                     {isEditing ? (
                                       <Input
@@ -1847,7 +1507,7 @@ export default function EvaluationItemManagement() {
                                       <span className="text-sm">{itemIndex + 1}. {item.text}</span>
                                     )}
                                   </td>
-                                  
+
                                   {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
                                     <td key={column.id} className={`border border-gray-400 px-2 py-2 text-center ${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : ''}`}>
                                       {column.id === 'score' ? (
@@ -1892,7 +1552,7 @@ export default function EvaluationItemManagement() {
                                       )}
                                     </td>
                                   ))}
-                                  
+
                                   {isEditing && (
                                     <td className="border border-gray-400 px-2 py-2 text-center">
                                       <Button

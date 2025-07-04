@@ -133,6 +133,11 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 정확한 rowspan을 사용한 구분별 항목 병합
 - ✓ 배점과 합계 점수 정확한 계산 및 표시
 - ✓ 모든 평가위원과 평가대상자 조합으로 심사표 자동 생성
+- ✓ 인쇄 미리보기 텍스트 정렬 최적화 (2025.07.04)
+- ✓ 유형, 배점, 평가점수 열의 모든 데이터 가운데 정렬 적용
+- ✓ 합계 행의 모든 데이터 가운데 정렬 적용
+- ✓ 세로 방향 가운데 정렬(vertical-align: middle) 추가
+- ✓ 개별 인쇄와 배치 인쇄 모두 동일한 정렬 스타일 적용
 
 ## User Preferences
 
