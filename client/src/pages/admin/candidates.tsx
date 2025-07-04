@@ -161,16 +161,16 @@ export default function CandidateManagement() {
     try {
       const data = await parseExcelFile(file);
       const validCandidates = data.map((row: any, index: number) => ({
-        name: row['이름'] || row['name'] || '',
-        department: row['부서'] || row['department'] || '',
-        position: row['직책'] || row['position'] || '',
+        name: row['기관명(성명)'] || row['이름'] || row['name'] || '',
+        department: row['소속(부서)'] || row['부서'] || row['department'] || '',
+        position: row['직책(직급)'] || row['직책'] || row['position'] || '',
         category: row['구분'] || row['category'] || '',
         description: row['설명'] || row['description'] || '',
         sortOrder: index,
       })).filter(candidate => candidate.name && candidate.department);
 
       if (validCandidates.length === 0) {
-        toast({ title: "오류", description: "유효한 후보자 데이터가 없습니다.", variant: "destructive" });
+        toast({ title: "오류", description: "유효한 평가대상 데이터가 없습니다.", variant: "destructive" });
         return;
       }
 
@@ -190,23 +190,23 @@ export default function CandidateManagement() {
   const handleDownloadTemplate = () => {
     const templateData = [
       {
-        이름: "홍길동",
-        부서: "기획팀",
-        직책: "과장",
+        "기관명(성명)": "홍길동",
+        "소속(부서)": "기획팀",
+        "직책(직급)": "과장",
         구분: "정규직",
         설명: "기획업무 담당"
       },
       {
-        이름: "김영희",
-        부서: "마케팅팀",
-        직책: "대리",
+        "기관명(성명)": "김영희",
+        "소속(부서)": "마케팅팀",
+        "직책(직급)": "대리",
         구분: "정규직",
         설명: "마케팅 전략 수립"
       },
       {
-        이름: "박철수",
-        부서: "개발팀",
-        직책: "팀장",
+        "기관명(성명)": "박철수",
+        "소속(부서)": "개발팀",
+        "직책(직급)": "팀장",
         구분: "정규직",
         설명: "시스템 개발 총괄"
       }
@@ -235,7 +235,7 @@ export default function CandidateManagement() {
             <h1 className="text-4xl font-bold text-gray-900 mb-4">평가대상 관리</h1>
             <p className="text-lg text-gray-600">평가 대상을 관리할 수 있습니다.</p>
             <p className="text-sm text-gray-500 mt-2">
-              💡 엑셀 업로드 형식: 이름, 부서, 직책, 구분, 설명 컬럼을 포함해주세요.
+              💡 엑셀 업로드 형식: 기관명(성명), 소속(부서), 직책(직급), 구분, 설명 컬럼을 포함해주세요.
             </p>
           </div>
           <div className="flex space-x-2">
@@ -280,7 +280,7 @@ export default function CandidateManagement() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">이름</label>
+                    <label className="text-sm font-medium">기관명(성명)</label>
                     <Input
                       value={newCandidate.name}
                       onChange={(e) => setNewCandidate({ ...newCandidate, name: e.target.value })}
@@ -288,7 +288,7 @@ export default function CandidateManagement() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">부서</label>
+                    <label className="text-sm font-medium">소속(부서)</label>
                     <Input
                       value={newCandidate.department}
                       onChange={(e) => setNewCandidate({ ...newCandidate, department: e.target.value })}
@@ -296,7 +296,7 @@ export default function CandidateManagement() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">직책</label>
+                    <label className="text-sm font-medium">직책(직급)</label>
                     <Input
                       value={newCandidate.position}
                       onChange={(e) => setNewCandidate({ ...newCandidate, position: e.target.value })}
@@ -384,7 +384,7 @@ export default function CandidateManagement() {
               ))}
               {(candidates as any[])?.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  등록된 후보자가 없습니다.
+                  등록된 평가대상이 없습니다.
                 </div>
               )}
             </div>

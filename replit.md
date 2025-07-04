@@ -147,6 +147,9 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 용어 통일: "후보자" → "평가대상"으로 전면 변경 (2025.07.04)
 - ✓ 헤더 메뉴, 관리자 화면, 평가자 화면 모든 UI 텍스트 수정
 - ✓ 일관된 용어 사용으로 사용자 혼동 방지
+- ✓ 평가대상 관리 필드명 변경 (2025.07.04)
+- ✓ 이름 → 기관명(성명), 부서 → 소속(부서), 직책 → 직책(직급)
+- ✓ 엑셀 업로드/다운로드 템플릿과 데이터 내보내기 컬럼명 업데이트
 
 ## User Preferences
 

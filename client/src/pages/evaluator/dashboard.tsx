@@ -58,9 +58,9 @@ export default function EvaluatorDashboard() {
 
     const exportData = filteredResults.map((result: CandidateResult) => ({
       순위: result.rank,
-      이름: result.candidate.name,
-      부서: result.candidate.department,
-      직급: result.candidate.position,
+      "기관명(성명)": result.candidate.name,
+      "소속(부서)": result.candidate.department,
+      "직책(직급)": result.candidate.position,
       카테고리: result.candidate.category,
       총점: result.totalScore.toFixed(1),
       최대점수: result.maxPossibleScore.toFixed(1),

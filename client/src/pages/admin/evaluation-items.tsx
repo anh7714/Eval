@@ -141,7 +141,7 @@ export default function EvaluationItemManagement() {
   // 보이는 컬럼들만 필터링
   const visibleColumns = columnConfig.filter(col => col.visible);
 
-  // 선택된 평가위원과 후보자 정보
+  // 선택된 평가위원과 평가대상 정보
   const selectedEvaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
   const selectedCandidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
 

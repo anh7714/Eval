@@ -79,9 +79,9 @@ export default function ResultsPage() {
   const handleExportResults = () => {
     const exportData = filteredResults.map((result: CandidateResult) => ({
       순위: result.rank,
-      이름: result.candidate.name,
-      소속: result.candidate.department,
-      직급: result.candidate.position,
+      "기관명(성명)": result.candidate.name,
+      "소속(부서)": result.candidate.department,
+      "직책(직급)": result.candidate.position,
       구분: result.candidate.category,
       총점: result.totalScore,
       만점: result.maxPossibleScore,
