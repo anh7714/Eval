@@ -831,8 +831,8 @@ export default function EvaluationItemManagement() {
         
         // 새로운 표 구조로 제목과 구분 정보 교체
         let titleUpdatedContent = templateContent.replace(
-          /<td class="border-t border-l border-r border-gray-400 p-2 text-sm">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
-          `<td class="border-t border-l border-r border-gray-400 p-2 text-sm"><span>구분 : ${categoryInfo}</span></td>`
+          /<td class="border-t border-l border-gray-400 p-2 text-sm"><\/td>/g,
+          `<td class="border-t border-l border-gray-400 p-2 text-sm"></td>`
         ).replace(
           /<td class="border-t border-r border-gray-400 p-2 text-sm text-right">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
           `<td class="border-t border-r border-gray-400 p-2 text-sm text-right"><span>구분 : ${categoryInfo}</span></td>`
@@ -1447,11 +1447,7 @@ export default function EvaluationItemManagement() {
                       <table className="w-full border-collapse border border-gray-400 text-sm">
                         <tbody>
                           <tr>
-                            <td className="border-t border-l border-r border-gray-400 p-2 text-sm">
-                              {selectedCandidateInfo && (
-                                <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
-                              )}
-                            </td>
+                            <td className="border-t border-l border-gray-400 p-2 text-sm"></td>
                             <td className="border-t border-r border-gray-400 p-2 text-sm text-right">
                               {selectedCandidateInfo && (
                                 <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
