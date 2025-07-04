@@ -593,6 +593,384 @@ export default function EvaluationItemManagement() {
     showNotification('✅ 템플릿이 저장되었습니다!');
   };
 
+  // 🎯 Excel로 저장하기 (인쇄 미리보기와 동일한 서식 적용)
+  const saveAsExcel = async () => {
+    try {
+      // SheetJS 라이브러리 사용
+      const XLSX = await import('https://unpkg.com/xlsx@0.18.5/xlsx.mjs');
+
+      // 평가위원 정보 결정
+      const evaluatorInfo = selectedEvaluatorInfo || evaluator;
+      const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
+
+      // 제목 및 정보 결정
+      const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : currentTemplate.title;
+      const categoryInfo = candidateInfo ? (candidateInfo.category || candidateInfo.department || '') : '';
+      const today = new Date().toLocaleDateString('ko-KR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+
+      // 동적 컬럼 필터링
+      const visibleColumns = columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id));
+
+      // 새 워크북 생성
+      const wb = XLSX.utils.book_new();
+
+      // 워크시트 데이터 배열 생성
+      const wsData = [];
+
+      // 1. 상단 구분 정보 행
+      const headerRow1 = new Array(2 + visibleColumns.length).fill('');
+      headerRow1[headerRow1.length - 1] = `구분: ${categoryInfo}`;
+      wsData.push(headerRow1);
+
+      // 2. 제목 행
+      const titleRow = new Array(2 + visibleColumns.length).fill('');
+      titleRow[0] = dynamicTitle;
+      wsData.push(titleRow);
+
+      // 3. 빈 행
+      wsData.push(new Array(2 + visibleColumns.length).fill(''));
+
+      // 4. 테이블 헤더
+      const totalPoints = currentTemplate.sections.reduce((sum, section) => 
+        sum + section.items.reduce((itemSum, item) => itemSum + (item.points || 0), 0), 0
+      );
+
+      const headerRow = [
+        `구분 (${totalPoints}점)`,
+        '세부 항목',
+        ...visibleColumns.map(col => col.title)
+      ];
+      wsData.push(headerRow);
+
+      // 5. 데이터 행들
+      currentTemplate.sections.forEach(section => {
+        section.items.forEach((item, itemIndex) => {
+          const row = [];
+
+          // 첫 번째 아이템인 경우에만 섹션 정보 추가
+          if (itemIndex === 0) {
+            const sectionPoints = section.items.reduce((sum, sectionItem) => sum + (sectionItem.points || 0), 0);
+            row.push(`${section.id}. ${section.title}\n(${sectionPoints}점)`);
+          } else {
+            row.push(''); // 병합된 셀이므로 빈 값
+          }
+
+          // 세부 항목
+          row.push(`${itemIndex + 1}. ${item.text}`);
+
+          // 동적 컬럼들
+          visibleColumns.forEach(column => {
+            if (column.id === 'points') {
+              row.push(`${item[column.id] || 0}점`);
+            } else if (column.id === 'score') {
+              row.push(`${item[column.id] || 0}점`);
+            } else {
+              row.push(item[column.id] || '');
+            }
+          });
+
+          wsData.push(row);
+        });
+      });
+
+      // 6. 합계 행
+      const totalScore = currentTemplate.sections.reduce((sum, section) => 
+        sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0
+      );
+
+      const totalRow = ['합계', ''];
+      visibleColumns.forEach(column => {
+        if (column.id === 'points') {
+          totalRow.push(`${totalPoints}점`);
+        } else if (column.id === 'score') {
+          totalRow.push(`${totalScore}점`);
+        } else {
+          totalRow.push('');
+        }
+      });
+      wsData.push(totalRow);
+
+      // 7. 빈 행들
+      wsData.push(new Array(2 + visibleColumns.length).fill(''));
+      wsData.push(new Array(2 + visibleColumns.length).fill(''));
+
+      // 8. 평가일
+      const dateRow = new Array(2 + visibleColumns.length).fill('');
+      dateRow[Math.floor(dateRow.length / 2)] = `평가일: ${today}`;
+      wsData.push(dateRow);
+
+      // 9. 평가위원 정보
+      const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
+      const evaluatorRow = new Array(2 + visibleColumns.length).fill('');
+      evaluatorRow[evaluatorRow.length - 1] = `평가위원: ${evaluatorInfo.name}${positionText} (서명)`;
+      wsData.push(evaluatorRow);
+
+      // 워크시트 생성
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      // 열 너비 설정
+      const colWidths = [
+        { wch: 25 }, // 구분
+        { wch: 50 }, // 세부 항목
+        ...visibleColumns.map(col => ({ wch: col.id === 'type' ? 10 : 12 }))
+      ];
+      ws['!cols'] = colWidths;
+
+      // 행 높이 설정
+      ws['!rows'] = [
+        { hpt: 20 }, // 구분 행
+        { hpt: 30 }, // 제목 행  
+        { hpt: 10 }, // 빈 행
+        { hpt: 25 }, // 헤더 행
+        ...new Array(currentTemplate.sections.reduce((sum, s) => sum + s.items.length, 0)).fill({ hpt: 20 }), // 데이터 행들
+        { hpt: 25 }, // 합계 행
+        { hpt: 10 }, // 빈 행
+        { hpt: 10 }, // 빈 행
+        { hpt: 20 }, // 평가일
+        { hpt: 20 }  // 평가위원
+      ];
+
+      // 셀 병합 설정
+      const merges = [];
+
+      // 제목 행 병합
+      merges.push({
+        s: { r: 1, c: 0 },
+        e: { r: 1, c: 1 + visibleColumns.length }
+      });
+
+      // 구분 정보 행 병합
+      merges.push({
+        s: { r: 0, c: 0 },
+        e: { r: 0, c: visibleColumns.length }
+      });
+
+      // 섹션별 첫 번째 컬럼 병합
+      let currentRow = 4; // 헤더 다음부터
+      currentTemplate.sections.forEach(section => {
+        if (section.items.length > 1) {
+          merges.push({
+            s: { r: currentRow, c: 0 },
+            e: { r: currentRow + section.items.length - 1, c: 0 }
+          });
+        }
+        currentRow += section.items.length;
+      });
+
+      ws['!merges'] = merges;
+
+      // 셀 스타일링 추가
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
+
+          // 기본 스타일
+          ws[cellAddress].s = {
+            border: {
+              top: { style: 'thin' },
+              bottom: { style: 'thin' },
+              left: { style: 'thin' },
+              right: { style: 'thin' }
+            },
+            alignment: { 
+              horizontal: 'center', 
+              vertical: 'center',
+              wrapText: true 
+            }
+          };
+
+          // 제목 행 스타일 (굵게, 큰 글씨)
+          if (R === 1) {
+            ws[cellAddress].s.font = { bold: true, sz: 16 };
+            ws[cellAddress].s.alignment = { horizontal: 'center', vertical: 'center' };
+          }
+
+          // 헤더 행 스타일 (회색 배경, 굵게)
+          if (R === 3) {
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8E8E8' } };
+            ws[cellAddress].s.font = { bold: true, sz: 11 };
+          }
+
+          // 합계 행 스타일 (회색 배경, 굵게)
+          if (R === 4 + currentTemplate.sections.reduce((sum, s) => sum + s.items.length, 0)) {
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8E8E8' } };
+            ws[cellAddress].s.font = { bold: true, sz: 11 };
+          }
+
+          // 구분 컬럼 스타일 (연한 회색 배경)
+          if (C === 0 && R >= 4 && R < 4 + currentTemplate.sections.reduce((sum, s) => sum + s.items.length, 0)) {
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'F8F9FA' } };
+            ws[cellAddress].s.font = { bold: true, sz: 10 };
+          }
+
+          // 구분 정보 행 스타일 (오른쪽 정렬)
+          if (R === 0) {
+            ws[cellAddress].s.alignment = { horizontal: 'right', vertical: 'center' };
+          }
+
+          // 평가위원 정보 행 스타일 (오른쪽 정렬)
+          if (R === wsData.length - 1) {
+            ws[cellAddress].s.alignment = { horizontal: 'right', vertical: 'center' };
+          }
+        }
+      }
+
+      // 워크시트를 워크북에 추가
+      XLSX.utils.book_append_sheet(wb, ws, '평가표');
+
+      // 파일명 생성
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+      const fileName = `평가표_${dynamicTitle.replace(/[^\w\s]/gi, '')}_${dateStr}_${timeStr}.xlsx`;
+
+      // Excel 파일 다운로드
+      XLSX.writeFile(wb, fileName);
+
+      showNotification('✅ 서식이 적용된 Excel 파일이 저장되었습니다!', 'success');
+
+    } catch (error) {
+      console.error('Excel 저장 오류:', error);
+      showNotification('❌ Excel 저장 중 오류가 발생했습니다: ' + error.message, 'error');
+
+      // 오류 발생 시 CSV로 대체
+      console.log('CSV로 대체 저장을 시도합니다...');
+      saveAsCSVFallback();
+    }
+  };
+
+  // CSV 대체 저장 함수
+  const saveAsCSVFallback = () => {
+    try {
+      // 평가위원 정보 결정
+      const evaluatorInfo = selectedEvaluatorInfo || evaluator;
+      const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
+
+      // 제목 및 정보 결정
+      const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : currentTemplate.title;
+      const categoryInfo = candidateInfo ? (candidateInfo.category || candidateInfo.department || '') : '';
+      const today = new Date().toLocaleDateString('ko-KR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+
+      // 동적 컬럼 필터링
+      const visibleColumns = columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id));
+
+      // CSV 데이터 생성
+      const csvData = [];
+
+      // 1. 상단 정보
+      csvData.push(['구분:', categoryInfo]);
+      csvData.push([dynamicTitle]);
+      csvData.push([]); // 빈 행
+
+      // 2. 헤더
+      const totalPoints = currentTemplate.sections.reduce((sum, section) => 
+        sum + section.items.reduce((itemSum, item) => itemSum + (item.points || 0), 0), 0
+      );
+
+      csvData.push([
+        `구분 (${totalPoints}점)`,
+        '세부 항목',
+        ...visibleColumns.map(col => col.title)
+      ]);
+
+      // 3. 데이터 행들
+      currentTemplate.sections.forEach(section => {
+        section.items.forEach((item, itemIndex) => {
+          const row = [];
+
+          // 섹션 정보 (첫 번째 아이템에만)
+          if (itemIndex === 0) {
+            const sectionPoints = section.items.reduce((sum, sectionItem) => sum + (sectionItem.points || 0), 0);
+            row.push(`${section.id}. ${section.title} (${sectionPoints}점)`);
+          } else {
+            row.push('');
+          }
+
+          // 세부 항목
+          row.push(`${itemIndex + 1}. ${item.text}`);
+
+          // 동적 컬럼들
+          visibleColumns.forEach(column => {
+            if (column.id === 'points') {
+              row.push(`${item[column.id] || 0}점`);
+            } else if (column.id === 'score') {
+              row.push(`${item[column.id] || 0}점`);
+            } else {
+              row.push(item[column.id] || '');
+            }
+          });
+
+          csvData.push(row);
+        });
+      });
+
+      // 4. 합계 행
+      const totalScore = currentTemplate.sections.reduce((sum, section) => 
+        sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0
+      );
+
+      const totalRow = ['합계', ''];
+      visibleColumns.forEach(column => {
+        if (column.id === 'points') {
+          totalRow.push(`${totalPoints}점`);
+        } else if (column.id === 'score') {
+          totalRow.push(`${totalScore}점`);
+        } else {
+          totalRow.push('');
+        }
+      });
+      csvData.push(totalRow);
+
+      // 5. 하단 정보
+      csvData.push([]); // 빈 행
+      csvData.push([`평가일: ${today}`]);
+      const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
+      csvData.push([`평가위원: ${evaluatorInfo.name}${positionText} (서명)`]);
+
+      // CSV 문자열 생성
+      const csvContent = csvData.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+
+      // BOM 추가 (한글 인코딩을 위해)
+      const bom = '\uFEFF';
+      const csvWithBom = bom + csvContent;
+
+      // 파일 다운로드
+      const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+
+      // 파일명 생성
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+      const fileName = `평가표_${dynamicTitle.replace(/[^\w\s]/gi, '')}_${dateStr}_${timeStr}.csv`;
+
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showNotification('⚠️ Excel 라이브러리 오류로 CSV 파일로 저장되었습니다', 'info');
+
+    } catch (error) {
+      console.error('CSV 저장 오류:', error);
+      showNotification('❌ 파일 저장에 실패했습니다: ' + error.message, 'error');
+    }
+  };
+
   const loadTemplate = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -1165,7 +1543,11 @@ export default function EvaluationItemManagement() {
                       </Button>
                       <Button onClick={saveTemplate} variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-2" />
-                        저장
+                        JSON 저장
+                      </Button>
+                      <Button onClick={saveAsExcel} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200">
+                        <Download className="h-4 w-4 mr-2" />
+                        Excel 저장
                       </Button>
                       <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
                         <Upload className="h-4 w-4 mr-2" />

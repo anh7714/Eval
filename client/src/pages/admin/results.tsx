@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, BarChart3, Users, Trophy } from "lucide-react";
+import { Download, BarChart3, Users, Trophy, Clipboard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ResultsManagement() {
@@ -76,6 +76,7 @@ export default function ResultsManagement() {
           <TabsList>
             <TabsTrigger value="results">최종 결과</TabsTrigger>
             <TabsTrigger value="progress">진행 현황</TabsTrigger>
+            <TabsTrigger value="templates">평가표 템플릿</TabsTrigger>
           </TabsList>
 
           <TabsContent value="results">
@@ -220,6 +221,36 @@ export default function ResultsManagement() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="templates">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Clipboard className="h-5 w-5" />
+                  <span>평가표 템플릿 관리</span>
+                </CardTitle>
+                <CardDescription>
+                  평가표 템플릿을 설정하고 관리할 수 있습니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <Clipboard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">평가표 템플릿</h3>
+                  <p className="text-gray-600 mb-4">
+                    평가 항목 관리 페이지에서 평가표 템플릿을 설정할 수 있습니다.
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/admin/evaluation-items'}
+                    className="inline-flex items-center"
+                  >
+                    <Clipboard className="h-4 w-4 mr-2" />
+                    평가 항목 관리로 이동
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
