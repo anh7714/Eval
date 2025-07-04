@@ -85,25 +85,35 @@ async function initializeDatabase() {
   try {
     if (process.env.DATABASE_URL) {
       console.log("Attempting to connect to Supabase database...");
+      console.log("DATABASE_URL format:", process.env.DATABASE_URL.slice(0, 50) + "...");
+      
+      // Parse URL to check if it's using pooler
+      const dbUrl = new URL(process.env.DATABASE_URL);
+      console.log("Database host:", dbUrl.hostname);
+      console.log("Database port:", dbUrl.port);
+      
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
           rejectUnauthorized: false
         },
-        // Additional connection options for better compatibility
-        max: 20,
+        // Connection options optimized for Supabase
+        max: 10,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 10000,
+        allowExitOnIdle: false
       });
       
-      // Test the connection
+      // Test the connection with timeout
+      console.log("Testing database connection...");
       const testClient = await pool.connect();
-      await testClient.query('SELECT 1');
+      const result = await testClient.query('SELECT NOW() as current_time');
+      console.log("Connection test successful:", result.rows[0]);
       testClient.release();
       
       db = drizzle(pool);
       useMemoryStorage = false;
-      console.log("Successfully connected to Supabase database");
+      console.log("✅ Successfully connected to Supabase database");
       
       // Initialize database schema if needed
       await initializeSchema();
@@ -111,7 +121,9 @@ async function initializeDatabase() {
       throw new Error("DATABASE_URL not provided");
     }
   } catch (error) {
-    console.log("Database connection failed, falling back to file-based storage:", error);
+    console.log("❌ Database connection failed, falling back to file-based storage:", error);
+    console.log("Error details:", error.message);
+    console.log("Error code:", error.code);
     useMemoryStorage = true;
     // Load data from file when using memory storage
     loadDataFromFile();

@@ -12,8 +12,8 @@
     "enableNotifications": true,
     "isEvaluationActive": false,
     "allowPublicResults": false,
-    "createdAt": "2025-07-04T17:15:18.170Z",
-    "updatedAt": "2025-07-04T17:15:18.170Z"
+    "createdAt": "2025-07-04T17:24:57.746Z",
+    "updatedAt": "2025-07-04T17:24:57.746Z"
   },
   "admins": [
     {
@@ -21,7 +21,7 @@
       "username": "admin",
       "password": "admin",
       "name": "시스템 관리자",
-      "createdAt": "2025-07-04T17:15:17.460Z",
+      "createdAt": "2025-07-04T17:24:56.821Z",
       "isActive": true
     }
   ],
