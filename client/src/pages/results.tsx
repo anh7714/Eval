@@ -28,6 +28,7 @@ interface CandidateResult {
 export default function ResultsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [rankingSubTab, setRankingSubTab] = useState<string>("overall");
 
   useEffect(() => {
     const handleTabChange = (event: CustomEvent) => {
