@@ -533,6 +533,20 @@ export default function EvaluationItemManagement() {
               text-align: center !important;
             }
             
+            /* 테이블 데이터 가운데 정렬 강제 적용 */
+            td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+              text-align: center !important;
+            }
+            
+            td:nth-child(3) span, td:nth-child(4) span, td:nth-child(5) span {
+              text-align: center !important;
+              display: block !important;
+            }
+            
+            td:nth-child(3) input, td:nth-child(4) input, td:nth-child(5) input {
+              text-align: center !important;
+            }
+            
             .no-print { 
               display: none !important; 
             }
@@ -763,6 +777,20 @@ export default function EvaluationItemManagement() {
           .type-cell {
             text-align: center;
             font-size: 10px;
+          }
+          
+          /* 테이블 데이터 가운데 정렬 강제 적용 */
+          td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+            text-align: center !important;
+          }
+          
+          td:nth-child(3) span, td:nth-child(4) span, td:nth-child(5) span {
+            text-align: center !important;
+            display: block !important;
+          }
+          
+          td:nth-child(3) input, td:nth-child(4) input, td:nth-child(5) input {
+            text-align: center !important;
           }
         }
       </style>
