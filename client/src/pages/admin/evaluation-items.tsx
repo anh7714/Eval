@@ -733,16 +733,91 @@ export default function EvaluationItemManagement() {
         </div>
       `;
       
+      // 화면과 정확히 동일한 평가표 구조 생성
+      const dynamicTitle = getDynamicTitle();
+      const candidateData = candidates.find((c: any) => c.id === selectedCandidate);
+      const categoryInfo = candidateData?.category || candidateData?.department || '';
+      
+      // 화면과 동일한 평가표 HTML 구조
+      const evaluationContent = `
+        <!-- 제목과 구분 정보 표 -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
+          <tr>
+            <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
+              <span>구분 : ${categoryInfo}</span>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
+              ${dynamicTitle}
+            </td>
+          </tr>
+        </table>
+
+        <!-- 평가 항목 표 -->
+        <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">구분 (배점)</th>
+              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">세부 항목</th>
+              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">유형</th>
+              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">배점</th>
+              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">평가점수</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${currentTemplate.sections.map(section => {
+              return section.items.map((item, itemIndex) => {
+                return `
+                  <tr>
+                    ${itemIndex === 0 ? `
+                      <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top;">
+                        ${section.id}. ${section.title}<br>
+                        <span style="font-size: 10px; color: #666;">(${calculateSectionScore(section)}점)</span>
+                      </td>
+                    ` : ''}
+                    <td style="border: 1px solid #666; padding: 8px; font-size: 11px;">
+                      ${itemIndex + 1}. ${item.text}
+                    </td>
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                      ${item.type}
+                    </td>
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                      ${item.points}점
+                    </td>
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                      0
+                    </td>
+                  </tr>
+                `;
+              }).join('');
+            }).join('')}
+            <!-- 합계 행 -->
+            <tr style="background-color: #e8e8e8; font-weight: bold;">
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8;">합계</td>
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+                ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
+              </td>
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+                ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+
       const printWindow = window.open('', '_blank');
       printWindow?.document.write(`
         <html>
           <head>
-            <title>평가표 출력 - ${getDynamicTitle()}</title>
+            <title>평가표 출력 - ${dynamicTitle}</title>
             <meta charset="UTF-8">
             ${printStyle}
           </head>
           <body>
-            ${printContent.innerHTML}
+            ${evaluationContent}
             ${evaluationFooter}
           </body>
         </html>
@@ -1003,21 +1078,83 @@ export default function EvaluationItemManagement() {
           </div>
         `;
 
-        // 개별 인쇄와 동일한 방식으로 printContent 가져오기
-        const printContent = document.getElementById('template-print-area');
-        if (!printContent) return;
-        
+        // 화면과 정확히 동일한 평가표 구조 생성
         const candidateTitle = `${candidate.name} 심사표`;
         const categoryInfo = candidate.category || candidate.department;
         
-        // 개별 인쇄와 동일한 방식으로 내용 업데이트
-        let updatedContent = printContent.innerHTML
-          .replace(/심사표/g, candidateTitle)
-          .replace(/구분 : [^<]*/g, `구분 : ${categoryInfo}`);
+        // 화면과 동일한 평가표 HTML 구조
+        const evaluationContent = `
+          <!-- 제목과 구분 정보 표 -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
+            <tr>
+              <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
+                <span>구분 : ${categoryInfo}</span>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
+                ${candidateTitle}
+              </td>
+            </tr>
+          </table>
+
+          <!-- 평가 항목 표 -->
+          <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
+            <thead>
+              <tr>
+                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">구분 (배점)</th>
+                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">세부 항목</th>
+                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">유형</th>
+                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">배점</th>
+                <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 11px;">평가점수</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${currentTemplate.sections.map(section => {
+                return section.items.map((item, itemIndex) => {
+                  return `
+                    <tr>
+                      ${itemIndex === 0 ? `
+                        <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top;">
+                          ${section.id}. ${section.title}<br>
+                          <span style="font-size: 10px; color: #666;">(${calculateSectionScore(section)}점)</span>
+                        </td>
+                      ` : ''}
+                      <td style="border: 1px solid #666; padding: 8px; font-size: 11px;">
+                        ${itemIndex + 1}. ${item.text}
+                      </td>
+                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                        ${item.type}
+                      </td>
+                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                        ${item.points}점
+                      </td>
+                      <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 11px;">
+                        0
+                      </td>
+                    </tr>
+                  `;
+                }).join('');
+              }).join('')}
+              <!-- 합계 행 -->
+              <tr style="background-color: #e8e8e8; font-weight: bold;">
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8;">합계</td>
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5;"></td>
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+                  ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
+                </td>
+                <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 11px;">
+                  ${currentTemplate.sections.reduce((total, section) => total + calculateSectionScore(section), 0)}점
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        `;
 
         allPrintContent += `
           <div class="${pageBreakClass}">
-            ${updatedContent}
+            ${evaluationContent}
             ${evaluationFooter}
           </div>
         `;
