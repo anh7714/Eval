@@ -419,6 +419,7 @@ export default function EvaluationItemManagement() {
             .print\\:text-4xl { font-size: 2.25rem !important; }
             .print\\:font-black { font-weight: 900 !important; }
             .print\\:text-black { color: black !important; }
+            .print\\:border-none { border: none !important; }
             
             @page {
               margin: 0 !important;
@@ -479,20 +480,15 @@ export default function EvaluationItemManagement() {
               text-decoration: underline !important;
             }
             
-            /* 제목 표만의 스타일 */
-            table:first-child { 
+            table { 
               border-collapse: collapse !important; 
               width: 100% !important; 
-              margin-bottom: 20px !important;
+              margin-bottom: 30px !important;
               font-size: 13px !important;
               border: 2px solid #666 !important;
-              border-left: none !important;
-              border-right: none !important;
             }
             
-            /* 제목 표만의 셀 스타일 */
-            table:first-child th, 
-            table:first-child td { 
+            th, td { 
               border: 1px solid #666 !important; 
               padding: 12px 10px !important; 
               vertical-align: middle !important;
@@ -506,7 +502,12 @@ export default function EvaluationItemManagement() {
               font-size: 13px !important;
             }
             
-            /* 제목 표 추가 스타일 */
+            /* 제목 표만의 특별 스타일 */
+            table:first-child {
+              margin-bottom: 20px !important;
+              border-left: none !important;
+              border-right: none !important;
+            }
             
             /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
             table:first-child td {
@@ -514,82 +515,56 @@ export default function EvaluationItemManagement() {
               border-right: none !important;
             }
             
-            /* 제목 표 첫 번째 행 - 가운데 구분선 제거 (첫 번째 표만) */
-            table:first-of-type tr:first-child td:first-child {
+            /* 제목 표 첫 번째 행 */
+            table:first-child tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
-              border-right: none !important;
             }
             
-            table:first-of-type tr:first-child td:last-child {
+            table:first-child tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
-              border-left: none !important;
               text-align: right !important;
             }
             
-
-            
             /* 제목 표 두 번째 행 */
             table:first-child tr:last-child td {
+              border-top: 1px solid #666 !important;
               border-bottom: 1px solid #666 !important;
               text-align: center !important;
-              font-size: 18px !important;
               font-weight: bold !important;
-              padding: 20px !important;
+              font-size: 18px !important;
             }
             
-            /* 데이터 표의 가로 구분선 추가 - 높은 우선순위 */
-            #template-print-area.print-area table:nth-of-type(2) .section-cell {
+            /* 데이터 표의 가로 구분선 추가 */
+            table:last-child .section-cell {
               border-bottom: 1px solid #666 !important;
             }
             
-            /* 데이터 표 완전 초기화 및 재설정 - 높은 우선순위 */
-            #template-print-area.print-area table:nth-of-type(2) {
-              border-collapse: collapse !important;
+            /* 데이터 표만의 스타일 */
+            table:last-child {
               margin-top: 0 !important;
-              width: 100% !important;
             }
             
-            /* 최강 우선순위 - Tailwind 완전 무효화하고 강제 적용 */
-            html body #template-print-area.print-area table:nth-of-type(2) td,
-            html body #template-print-area.print-area table:nth-of-type(2) th,
-            html body #template-print-area.print-area table:nth-of-type(2) td.border,
-            html body #template-print-area.print-area table:nth-of-type(2) th.border,
-            html body #template-print-area.print-area table:nth-of-type(2) td.border-gray-400,
-            html body #template-print-area.print-area table:nth-of-type(2) th.border-gray-400 {
-              border: 1px solid #666 !important;
-              border-width: 1px !important;
-              border-style: solid !important;
-              border-color: #666 !important;
-              padding: 8px !important;
-              box-sizing: border-box !important;
-            }
-            
-            /* 더 높은 우선순위로 세로선 강제 표시 */
-            html body #template-print-area.print-area table:nth-of-type(2) td + td,
-            html body #template-print-area.print-area table:nth-of-type(2) th + th {
+            /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
+            table:last-child td,
+            table:last-child th {
+              border-top: 1px solid #666 !important;
+              border-bottom: 1px solid #666 !important;
               border-left: 1px solid #666 !important;
+              border-right: 1px solid #666 !important;
             }
             
-            /* 좌우 외곽선만 제거 - 최강 우선순위 */
-            html body #template-print-area.print-area table:nth-of-type(2) td:first-child,
-            html body #template-print-area.print-area table:nth-of-type(2) th:first-child,
-            html body #template-print-area.print-area table:nth-of-type(2) td.border:first-child,
-            html body #template-print-area.print-area table:nth-of-type(2) th.border:first-child {
+            /* 데이터 표 좌우 끝선 제거 */
+            table:last-child td:first-child,
+            table:last-child th:first-child {
               border-left: none !important;
-              border-left-width: 0 !important;
             }
             
-            html body #template-print-area.print-area table:nth-of-type(2) td:last-child,
-            html body #template-print-area.print-area table:nth-of-type(2) th:last-child,
-            html body #template-print-area.print-area table:nth-of-type(2) td.border:last-child,
-            html body #template-print-area.print-area table:nth-of-type(2) th.border:last-child {
+            table:last-child td:last-child,
+            table:last-child th:last-child {
               border-right: none !important;
-              border-right-width: 0 !important;
             }
-            
-
 
             
             /* 각 열의 너비 조정 */
@@ -601,17 +576,17 @@ export default function EvaluationItemManagement() {
             .notes-col { width: 7% !important; text-align: center !important; }
             
             /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
-            .print-area table:nth-of-type(2) td:nth-child(3),
-            .print-area table:nth-of-type(2) td:nth-child(4), 
-            .print-area table:nth-of-type(2) td:nth-child(5) {
+            table:last-child td:nth-child(3),
+            table:last-child td:nth-child(4), 
+            table:last-child td:nth-child(5) {
               text-align: center !important;
               vertical-align: middle !important;
             }
             
             /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
-            .print-area table:nth-of-type(2) td:nth-child(3) *,
-            .print-area table:nth-of-type(2) td:nth-child(4) *,
-            .print-area table:nth-of-type(2) td:nth-child(5) * {
+            table:last-child td:nth-child(3) *,
+            table:last-child td:nth-child(4) *,
+            table:last-child td:nth-child(5) * {
               text-align: center !important;
               margin: 0 auto !important;
             }
@@ -790,10 +765,7 @@ export default function EvaluationItemManagement() {
     const printStyle = `
       <style>
         @media print {
-          .page-break { 
-            page-break-before: always !important; 
-            break-before: page !important;
-          }
+          .page-break { page-break-before: always; }
           @page {
             margin: 0;
             size: A4;
@@ -802,8 +774,8 @@ export default function EvaluationItemManagement() {
           body { 
             font-size: 14px; 
             line-height: 1.5;
-            margin: 0 !important;
-            padding: 0 !important;
+            margin: 0;
+            padding: 50px;
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
           }
           
@@ -814,235 +786,44 @@ export default function EvaluationItemManagement() {
           }
           
           table { 
-            border-collapse: collapse !important; 
-            width: 100% !important; 
-            margin-bottom: 30px !important;
-            font-size: 13px !important;
-            border: 2px solid #666 !important;
+            border-collapse: collapse; 
+            width: 100%; 
+            margin-bottom: 30px;
+            font-size: 11px;
+            border: 2px solid #000;
           }
           
           th, td { 
-            border: 1px solid #666 !important; 
-            padding: 12px 10px !important; 
-            vertical-align: middle !important;
-            text-align: left !important;
+            border: 1px solid #000; 
+            padding: 10px 8px; 
+            vertical-align: middle;
           }
           
           th { 
-            background-color: #e8e8e8 !important; 
-            text-align: center !important; 
-            font-weight: bold !important;
-            font-size: 13px !important;
-          }
-          
-          /* 제목 표만의 특별 스타일 */
-          table:first-child {
-            margin-bottom: 20px !important;
-            border-left: none !important;
-            border-right: none !important;
-          }
-          
-          /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
-          table:first-child td {
-            border-left: none !important;
-            border-right: none !important;
-          }
-          
-          /* 제목 표 첫 번째 행 - 가운데 구분선 제거 (첫 번째 표만) */
-          table:first-of-type tr:first-child td:first-child {
-            border-top: 1px solid #666 !important;
-            border-bottom: none !important;
-            border-right: none !important;
-          }
-          
-          table:first-of-type tr:first-child td:last-child {
-            border-top: 1px solid #666 !important;
-            border-bottom: none !important;
-            border-left: none !important;
-            text-align: right !important;
-          }
-          
-
-          
-          /* 제목 표 두 번째 행 */
-          table:first-child tr:last-child td {
-            border-bottom: 1px solid #666 !important;
-            text-align: center !important;
-            font-size: 18px !important;
-            font-weight: bold !important;
-            padding: 20px !important;
-          }
-          
-          /* 배치 인쇄 - 데이터 표 전체 초기화 및 재설정 */
-          .print-page table:nth-of-type(2) {
-            border-collapse: collapse !important;
-            margin-top: 0 !important;
-          }
-          
-          /* 배치 인쇄 - 데이터 표 모든 셀에 기본 테두리 적용 */
-          .print-page table:nth-of-type(2) td,
-          .print-page table:nth-of-type(2) th {
-            border-top: 1px solid #666 !important;
-            border-bottom: 1px solid #666 !important;
-            border-left: 1px solid #666 !important;
-            border-right: 1px solid #666 !important;
-          }
-          
-          /* 배치 인쇄 - 첫 번째 열의 왼쪽 선 제거 */
-          .print-page table:nth-of-type(2) td:first-child,
-          .print-page table:nth-of-type(2) th:first-child {
-            border-left: none !important;
-          }
-          
-          /* 배치 인쇄 - 마지막 열의 오른쪽 선 제거 */
-          .print-page table:nth-of-type(2) td:last-child,
-          .print-page table:nth-of-type(2) th:last-child {
-            border-right: none !important;
-          }
-          
-          /* 배치 인쇄 - 첫 번째 행의 윗선만 굵게 */
-          .print-page table:nth-of-type(2) thead tr:first-child th {
-            border-top: 2px solid #666 !important;
-          }
-          
-          /* 배치 인쇄 - 마지막 행의 아래선만 굵게 */
-          .print-page table:nth-of-type(2) tbody tr:last-child td {
-            border-bottom: 2px solid #666 !important;
+            background-color: #e8e8e8; 
+            text-align: center; 
+            font-weight: bold;
+            font-size: 11px;
           }
           
           /* 각 열의 너비 조정 */
-          .category-col { width: 12% !important; }
-          .item-col { width: 45% !important; text-align: left !important; }
-          .type-col { width: 12% !important; text-align: center !important; }
-          .points-col { width: 12% !important; text-align: center !important; }
-          .score-col { width: 12% !important; text-align: center !important; }
-          .notes-col { width: 7% !important; text-align: center !important; }
-          
-          /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
-          table:last-child td:nth-child(3),
-          table:last-child td:nth-child(4), 
-          table:last-child td:nth-child(5) {
-            text-align: center !important;
-            vertical-align: middle !important;
-          }
-          
-          /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
-          table:last-child td:nth-child(3) *,
-          table:last-child td:nth-child(4) *,
-          table:last-child td:nth-child(5) * {
-            text-align: center !important;
-            margin: 0 auto !important;
-          }
+          .category-col { width: 12%; }
+          .item-col { width: 45%; text-align: left; }
+          .type-col { width: 12%; text-align: center; }
+          .points-col { width: 12%; text-align: center; }
+          .score-col { width: 12%; text-align: center; }
+          .notes-col { width: 7%; text-align: center; }
           
           .section-cell { 
-            background-color: #f8f9fa !important; 
-            font-weight: bold !important; 
-            text-align: center !important;
-            vertical-align: top !important;
+            background-color: #f8f9fa; 
+            font-weight: bold; 
+            text-align: center;
+            vertical-align: top;
           }
           
           .total-row { 
-            background-color: #e8e8e8 !important; 
-            font-weight: bold !important; 
-          }
-          
-          .total-row .category-col {
-            background-color: #e8e8e8 !important;
-            text-align: center !important;
-          }
-          
-          .score-cell {
-            text-align: center !important;
-            font-weight: bold !important;
-          }
-          
-          .points-cell {
-            text-align: center !important;
-          }
-          
-          .type-cell {
-            text-align: center !important;
-          }
-          
-          .evaluation-date {
-            text-align: center !important;
-            margin: 40px 0 20px 0 !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-          }
-          
-          .evaluator-info {
-            text-align: right !important;
-            margin-top: 20px !important;
-            margin-bottom: 20px !important;
-            font-size: 20px !important;
-            font-weight: bold !important;
-            padding: 20px !important;
-            text-decoration: underline !important;
-          }
-          
-          /* 각 평가 시트를 새 페이지에서 시작하도록 강제 */
-          .evaluation-sheet {
-            page-break-before: always !important;
-            break-before: page !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            height: 100vh !important;
-            max-height: 100vh !important;
-            overflow: hidden !important;
-            display: block !important;
-            box-sizing: border-box !important;
-            position: relative !important;
-          }
-          
-          /* 첫 번째 평가 시트는 페이지 나누기 없음 */
-          .evaluation-sheet:first-child {
-            page-break-before: auto !important;
-            break-before: auto !important;
-          }
-          
-          /* 마지막 평가 시트는 페이지 나누기 후 없음 */
-          .evaluation-sheet:last-child {
-            page-break-after: auto !important;
-            break-after: auto !important;
-          }
-          
-          /* 각 평가 시트 내부 요소들 */
-          .evaluation-sheet table,
-          .evaluation-sheet div {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          
-          /* 완전한 페이지 분리를 위한 추가 처리 */
-          .evaluation-sheet {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-          }
-          
-          .evaluation-content {
-            padding: 50px !important;
-            margin: 0 !important;
-            height: calc(100vh - 100px) !important;
-            overflow: hidden !important;
-          }
-          
-          /* 페이지 경계 처리 */
-          .evaluation-sheet::after {
-            content: "" !important;
-            display: block !important;
-            height: 1px !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            visibility: hidden !important;
-          }
-          
-          .evaluation-sheet:last-child::after {
-            page-break-after: auto !important;
-            break-after: auto !important;
+            background-color: #e8e8e8; 
+            font-weight: bold; 
           }
           
           .total-row td {
@@ -1197,11 +978,9 @@ export default function EvaluationItemManagement() {
         );
 
         allPrintContent += `
-          <div class="evaluation-sheet ${pageBreakClass}">
-            <div class="evaluation-content">
-              ${titleUpdatedContent}
-              ${evaluationFooter}
-            </div>
+          <div class="${pageBreakClass}">
+            ${titleUpdatedContent}
+            ${evaluationFooter}
           </div>
         `;
       });
@@ -1798,7 +1577,7 @@ export default function EvaluationItemManagement() {
                   )}
 
                   {/* 인쇄용 영역 */}
-                  <div id="template-print-area" className="print-area">
+                  <div id="template-print-area">
                     {/* 제목과 구분 정보 표 */}
                     <div className="overflow-x-auto mb-0">
                       <table className="w-full border-collapse border border-gray-400 text-sm">
