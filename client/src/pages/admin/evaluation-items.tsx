@@ -560,7 +560,7 @@ export default function EvaluationItemManagement() {
             }
             
             /* 데이터 표의 가로 구분선 추가 */
-            table:last-child .section-cell {
+            .print-area table:nth-of-type(2) .section-cell {
               border-bottom: 1px solid #666 !important;
             }
             
@@ -611,17 +611,17 @@ export default function EvaluationItemManagement() {
             .notes-col { width: 7% !important; text-align: center !important; }
             
             /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
-            table:last-child td:nth-child(3),
-            table:last-child td:nth-child(4), 
-            table:last-child td:nth-child(5) {
+            .print-area table:nth-of-type(2) td:nth-child(3),
+            .print-area table:nth-of-type(2) td:nth-child(4), 
+            .print-area table:nth-of-type(2) td:nth-child(5) {
               text-align: center !important;
               vertical-align: middle !important;
             }
             
             /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
-            table:last-child td:nth-child(3) *,
-            table:last-child td:nth-child(4) *,
-            table:last-child td:nth-child(5) * {
+            .print-area table:nth-of-type(2) td:nth-child(3) *,
+            .print-area table:nth-of-type(2) td:nth-child(4) *,
+            .print-area table:nth-of-type(2) td:nth-child(5) * {
               text-align: center !important;
               margin: 0 auto !important;
             }
@@ -1808,7 +1808,7 @@ export default function EvaluationItemManagement() {
                   )}
 
                   {/* 인쇄용 영역 */}
-                  <div id="template-print-area">
+                  <div id="template-print-area" className="print-area">
                     {/* 제목과 구분 정보 표 */}
                     <div className="overflow-x-auto mb-0">
                       <table className="w-full border-collapse border border-gray-400 text-sm">
