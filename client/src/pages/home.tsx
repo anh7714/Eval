@@ -65,11 +65,11 @@ export default function HomePage() {
                   <BarChart3 className="w-7 h-7 text-orange-600 dark:text-orange-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
-                  채점 결과
+                  평가 결과
                 </h3>
               </div>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
-                종합 채점 결과를 확인합니다.
+                종합 평가 결과를 확인합니다.
               </p>
             </div>
           </Link>
