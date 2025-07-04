@@ -564,41 +564,41 @@ export default function EvaluationItemManagement() {
               border-bottom: 1px solid #666 !important;
             }
             
-            /* 데이터 표만의 스타일 */
-            table:last-child {
+            /* 데이터 표 전체 초기화 및 재설정 */
+            .print-area table:nth-of-type(2) {
+              border-collapse: collapse !important;
               margin-top: 0 !important;
             }
             
-            /* 데이터 표 - 모든 테두리 먼저 그리기 */
-            table:last-child td,
-            table:last-child th {
-              border: 1px solid #666 !important;
+            /* 데이터 표 모든 셀에 기본 테두리 적용 */
+            .print-area table:nth-of-type(2) td,
+            .print-area table:nth-of-type(2) th {
+              border-top: 1px solid #666 !important;
+              border-bottom: 1px solid #666 !important;
+              border-left: 1px solid #666 !important;
+              border-right: 1px solid #666 !important;
             }
             
-            /* 좌우 외곽선만 제거 */
-            table:last-child td:first-child,
-            table:last-child th:first-child {
+            /* 첫 번째 열의 왼쪽 선 제거 */
+            .print-area table:nth-of-type(2) td:first-child,
+            .print-area table:nth-of-type(2) th:first-child {
               border-left: none !important;
             }
             
-            table:last-child td:last-child,
-            table:last-child th:last-child {
+            /* 마지막 열의 오른쪽 선 제거 */
+            .print-area table:nth-of-type(2) td:last-child,
+            .print-area table:nth-of-type(2) th:last-child {
               border-right: none !important;
             }
             
             /* 첫 번째 행의 윗선만 굵게 */
-            table:last-child thead tr:first-child th {
+            .print-area table:nth-of-type(2) thead tr:first-child th {
               border-top: 2px solid #666 !important;
             }
             
             /* 마지막 행의 아래선만 굵게 */
-            table:last-child tbody tr:last-child td {
+            .print-area table:nth-of-type(2) tbody tr:last-child td {
               border-bottom: 2px solid #666 !important;
-            }
-            
-            /* rowSpan이 있는 첫 번째 열의 우측 선 강제 표시 */
-            table:last-child td[rowspan] {
-              border-right: 1px solid #666 !important;
             }
 
             
@@ -883,41 +883,41 @@ export default function EvaluationItemManagement() {
             padding: 20px !important;
           }
           
-          /* 데이터 표만의 스타일 */
-          table:last-child {
+          /* 배치 인쇄 - 데이터 표 전체 초기화 및 재설정 */
+          .print-page table:nth-of-type(2) {
+            border-collapse: collapse !important;
             margin-top: 0 !important;
           }
           
-          /* 데이터 표 - 모든 테두리 먼저 그리기 */
-          table:last-child td,
-          table:last-child th {
-            border: 1px solid #666 !important;
+          /* 배치 인쇄 - 데이터 표 모든 셀에 기본 테두리 적용 */
+          .print-page table:nth-of-type(2) td,
+          .print-page table:nth-of-type(2) th {
+            border-top: 1px solid #666 !important;
+            border-bottom: 1px solid #666 !important;
+            border-left: 1px solid #666 !important;
+            border-right: 1px solid #666 !important;
           }
           
-          /* 좌우 외곽선만 제거 */
-          table:last-child td:first-child,
-          table:last-child th:first-child {
+          /* 배치 인쇄 - 첫 번째 열의 왼쪽 선 제거 */
+          .print-page table:nth-of-type(2) td:first-child,
+          .print-page table:nth-of-type(2) th:first-child {
             border-left: none !important;
           }
           
-          table:last-child td:last-child,
-          table:last-child th:last-child {
+          /* 배치 인쇄 - 마지막 열의 오른쪽 선 제거 */
+          .print-page table:nth-of-type(2) td:last-child,
+          .print-page table:nth-of-type(2) th:last-child {
             border-right: none !important;
           }
           
-          /* 첫 번째 행의 윗선만 굵게 */
-          table:last-child thead tr:first-child th {
+          /* 배치 인쇄 - 첫 번째 행의 윗선만 굵게 */
+          .print-page table:nth-of-type(2) thead tr:first-child th {
             border-top: 2px solid #666 !important;
           }
           
-          /* 마지막 행의 아래선만 굵게 */
-          table:last-child tbody tr:last-child td {
+          /* 배치 인쇄 - 마지막 행의 아래선만 굵게 */
+          .print-page table:nth-of-type(2) tbody tr:last-child td {
             border-bottom: 2px solid #666 !important;
-          }
-          
-          /* rowSpan이 있는 첫 번째 열의 우측 선 강제 표시 */
-          table:last-child td[rowspan] {
-            border-right: 1px solid #666 !important;
           }
           
           /* 각 열의 너비 조정 */
