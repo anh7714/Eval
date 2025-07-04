@@ -3,7 +3,9 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { Users, Eye, EyeOff } from "lucide-react";
 
 export default function EvaluatorLogin() {
@@ -13,6 +15,12 @@ export default function EvaluatorLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // 등록된 평가자 목록 불러오기
+  const { data: evaluators, isLoading: evaluatorsLoading } = useQuery({
+    queryKey: ["/api/admin/evaluators"],
+    refetchOnWindowFocus: false,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,16 +79,24 @@ export default function EvaluatorLogin() {
               <Label htmlFor="name" className="text-slate-700 dark:text-slate-300">
                 평가자명
               </Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="평가자 이름을 입력하세요"
-                required
-                disabled={isLoading}
-                className="mt-1"
-              />
+              <Select value={name} onValueChange={setName} disabled={isLoading || evaluatorsLoading}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="평가자를 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  {evaluators && Array.isArray(evaluators) && evaluators.length > 0 ? (
+                    evaluators.map((evaluator: any) => (
+                      <SelectItem key={evaluator.id} value={evaluator.name}>
+                        {evaluator.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      등록된 평가자가 없습니다
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -114,7 +130,7 @@ export default function EvaluatorLogin() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || !name || !password}
             >
               {isLoading ? "로그인 중..." : "로그인"}
             </Button>

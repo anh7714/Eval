@@ -150,6 +150,9 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 평가대상 관리 필드명 변경 (2025.07.04)
 - ✓ 이름 → 기관명(성명), 부서 → 소속(부서), 직책 → 직책(직급)
 - ✓ 엑셀 업로드/다운로드 템플릿과 데이터 내보내기 컬럼명 업데이트
+- ✓ 평가자 로그인 UI 개선 (2025.07.04)
+- ✓ 평가자명을 관리자가 등록한 평가자 목록에서 선택하는 드롭다운으로 변경
+- ✓ 평가자 로그인 화면에서 상단 메뉴 숨김 처리로 로그인 후 화면으로만 접근 가능
 
 ## User Preferences
 

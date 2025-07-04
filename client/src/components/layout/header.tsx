@@ -72,7 +72,7 @@ export default function Header() {
               </nav>
             )}
             
-            {isEvaluator && (
+            {isEvaluator && location !== "/evaluator/login" && (
               <nav className="hidden md:flex space-x-1">
                 <Link href="/evaluator/dashboard">
                   <Button variant={location === "/evaluator/dashboard" ? "default" : "ghost"} size="sm">
