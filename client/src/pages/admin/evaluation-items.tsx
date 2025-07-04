@@ -515,18 +515,34 @@ export default function EvaluationItemManagement() {
               border-right: none !important;
             }
             
-            /* 제목 표 첫 번째 행 - 가운데 구분선 제거 */
-            table:first-child tr:first-child td:first-child {
+            /* 제목 표 첫 번째 행 - 가운데 구분선 제거 (첫 번째 표만) */
+            table:first-of-type tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
               border-right: none !important;
             }
             
-            table:first-child tr:first-child td:last-child {
+            table:first-of-type tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
               border-left: none !important;
               text-align: right !important;
+            }
+            
+            /* 두 번째 표(데이터 표)의 첫 행은 정상적인 구분선 유지 */
+            table:nth-of-type(2) tr:first-child td {
+              border-left: 1px solid #666 !important;
+              border-right: 1px solid #666 !important;
+            }
+            
+            table:nth-of-type(2) td:first-child,
+            table:nth-of-type(2) th:first-child {
+              border-left: none !important;
+            }
+            
+            table:nth-of-type(2) td:last-child,
+            table:nth-of-type(2) th:last-child {
+              border-right: none !important;
             }
             
             /* 제목 표 두 번째 행 */
@@ -825,18 +841,34 @@ export default function EvaluationItemManagement() {
             border-right: none !important;
           }
           
-          /* 제목 표 첫 번째 행 - 가운데 구분선 제거 */
-          table:first-child tr:first-child td:first-child {
+          /* 제목 표 첫 번째 행 - 가운데 구분선 제거 (첫 번째 표만) */
+          table:first-of-type tr:first-child td:first-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
             border-right: none !important;
           }
           
-          table:first-child tr:first-child td:last-child {
+          table:first-of-type tr:first-child td:last-child {
             border-top: 1px solid #666 !important;
             border-bottom: none !important;
             border-left: none !important;
             text-align: right !important;
+          }
+          
+          /* 두 번째 표(데이터 표)의 첫 행은 정상적인 구분선 유지 */
+          table:nth-of-type(2) tr:first-child td {
+            border-left: 1px solid #666 !important;
+            border-right: 1px solid #666 !important;
+          }
+          
+          table:nth-of-type(2) td:first-child,
+          table:nth-of-type(2) th:first-child {
+            border-left: none !important;
+          }
+          
+          table:nth-of-type(2) td:last-child,
+          table:nth-of-type(2) th:last-child {
+            border-right: none !important;
           }
           
           /* 제목 표 두 번째 행 */
