@@ -529,11 +529,11 @@ export default function EvaluationItemManagement() {
             
             /* 제목 표 두 번째 행 */
             table:first-child tr:last-child td {
-              border-top: 1px solid #666 !important;
               border-bottom: 1px solid #666 !important;
               text-align: center !important;
-              font-weight: bold !important;
               font-size: 18px !important;
+              font-weight: bold !important;
+              padding: 20px !important;
             }
             
             /* 데이터 표의 가로 구분선 추가 */
