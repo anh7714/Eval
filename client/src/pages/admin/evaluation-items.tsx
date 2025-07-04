@@ -786,44 +786,146 @@ export default function EvaluationItemManagement() {
           }
           
           table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            margin-bottom: 30px;
-            font-size: 11px;
-            border: 2px solid #000;
+            border-collapse: collapse !important; 
+            width: 100% !important; 
+            margin-bottom: 30px !important;
+            font-size: 13px !important;
+            border: 2px solid #666 !important;
           }
           
           th, td { 
-            border: 1px solid #000; 
-            padding: 10px 8px; 
-            vertical-align: middle;
+            border: 1px solid #666 !important; 
+            padding: 12px 10px !important; 
+            vertical-align: middle !important;
+            text-align: left !important;
           }
           
           th { 
-            background-color: #e8e8e8; 
-            text-align: center; 
-            font-weight: bold;
-            font-size: 11px;
+            background-color: #e8e8e8 !important; 
+            text-align: center !important; 
+            font-weight: bold !important;
+            font-size: 13px !important;
+          }
+          
+          /* 제목 표만의 특별 스타일 */
+          table:first-child {
+            margin-bottom: 20px !important;
+            border-left: none !important;
+            border-right: none !important;
+          }
+          
+          /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
+          table:first-child td {
+            border-left: none !important;
+            border-right: none !important;
+          }
+          
+          /* 제목 표 첫 번째 행 */
+          table:first-child tr:first-child td:first-child {
+            border-top: 1px solid #666 !important;
+            border-bottom: none !important;
+          }
+          
+          table:first-child tr:first-child td:last-child {
+            border-top: 1px solid #666 !important;
+            border-bottom: none !important;
+            text-align: right !important;
+          }
+          
+          /* 제목 표 두 번째 행 */
+          table:first-child tr:last-child td {
+            border-bottom: 1px solid #666 !important;
+            text-align: center !important;
+            font-size: 18px !important;
+            font-weight: bold !important;
+            padding: 20px !important;
+          }
+          
+          /* 데이터 표만의 스타일 */
+          table:last-child {
+            margin-top: 0 !important;
+          }
+          
+          /* 데이터 표 좌우 끝선 제거 */
+          table:last-child td:first-child,
+          table:last-child th:first-child {
+            border-left: none !important;
+          }
+          
+          table:last-child td:last-child,
+          table:last-child th:last-child {
+            border-right: none !important;
           }
           
           /* 각 열의 너비 조정 */
-          .category-col { width: 12%; }
-          .item-col { width: 45%; text-align: left; }
-          .type-col { width: 12%; text-align: center; }
-          .points-col { width: 12%; text-align: center; }
-          .score-col { width: 12%; text-align: center; }
-          .notes-col { width: 7%; text-align: center; }
+          .category-col { width: 12% !important; }
+          .item-col { width: 45% !important; text-align: left !important; }
+          .type-col { width: 12% !important; text-align: center !important; }
+          .points-col { width: 12% !important; text-align: center !important; }
+          .score-col { width: 12% !important; text-align: center !important; }
+          .notes-col { width: 7% !important; text-align: center !important; }
+          
+          /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
+          table:last-child td:nth-child(3),
+          table:last-child td:nth-child(4), 
+          table:last-child td:nth-child(5) {
+            text-align: center !important;
+            vertical-align: middle !important;
+          }
+          
+          /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
+          table:last-child td:nth-child(3) *,
+          table:last-child td:nth-child(4) *,
+          table:last-child td:nth-child(5) * {
+            text-align: center !important;
+            margin: 0 auto !important;
+          }
           
           .section-cell { 
-            background-color: #f8f9fa; 
-            font-weight: bold; 
-            text-align: center;
-            vertical-align: top;
+            background-color: #f8f9fa !important; 
+            font-weight: bold !important; 
+            text-align: center !important;
+            vertical-align: top !important;
           }
           
           .total-row { 
-            background-color: #e8e8e8; 
-            font-weight: bold; 
+            background-color: #e8e8e8 !important; 
+            font-weight: bold !important; 
+          }
+          
+          .total-row .category-col {
+            background-color: #e8e8e8 !important;
+            text-align: center !important;
+          }
+          
+          .score-cell {
+            text-align: center !important;
+            font-weight: bold !important;
+          }
+          
+          .points-cell {
+            text-align: center !important;
+          }
+          
+          .type-cell {
+            text-align: center !important;
+          }
+          
+          .evaluation-date {
+            text-align: center !important;
+            margin: 40px 0 20px 0 !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+          }
+          
+          .evaluator-info {
+            text-align: right !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+            font-size: 20px !important;
+            font-weight: bold !important;
+            padding: 20px !important;
+            text-decoration: underline !important;
           }
           
           .total-row td {
