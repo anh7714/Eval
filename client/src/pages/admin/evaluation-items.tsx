@@ -604,7 +604,7 @@ export default function EvaluationItemManagement() {
             
             .total-row td {
               background-color: #e8e8e8 !important;
-              padding: 8px 10px !important;
+              padding: 12px 10px !important;
               font-weight: bold !important;
               text-align: center !important;
             }
@@ -906,7 +906,7 @@ export default function EvaluationItemManagement() {
           
           .total-row td {
             background-color: #e8e8e8 !important;
-            padding: 8px 10px !important;
+            padding: 12px 10px !important;
             font-weight: bold !important;
             text-align: center !important;
           }
