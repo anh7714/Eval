@@ -551,9 +551,13 @@ export default function EvaluationItemManagement() {
               width: 100% !important;
             }
             
-            /* 데이터 표 - 모든 셀에 완전한 테두리 적용 - 최고 우선순위 */
-            #template-print-area.print-area table:nth-of-type(2) td,
-            #template-print-area.print-area table:nth-of-type(2) th {
+            /* 최강 우선순위 - Tailwind 완전 무효화하고 강제 적용 */
+            html body #template-print-area.print-area table:nth-of-type(2) td,
+            html body #template-print-area.print-area table:nth-of-type(2) th,
+            html body #template-print-area.print-area table:nth-of-type(2) td.border,
+            html body #template-print-area.print-area table:nth-of-type(2) th.border,
+            html body #template-print-area.print-area table:nth-of-type(2) td.border-gray-400,
+            html body #template-print-area.print-area table:nth-of-type(2) th.border-gray-400 {
               border: 1px solid #666 !important;
               border-width: 1px !important;
               border-style: solid !important;
@@ -562,29 +566,27 @@ export default function EvaluationItemManagement() {
               box-sizing: border-box !important;
             }
             
-            /* Tailwind CSS 덮어쓰기 - 모든 .border 클래스 무효화 후 강제 적용 */
-            #template-print-area.print-area table:nth-of-type(2) .border,
-            #template-print-area.print-area table:nth-of-type(2) .border-gray-400,
-            #template-print-area.print-area table:nth-of-type(2) td.border,
-            #template-print-area.print-area table:nth-of-type(2) th.border {
-              border: 1px solid #666 !important;
-            }
-            
-            /* 강제로 내부 세로선 표시 */
-            #template-print-area.print-area table:nth-of-type(2) td + td,
-            #template-print-area.print-area table:nth-of-type(2) th + th {
+            /* 더 높은 우선순위로 세로선 강제 표시 */
+            html body #template-print-area.print-area table:nth-of-type(2) td + td,
+            html body #template-print-area.print-area table:nth-of-type(2) th + th {
               border-left: 1px solid #666 !important;
             }
             
-            /* 데이터 표 - 좌우 외곽선만 제거 - 높은 우선순위 */
-            #template-print-area.print-area table:nth-of-type(2) td:first-child,
-            #template-print-area.print-area table:nth-of-type(2) th:first-child {
+            /* 좌우 외곽선만 제거 - 최강 우선순위 */
+            html body #template-print-area.print-area table:nth-of-type(2) td:first-child,
+            html body #template-print-area.print-area table:nth-of-type(2) th:first-child,
+            html body #template-print-area.print-area table:nth-of-type(2) td.border:first-child,
+            html body #template-print-area.print-area table:nth-of-type(2) th.border:first-child {
               border-left: none !important;
+              border-left-width: 0 !important;
             }
             
-            #template-print-area.print-area table:nth-of-type(2) td:last-child,
-            #template-print-area.print-area table:nth-of-type(2) th:last-child {
+            html body #template-print-area.print-area table:nth-of-type(2) td:last-child,
+            html body #template-print-area.print-area table:nth-of-type(2) th:last-child,
+            html body #template-print-area.print-area table:nth-of-type(2) td.border:last-child,
+            html body #template-print-area.print-area table:nth-of-type(2) th.border:last-child {
               border-right: none !important;
+              border-right-width: 0 !important;
             }
             
 
