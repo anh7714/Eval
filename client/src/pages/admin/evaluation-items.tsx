@@ -491,25 +491,43 @@ export default function EvaluationItemManagement() {
               font-size: 13px !important;
             }
             
-            /* 제목 표 특별 스타일 */
+            /* 제목 표만의 특별 스타일 */
             table:first-child {
-              margin-bottom: 0 !important;
-            }
-            
-            /* 제목 표 첫 번째 행 좌우 구분선 제거 */
-            table:first-child tr:first-child td:first-child {
+              margin-bottom: 20px !important;
+              border-left: none !important;
               border-right: none !important;
             }
             
-            table:first-child tr:first-child td:last-child {
+            /* 제목 표의 모든 셀에서 좌우 경계선 제거 */
+            table:first-child td {
               border-left: none !important;
+              border-right: none !important;
+            }
+            
+            /* 제목 표 첫 번째 행 */
+            table:first-child tr:first-child td:first-child {
+              border-top: 1px solid #666 !important;
+              border-bottom: none !important;
+            }
+            
+            table:first-child tr:first-child td:last-child {
+              border-top: 1px solid #666 !important;
+              border-bottom: none !important;
               text-align: right !important;
             }
             
+            /* 제목 표 두 번째 행 */
             table:first-child tr:last-child td {
+              border-top: none !important;
+              border-bottom: 1px solid #666 !important;
               text-align: center !important;
               font-weight: bold !important;
               font-size: 18px !important;
+            }
+            
+            /* 데이터 표만의 스타일 */
+            table:last-child {
+              margin-top: 0 !important;
             }
 
             
@@ -552,18 +570,39 @@ export default function EvaluationItemManagement() {
               font-size: 10px !important;
             }
             
-            /* 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
-            td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+            /* 데이터 표의 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3), 
+            table:last-child td:nth-child(4), 
+            table:last-child td:nth-child(5) {
               text-align: center !important;
+              vertical-align: middle !important;
             }
             
-            td:nth-child(3) *, td:nth-child(4) *, td:nth-child(5) * {
+            table:last-child td:nth-child(3) *, 
+            table:last-child td:nth-child(4) *, 
+            table:last-child td:nth-child(5) * {
               text-align: center !important;
+              margin: 0 auto !important;
+              display: block !important;
+              width: 100% !important;
+            }
+            
+            table:last-child td:nth-child(3) input, 
+            table:last-child td:nth-child(4) input, 
+            table:last-child td:nth-child(5) input {
+              text-align: center !important;
+              width: 100% !important;
             }
             
             /* 합계 행 가운데 정렬 */
-            .total-row td {
+            table:last-child .total-row td {
               text-align: center !important;
+              vertical-align: middle !important;
+            }
+            
+            table:last-child .total-row td * {
+              text-align: center !important;
+              margin: 0 auto !important;
             }
             
             /* 구분 영역의 총점 가운데 정렬 */
