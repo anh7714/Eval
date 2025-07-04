@@ -600,6 +600,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== PUBLIC EVALUATOR ROUTES (for login) =====
+  app.get("/api/evaluators", async (req, res) => {
+    try {
+      const evaluators = await storage.getActiveEvaluators();
+      // 보안을 위해 민감한 정보는 제외하고 이름과 ID만 반환
+      const publicEvaluators = evaluators.map(evaluator => ({
+        id: evaluator.id,
+        name: evaluator.name
+      }));
+      res.json(publicEvaluators);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch evaluators" });
+    }
+  });
+
   // ===== RESULTS AND STATISTICS ROUTES =====
   app.get("/api/results", async (req, res) => {
     try {
