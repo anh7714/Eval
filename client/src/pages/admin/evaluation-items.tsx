@@ -871,12 +871,22 @@ export default function EvaluationItemManagement() {
             margin-top: 0 !important;
           }
           
-          /* 데이터 표 좌우 끝선 제거 */
+          /* 데이터 표의 기본 테두리 */
+          table:last-child td,
+          table:last-child th {
+            border-top: 1px solid #666 !important;
+            border-bottom: 1px solid #666 !important;
+            border-left: 1px solid #666 !important;
+            border-right: 1px solid #666 !important;
+          }
+          
+          /* 데이터 표 맨 왼쪽 열의 왼쪽 테두리 제거 */
           table:last-child td:first-child,
           table:last-child th:first-child {
             border-left: none !important;
           }
           
+          /* 데이터 표 맨 오른쪽 열의 오른쪽 테두리 제거 */
           table:last-child td:last-child,
           table:last-child th:last-child {
             border-right: none !important;
