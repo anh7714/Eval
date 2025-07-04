@@ -548,16 +548,13 @@ export default function EvaluationItemManagement() {
               margin-top: 0 !important;
             }
             
-            /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
+            /* 데이터 표의 모든 세로선 유지 */
             table:last-child td,
             table:last-child th {
-              border-top: 1px solid #666 !important;
-              border-bottom: 1px solid #666 !important;
-              border-left: 1px solid #666 !important;
-              border-right: 1px solid #666 !important;
+              border: 1px solid #666 !important;
             }
             
-            /* 데이터 표 좌우 끝선 제거 */
+            /* 데이터 표 좌우 끝선만 제거 */
             table:last-child td:first-child,
             table:last-child th:first-child {
               border-left: none !important;
@@ -603,6 +600,13 @@ export default function EvaluationItemManagement() {
             .total-row { 
               background-color: #e8e8e8 !important; 
               font-weight: bold !important; 
+            }
+            
+            .total-row td {
+              background-color: #e8e8e8 !important;
+              padding: 8px 10px !important;
+              font-weight: bold !important;
+              text-align: center !important;
             }
             
             .total-row .category-col {
@@ -898,6 +902,13 @@ export default function EvaluationItemManagement() {
           .total-row { 
             background-color: #e8e8e8 !important; 
             font-weight: bold !important; 
+          }
+          
+          .total-row td {
+            background-color: #e8e8e8 !important;
+            padding: 8px 10px !important;
+            font-weight: bold !important;
+            text-align: center !important;
           }
           
           .total-row .category-col {
