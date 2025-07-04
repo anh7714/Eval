@@ -429,6 +429,7 @@ export class DatabaseStorage implements IStorage {
       const newEvaluator: Evaluator = {
         id: memoryStore.nextId++,
         ...evaluator,
+        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
       };
