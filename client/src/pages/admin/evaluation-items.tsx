@@ -765,7 +765,10 @@ export default function EvaluationItemManagement() {
     const printStyle = `
       <style>
         @media print {
-          .page-break { page-break-before: always; }
+          .page-break { 
+            page-break-before: always !important; 
+            break-before: page !important;
+          }
           @page {
             margin: 0;
             size: A4;
@@ -928,6 +931,52 @@ export default function EvaluationItemManagement() {
             text-decoration: underline !important;
           }
           
+          /* 각 평가 시트를 새 페이지에서 시작하도록 강제 */
+          .evaluation-sheet {
+            page-break-before: always !important;
+            break-before: page !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            min-height: 100vh !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+            box-sizing: border-box !important;
+          }
+          
+          /* 첫 번째 평가 시트는 페이지 나누기 없음 */
+          .evaluation-sheet:first-child {
+            page-break-before: auto !important;
+            break-before: auto !important;
+          }
+          
+          /* 마지막 평가 시트는 페이지 나누기 후 없음 */
+          .evaluation-sheet:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+          
+          /* 각 평가 시트가 한 페이지에 완전히 들어가도록 */
+          .evaluation-sheet > * {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          
+          /* 더 강력한 페이지 나누기 처리 */
+          .evaluation-sheet::before {
+            content: "" !important;
+            display: block !important;
+            page-break-before: always !important;
+            break-before: page !important;
+            height: 0 !important;
+            visibility: hidden !important;
+          }
+          
+          .evaluation-sheet:first-child::before {
+            page-break-before: auto !important;
+            break-before: auto !important;
+          }
+          
           .total-row td {
             background-color: #f5f5f5;
             font-weight: bold;
@@ -1080,7 +1129,7 @@ export default function EvaluationItemManagement() {
         );
 
         allPrintContent += `
-          <div class="${pageBreakClass}">
+          <div class="${pageBreakClass} evaluation-sheet">
             ${titleUpdatedContent}
             ${evaluationFooter}
           </div>
