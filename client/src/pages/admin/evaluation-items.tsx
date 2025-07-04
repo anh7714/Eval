@@ -780,7 +780,7 @@ export default function EvaluationItemManagement() {
             font-size: 14px; 
             line-height: 1.5;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 80px 50px 50px 50px !important;
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
           }
           
@@ -932,6 +932,7 @@ export default function EvaluationItemManagement() {
             font-size: 20px !important;
             font-weight: bold !important;
             padding: 20px !important;
+            text-decoration: underline !important;
           }
           
           /* 각 평가 시트를 새 페이지에서 시작하도록 강제 */
@@ -977,26 +978,12 @@ export default function EvaluationItemManagement() {
           }
           
           .evaluation-content {
-            padding: 50px !important;
             margin: 0 !important;
             height: calc(100vh - 100px) !important;
             overflow: hidden !important;
           }
           
           /* 페이지 경계 처리 */
-          .evaluation-sheet::after {
-            content: "" !important;
-            display: block !important;
-            height: 1px !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            visibility: hidden !important;
-          }
-          
-          .evaluation-sheet:last-child::after {
-            page-break-after: auto !important;
-            break-after: auto !important;
-          }
           
           .total-row td {
             background-color: #f5f5f5;
