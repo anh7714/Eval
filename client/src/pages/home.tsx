@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Shield, Users, BarChart3, Database } from "lucide-react";
+import { Shield, Users, BarChart3, Database, ClipboardList } from "lucide-react";
 import { Link } from "wouter";
 import { SupabaseTest } from "@/components/SupabaseTest";
 
@@ -22,7 +22,7 @@ export default function HomePage() {
         </div>
 
         {/* Main Cards */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {/* Evaluator Card */}
           <Link href="/evaluator/login">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-48 flex flex-col justify-between">
@@ -36,6 +36,23 @@ export default function HomePage() {
               </div>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
                 평가를 진행하고 결과를 제출합니다.
+              </p>
+            </div>
+          </Link>
+
+          {/* Evaluation Management Card */}
+          <Link href="/evaluation-management">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group h-48 flex flex-col justify-between">
+              <div>
+                <div className="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <ClipboardList className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
+                  평가 관리
+                </h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
+                평가 현황을 관리하고 결과를 분석합니다.
               </p>
             </div>
           </Link>
