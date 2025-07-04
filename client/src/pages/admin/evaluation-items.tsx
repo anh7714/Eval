@@ -467,7 +467,7 @@ export default function EvaluationItemManagement() {
               font-size: 20px !important;
               font-weight: bold !important;
               padding: 20px !important;
-              border-bottom: 2px solid #000 !important;
+              text-decoration: underline !important;
             }
             
             table { 
@@ -829,13 +829,16 @@ export default function EvaluationItemManagement() {
         const dynamicTitle = `${candidate.name} 심사표`;
         const categoryInfo = candidate.category || candidate.department;
         
-        // 표 헤더에 구분 정보와 제목을 포함하도록 수정
-        const titleUpdatedContent = templateContent.replace(
-          /<div class="text-lg font-bold text-center flex-1 title">[^<]*<\/div>/,
-          `<div class="text-lg font-bold text-center flex-1 title">${dynamicTitle}</div>`
+        // 새로운 표 구조로 제목과 구분 정보 교체
+        let titleUpdatedContent = templateContent.replace(
+          /<td class="border-t border-l border-r border-gray-400 p-2 text-sm">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
+          `<td class="border-t border-l border-r border-gray-400 p-2 text-sm"><span>구분 : ${categoryInfo}</span></td>`
         ).replace(
-          /<span>구분 : [^<]*<\/span>/g,
-          `<span>구분 : ${categoryInfo}</span>`
+          /<td class="border-t border-r border-gray-400 p-2 text-sm text-right">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
+          `<td class="border-t border-r border-gray-400 p-2 text-sm text-right"><span>구분 : ${categoryInfo}</span></td>`
+        ).replace(
+          /<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">[^<]*<\/td>/,
+          `<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">${dynamicTitle}</td>`
         );
 
         allPrintContent += `
@@ -1439,31 +1442,34 @@ export default function EvaluationItemManagement() {
 
                   {/* 인쇄용 영역 */}
                   <div id="template-print-area">
-                    {/* 평가표 테이블 */}
-                    <div className="overflow-x-auto">
+                    {/* 제목과 구분 정보 표 */}
+                    <div className="overflow-x-auto mb-0">
                       <table className="w-full border-collapse border border-gray-400 text-sm">
-                        {/* 표 안에 제목과 구분 헤더 */}
-                        <thead>
+                        <tbody>
                           <tr>
-                            <td colSpan={5} className="border border-gray-400 p-0">
-                              <div className="flex justify-between items-center p-2">
-                                <div className="text-sm">
-                                  {selectedCandidateInfo && (
-                                    <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
-                                  )}
-                                </div>
-                                <div className="text-lg font-bold text-center flex-1 title">
-                                  {selectedCandidateInfo ? getDynamicTitle() : currentTemplate.title}
-                                </div>
-                                <div className="text-sm">
-                                  {selectedCandidateInfo && (
-                                    <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
-                                  )}
-                                </div>
-                              </div>
+                            <td className="border-t border-l border-r border-gray-400 p-2 text-sm">
+                              {selectedCandidateInfo && (
+                                <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                              )}
+                            </td>
+                            <td className="border-t border-r border-gray-400 p-2 text-sm text-right">
+                              {selectedCandidateInfo && (
+                                <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                              )}
                             </td>
                           </tr>
-                        </thead>
+                          <tr>
+                            <td colSpan={2} className="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">
+                              {selectedCandidateInfo ? getDynamicTitle() : currentTemplate.title}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* 평가표 데이터 테이블 */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-400 text-sm">
                         <thead>
                           <tr className="bg-gray-100">
                             <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점)</th>
