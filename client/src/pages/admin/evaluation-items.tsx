@@ -470,49 +470,46 @@ export default function EvaluationItemManagement() {
               text-decoration: underline !important;
             }
             
-            /* 제목 표 스타일 */
-            #template-print-area > div:first-child table {
-              border-collapse: collapse !important; 
-              width: 100% !important; 
-              margin-bottom: 0 !important;
-              font-size: 13px !important;
-              border: 2px solid #666 !important;
-            }
-            
-            /* 제목 표 첫 번째 행 - 좌우 선 제거 */
-            #template-print-area > div:first-child table tr:first-child td:first-child {
-              border-left: 2px solid #666 !important;
-              border-top: 2px solid #666 !important;
-              border-right: none !important;
-              border-bottom: none !important;
-            }
-            
-            #template-print-area > div:first-child table tr:first-child td:last-child {
-              border-right: 2px solid #666 !important;
-              border-top: 2px solid #666 !important;
-              border-left: none !important;
-              border-bottom: none !important;
-              text-align: right !important;
-            }
-            
-            /* 제목 표 두 번째 행 */
-            #template-print-area > div:first-child table tr:last-child td {
-              border-left: 2px solid #666 !important;
-              border-right: 2px solid #666 !important;
-              border-bottom: 2px solid #666 !important;
-              border-top: none !important;
-              text-align: center !important;
-              font-weight: bold !important;
-              font-size: 18px !important;
-            }
-            
-            /* 데이터 표 스타일 */
-            #template-print-area > div:last-child table { 
+            table { 
               border-collapse: collapse !important; 
               width: 100% !important; 
               margin-bottom: 30px !important;
               font-size: 13px !important;
               border: 2px solid #666 !important;
+            }
+            
+            th, td { 
+              border: 1px solid #666 !important; 
+              padding: 12px 10px !important; 
+              vertical-align: middle !important;
+            }
+            
+            th { 
+              background-color: #e8e8e8 !important; 
+              text-align: center !important; 
+              font-weight: bold !important;
+              font-size: 13px !important;
+            }
+            
+            /* 제목 표 특별 스타일 */
+            table:first-child {
+              margin-bottom: 0 !important;
+            }
+            
+            /* 제목 표 첫 번째 행 좌우 구분선 제거 */
+            table:first-child tr:first-child td:first-child {
+              border-right: none !important;
+            }
+            
+            table:first-child tr:first-child td:last-child {
+              border-left: none !important;
+              text-align: right !important;
+            }
+            
+            table:first-child tr:last-child td {
+              text-align: center !important;
+              font-weight: bold !important;
+              font-size: 18px !important;
             }
 
             
@@ -536,12 +533,6 @@ export default function EvaluationItemManagement() {
               font-weight: bold !important; 
             }
             
-            .total-row td {
-              background-color: #f5f5f5 !important;
-              font-weight: bold !important;
-              text-align: center !important;
-            }
-            
             .total-row .category-col {
               background-color: #e8e8e8 !important;
               text-align: center !important;
@@ -561,43 +552,22 @@ export default function EvaluationItemManagement() {
               font-size: 10px !important;
             }
             
+            /* 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
+            td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+              text-align: center !important;
+            }
+            
+            td:nth-child(3) *, td:nth-child(4) *, td:nth-child(5) * {
+              text-align: center !important;
+            }
+            
+            /* 합계 행 가운데 정렬 */
+            .total-row td {
+              text-align: center !important;
+            }
+            
             /* 구분 영역의 총점 가운데 정렬 */
             .section-cell .text-xs {
-              text-align: center !important;
-            }
-            
-            /* 데이터 표 헤더 및 셀 정렬 */
-            #template-print-area > div:last-child table th, 
-            #template-print-area > div:last-child table td { 
-              border: 1px solid #666 !important; 
-              padding: 12px 10px !important; 
-              vertical-align: middle !important;
-            }
-            
-            #template-print-area > div:last-child table th { 
-              background-color: #e8e8e8 !important; 
-              text-align: center !important; 
-              font-weight: bold !important;
-              font-size: 13px !important;
-            }
-            
-            /* 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
-            #template-print-area > div:last-child table td:nth-child(3), 
-            #template-print-area > div:last-child table td:nth-child(4), 
-            #template-print-area > div:last-child table td:nth-child(5) {
-              text-align: center !important;
-            }
-            
-            #template-print-area > div:last-child table td:nth-child(3) span, 
-            #template-print-area > div:last-child table td:nth-child(4) span, 
-            #template-print-area > div:last-child table td:nth-child(5) span {
-              text-align: center !important;
-              display: block !important;
-            }
-            
-            #template-print-area > div:last-child table td:nth-child(3) input, 
-            #template-print-area > div:last-child table td:nth-child(4) input, 
-            #template-print-area > div:last-child table td:nth-child(5) input {
               text-align: center !important;
             }
             
