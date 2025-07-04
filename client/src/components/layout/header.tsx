@@ -84,20 +84,14 @@ export default function Header() {
             
             {isResults && (
               <nav className="hidden md:flex space-x-1">
-                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'dashboard' }))}>
-                  대시보드
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'evaluations' }))}>
-                  평가하기
-                </Button>
                 <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'ranking' }))}>
-                  순위
+                  🏆 순위
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'detailed' }))}>
-                  상세 결과
+                  📋 상세결과
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'statistics' }))}>
-                  통계
+                  📊 통계
                 </Button>
               </nav>
             )}
