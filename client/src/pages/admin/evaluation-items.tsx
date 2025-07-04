@@ -186,7 +186,17 @@ export default function EvaluationItemManagement() {
       required: false,
       width: 'w-20'
     };
-    setColumnConfig(prev => [...prev, newColumn]);
+    
+    // 배점(points) 앞에 새 컬럼 삽입
+    setColumnConfig(prev => {
+      const pointsIndex = prev.findIndex(col => col.id === 'points');
+      if (pointsIndex === -1) {
+        return [...prev, newColumn];
+      }
+      const newConfig = [...prev];
+      newConfig.splice(pointsIndex, 0, newColumn);
+      return newConfig;
+    });
     
     // 기존 데이터에 새 컬럼 필드 추가
     setCurrentTemplate(prev => ({
@@ -410,12 +420,12 @@ export default function EvaluationItemManagement() {
             .print\\:font-black { font-weight: 900 !important; }
             .print\\:text-black { color: black !important; }
             .print\\:border-none { border: none !important; }
-
+            
             @page {
               margin: 0 !important;
               size: A4 !important;
             }
-
+            
             body { 
               font-size: 14px !important; 
               line-height: 1.5 !important;
@@ -423,13 +433,13 @@ export default function EvaluationItemManagement() {
               padding: 80px 50px 50px 50px !important;
               font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
             }
-
+            
             /* 브라우저 기본 헤더/푸터 제거 */
             html {
               -webkit-print-color-adjust: exact !important;
               color-adjust: exact !important;
             }
-
+            
             .title {
               text-align: center !important;
               font-size: 24px !important;
@@ -437,14 +447,14 @@ export default function EvaluationItemManagement() {
               margin-bottom: 15px !important;
               color: black !important;
             }
-
+            
             .title-separator {
               width: 100% !important;
               height: 2px !important;
               background-color: #666 !important;
               margin: 15px 0 30px 0 !important;
             }
-
+            
             .category-info {
               text-align: right !important;
               font-size: 14px !important;
@@ -452,14 +462,14 @@ export default function EvaluationItemManagement() {
               margin-bottom: 20px !important;
               display: block !important;
             }
-
+            
             .evaluation-date {
               text-align: center !important;
               margin: 40px 0 20px 0 !important;
               font-size: 16px !important;
               font-weight: bold !important;
             }
-
+            
             .evaluator-info {
               text-align: right !important;
               margin-top: 20px !important;
@@ -469,7 +479,7 @@ export default function EvaluationItemManagement() {
               padding: 20px !important;
               text-decoration: underline !important;
             }
-
+            
             table { 
               border-collapse: collapse !important; 
               width: 100% !important; 
@@ -477,49 +487,46 @@ export default function EvaluationItemManagement() {
               font-size: 13px !important;
               border: 2px solid #666 !important;
             }
-
+            
             th, td { 
               border: 1px solid #666 !important; 
               padding: 12px 10px !important; 
               vertical-align: middle !important;
               text-align: left !important;
             }
-
+            
             th { 
               background-color: #e8e8e8 !important; 
               text-align: center !important; 
               font-weight: bold !important;
               font-size: 13px !important;
             }
-
+            
             /* 제목 표만의 특별 스타일 */
             table:first-child {
               margin-bottom: 20px !important;
               border-left: none !important;
               border-right: none !important;
             }
-
+            
             /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
             table:first-child td {
               border-left: none !important;
               border-right: none !important;
             }
-
+            
             /* 제목 표 첫 번째 행 */
             table:first-child tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
             }
-
-            /* 🔧 수정: 제목 표 우상단 셀의 왼쪽 선 제거 */
+            
             table:first-child tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
               border-bottom: none !important;
-              border-left: none !important;
-              border-right: none !important;
               text-align: right !important;
             }
-
+            
             /* 제목 표 두 번째 행 */
             table:first-child tr:last-child td {
               border-top: 1px solid #666 !important;
@@ -528,17 +535,17 @@ export default function EvaluationItemManagement() {
               font-weight: bold !important;
               font-size: 18px !important;
             }
-
+            
             /* 데이터 표의 가로 구분선 추가 */
             table:last-child .section-cell {
               border-bottom: 1px solid #666 !important;
             }
-
+            
             /* 데이터 표만의 스타일 */
             table:last-child {
               margin-top: 0 !important;
             }
-
+            
             /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
             table:last-child td,
             table:last-child th {
@@ -547,19 +554,19 @@ export default function EvaluationItemManagement() {
               border-left: 1px solid #666 !important;
               border-right: 1px solid #666 !important;
             }
-
+            
             /* 데이터 표 좌우 끝선 제거 */
             table:last-child td:first-child,
             table:last-child th:first-child {
               border-left: none !important;
             }
-
+            
             table:last-child td:last-child,
             table:last-child th:last-child {
               border-right: none !important;
             }
 
-
+            
             /* 각 열의 너비 조정 */
             .category-col { width: 12% !important; }
             .item-col { width: 45% !important; text-align: left !important; }
@@ -567,34 +574,73 @@ export default function EvaluationItemManagement() {
             .points-col { width: 12% !important; text-align: center !important; }
             .score-col { width: 12% !important; text-align: center !important; }
             .notes-col { width: 7% !important; text-align: center !important; }
-
-            /* 🔧 수정: 유형열 가운데 정렬 강화 */
+            
+            /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
             table:last-child td:nth-child(3),
             table:last-child td:nth-child(4), 
             table:last-child td:nth-child(5) {
               text-align: center !important;
               vertical-align: middle !important;
             }
-
-            /* 인쇄 시 셀 내부 요소도 가운데 정렬 강제 적용 */
+            
+            /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
             table:last-child td:nth-child(3) *,
             table:last-child td:nth-child(4) *,
             table:last-child td:nth-child(5) * {
               text-align: center !important;
               margin: 0 auto !important;
-              display: block !important;
-              width: 100% !important;
             }
-
-            /* 특히 유형 컬럼(3번째)의 select와 span 요소 가운데 정렬 */
-            table:last-child td:nth-child(3) select,
-            table:last-child td:nth-child(3) span {
+            
+            .section-cell { 
+              background-color: #f8f9fa !important; 
+              font-weight: bold !important; 
               text-align: center !important;
-              width: 100% !important;
-              display: block !important;
-              margin: 0 auto !important;
+              vertical-align: top !important;
             }
+            
+            .total-row { 
+              background-color: #e8e8e8 !important; 
+              font-weight: bold !important; 
+            }
+            
+            .total-row .category-col {
+              background-color: #e8e8e8 !important;
+              text-align: center !important;
+            }
+            
+            .score-cell {
+              text-align: center !important;
+              font-weight: bold !important;
+            }
+            
+            .points-cell {
+              text-align: center !important;
+            }
+            
+            .type-cell {
+              text-align: center !important;
+            }
+            
 
+            
+            /* 데이터 표의 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3), 
+            table:last-child td:nth-child(4), 
+            table:last-child td:nth-child(5) {
+              text-align: center !important;
+              vertical-align: middle !important;
+            }
+            
+            /* 인쇄 시 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3) *,
+            table:last-child td:nth-child(4) *,
+            table:last-child td:nth-child(5) * {
+              text-align: center !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              display: block !important;
+            }
+            
             /* 숫자 데이터를 위한 추가 스타일 */
             table:last-child td:nth-child(3) span,
             table:last-child td:nth-child(4) span,
@@ -603,7 +649,7 @@ export default function EvaluationItemManagement() {
               width: 100% !important;
               display: inline-block !important;
             }
-
+            
             table:last-child td:nth-child(4) *, 
             table:last-child td:nth-child(5) * {
               text-align: center !important;
@@ -611,7 +657,7 @@ export default function EvaluationItemManagement() {
               justify-content: center !important;
               align-items: center !important;
             }
-
+            
             table:last-child td:nth-child(4) input, 
             table:last-child td:nth-child(5) input {
               text-align: center !important;
@@ -619,7 +665,7 @@ export default function EvaluationItemManagement() {
               margin: 0 !important;
               padding: 0 !important;
             }
-
+            
             table:last-child td:nth-child(4) span, 
             table:last-child td:nth-child(5) span {
               display: flex !important;
@@ -628,57 +674,27 @@ export default function EvaluationItemManagement() {
               width: 100% !important;
               height: 100% !important;
             }
-
-            .section-cell { 
-              background-color: #f8f9fa !important; 
-              font-weight: bold !important; 
-              text-align: center !important;
-              vertical-align: top !important;
-            }
-
-            .total-row { 
-              background-color: #e8e8e8 !important; 
-              font-weight: bold !important; 
-            }
-
-            .total-row .category-col {
-              background-color: #e8e8e8 !important;
-              text-align: center !important;
-            }
-
-            .score-cell {
-              text-align: center !important;
-              font-weight: bold !important;
-            }
-
-            .points-cell {
-              text-align: center !important;
-            }
-
-            .type-cell {
-              text-align: center !important;
-            }
-
+            
             /* 합계 행 가운데 정렬 */
             table:last-child .total-row td {
               text-align: center !important;
               vertical-align: middle !important;
             }
-
+            
             table:last-child .total-row td * {
               text-align: center !important;
               margin: 0 auto !important;
             }
-
+            
             /* 구분 영역의 총점 가운데 정렬 */
             .section-cell .text-xs {
               text-align: center !important;
             }
-
+            
             .no-print { 
               display: none !important; 
             }
-
+            
             input {
               border: none !important;
               background: transparent !important;
@@ -689,7 +705,7 @@ export default function EvaluationItemManagement() {
               padding: 0 !important;
               margin: 0 !important;
             }
-
+            
             select {
               border: none !important;
               background: transparent !important;
@@ -698,7 +714,7 @@ export default function EvaluationItemManagement() {
           }
         </style>
       `;
-
+      
       // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
       const evaluatorInfo = selectedEvaluatorInfo || evaluator;
       const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
@@ -707,7 +723,7 @@ export default function EvaluationItemManagement() {
         month: 'long', 
         day: 'numeric' 
       });
-
+      
       const evaluationFooter = `
         <div class="evaluation-date">
           평가일: ${today}
@@ -716,7 +732,7 @@ export default function EvaluationItemManagement() {
           평가위원 : ${evaluatorInfo.name}${positionText} (서명)
         </div>
       `;
-
+      
       const printWindow = window.open('', '_blank');
       printWindow?.document.write(`
         <html>
@@ -733,7 +749,7 @@ export default function EvaluationItemManagement() {
       `);
       printWindow?.document.close();
       printWindow?.print();
-
+      
       showNotification('인쇄 미리보기가 열렸습니다!', 'info');
     }
   };
@@ -1590,9 +1606,11 @@ export default function EvaluationItemManagement() {
                           <tr className="bg-gray-100">
                             <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점)</th>
                             <th className="border border-gray-400 px-4 py-3 text-center font-bold">세부 항목</th>
-                            <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">유형</th>
-                            <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">배점</th>
-                            <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">평가점수</th>
+                            {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                              <th key={column.id} className="border border-gray-400 px-2 py-3 text-center font-bold w-16">
+                                {column.title}
+                              </th>
+                            ))}
                             {isEditing && <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">관리</th>}
                           </tr>
                         </thead>
@@ -1656,44 +1674,44 @@ export default function EvaluationItemManagement() {
                                     )}
                                   </td>
                                   
-                                  <td className="border border-gray-400 px-2 py-2 text-center">
-                                    {isEditing ? (
-                                      <select
-                                        value={item.type}
-                                        onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
-                                        className="text-xs border rounded px-1 py-1"
-                                      >
-                                        <option value="정량">정량</option>
-                                        <option value="정성">정성</option>
-                                      </select>
-                                    ) : (
-                                      <span className="text-xs">{item.type}</span>
-                                    )}
-                                  </td>
-                                  
-                                  <td className="border border-gray-400 px-2 py-2 text-center">
-                                    {isEditing ? (
-                                      <Input
-                                        type="number"
-                                        value={item.points}
-                                        onChange={(e) => updateItem(section.id, item.id, 'points', parseInt(e.target.value) || 0)}
-                                        className="text-xs text-center w-12"
-                                      />
-                                    ) : (
-                                      <span className="text-xs">{item.points}점</span>
-                                    )}
-                                  </td>
-                                  
-                                  <td className="border border-gray-400 px-2 py-2 text-center">
-                                    <Input
-                                      type="number"
-                                      value={item.score}
-                                      onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
-                                      max={item.points}
-                                      min={0}
-                                      className="text-xs text-center w-16"
-                                    />
-                                  </td>
+                                  {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                                    <td key={column.id} className={`border border-gray-400 px-2 py-2 text-center ${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : ''}`}>
+                                      {column.id === 'score' ? (
+                                        <Input
+                                          type="number"
+                                          value={item.score}
+                                          onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
+                                          max={item.points}
+                                          min={0}
+                                          className="text-xs text-center w-16"
+                                        />
+                                      ) : isEditing ? (
+                                        column.id === 'type' ? (
+                                          <select
+                                            value={item.type}
+                                            onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
+                                            className="text-xs border rounded px-1 py-1"
+                                          >
+                                            <option value="정량">정량</option>
+                                            <option value="정성">정성</option>
+                                          </select>
+                                        ) : (
+                                          <Input
+                                            type={column.type === 'number' ? 'number' : 'text'}
+                                            value={item[column.id] || (column.type === 'number' ? 0 : '')}
+                                            onChange={(e) => updateItem(section.id, item.id, column.id, column.type === 'number' ? (parseInt(e.target.value) || 0) : e.target.value)}
+                                            className="text-xs text-center w-12"
+                                          />
+                                        )
+                                      ) : (
+                                        <span className="text-xs">
+                                          {column.id === 'points' ? `${item[column.id]}점` : 
+                                           column.id === 'score' ? item[column.id] :
+                                           item[column.id]}
+                                        </span>
+                                      )}
+                                    </td>
+                                  ))}
                                   
                                   {isEditing && (
                                     <td className="border border-gray-400 px-2 py-2 text-center">
@@ -1714,13 +1732,15 @@ export default function EvaluationItemManagement() {
                           <tr className="bg-gray-100 font-bold">
                             <td className="border border-gray-400 px-4 py-3 text-center">합계</td>
                             <td className="border border-gray-400 px-4 py-3"></td>
-                            <td className="border border-gray-400 px-2 py-3"></td>
-                            <td className="border border-gray-400 px-2 py-3 text-center">
-                              {currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점
-                            </td>
-                            <td className="border border-gray-400 px-2 py-3 text-center">
-                              <span className="text-lg font-bold">{calculateTotalScore()}점</span>
-                            </td>
+                            {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                              <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                                {column.id === 'points' ? (
+                                  `${currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점`
+                                ) : column.id === 'score' ? (
+                                  <span className="text-lg font-bold">{calculateTotalScore()}점</span>
+                                ) : ''}
+                              </td>
+                            ))}
                             {isEditing && <td className="border border-gray-400 px-2 py-3"></td>}
                           </tr>
                         </tbody>
