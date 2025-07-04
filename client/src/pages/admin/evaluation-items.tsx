@@ -419,7 +419,6 @@ export default function EvaluationItemManagement() {
             .print\\:text-4xl { font-size: 2.25rem !important; }
             .print\\:font-black { font-weight: 900 !important; }
             .print\\:text-black { color: black !important; }
-            .print\\:border-none { border: none !important; }
             
             @page {
               margin: 0 !important;
@@ -552,7 +551,7 @@ export default function EvaluationItemManagement() {
               width: 100% !important;
             }
             
-            /* 데이터 표 - 모든 셀에 완전한 테두리 적용 - 높은 우선순위 */
+            /* 데이터 표 - 모든 셀에 완전한 테두리 적용 - 최고 우선순위 */
             #template-print-area.print-area table:nth-of-type(2) td,
             #template-print-area.print-area table:nth-of-type(2) th {
               border: 1px solid #666 !important;
@@ -561,6 +560,14 @@ export default function EvaluationItemManagement() {
               border-color: #666 !important;
               padding: 8px !important;
               box-sizing: border-box !important;
+            }
+            
+            /* Tailwind CSS 덮어쓰기 - 모든 .border 클래스 무효화 후 강제 적용 */
+            #template-print-area.print-area table:nth-of-type(2) .border,
+            #template-print-area.print-area table:nth-of-type(2) .border-gray-400,
+            #template-print-area.print-area table:nth-of-type(2) td.border,
+            #template-print-area.print-area table:nth-of-type(2) th.border {
+              border: 1px solid #666 !important;
             }
             
             /* 강제로 내부 세로선 표시 */
