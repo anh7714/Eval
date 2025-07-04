@@ -1583,8 +1583,7 @@ export default function EvaluationItemManagement() {
                       <table className="w-full border-collapse border border-gray-400 text-sm">
                         <tbody>
                           <tr>
-                            <td className="border-t border-l border-gray-400 p-2 text-sm"></td>
-                            <td className="border-t border-r border-gray-400 p-2 text-sm text-right">
+                            <td colSpan={2} className="border-t border-l border-r border-gray-400 p-2 text-sm text-right">
                               {selectedCandidateInfo && (
                                 <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
                               )}
