@@ -126,6 +126,13 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ Supabase 연결 문제 해결 시도 (SASL 인증 및 DNS 문제로 Replit 환경 제한 확인)
 - ✓ Supabase 수동 설정 SQL 스크립트 제공 (supabase-setup.sql)
 - ✓ 현재 파일 기반 저장소로 모든 기능 완전 작동
+- ✓ 배치 인쇄 기능 완전 구현 (2025.07.04)
+- ✓ 화면 표시와 완전히 동일한 인쇄 구조로 개별/배치 인쇄 기능 재구현
+- ✓ 2개 테이블 구조 (제목/구분 정보 + 평가 항목) 적용
+- ✓ A4 용지 크기와 25mm 상단 여백 설정
+- ✓ 정확한 rowspan을 사용한 구분별 항목 병합
+- ✓ 배점과 합계 점수 정확한 계산 및 표시
+- ✓ 모든 평가위원과 평가대상자 조합으로 심사표 자동 생성
 
 ## User Preferences
 
