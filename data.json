@@ -25,11 +25,22 @@
       "isActive": true
     }
   ],
-  "evaluators": [],
+  "evaluators": [
+    {
+      "id": 2,
+      "name": "안형용",
+      "email": "anh7714@gmail.com",
+      "department": "어르신복지과",
+      "password": "0000",
+      "isActive": true,
+      "createdAt": "2025-07-04T18:09:04.440Z",
+      "updatedAt": "2025-07-04T18:09:04.440Z"
+    }
+  ],
   "evaluationCategories": [],
   "evaluationItems": [],
   "candidates": [],
   "evaluations": [],
   "evaluationSubmissions": [],
-  "nextId": 2
+  "nextId": 3
 }

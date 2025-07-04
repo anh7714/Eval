@@ -57,28 +57,9 @@ const memoryStore: MemoryStore = {
 };
 
 let db: ReturnType<typeof drizzle>;
-let useMemoryStorage = false; // Force database usage
+// System is now Supabase-only - no memory storage fallback
 
-// File-based persistence functions
-function loadDataFromFile() {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      Object.assign(memoryStore, data);
-      console.log('Data loaded from file:', DATA_FILE);
-    }
-  } catch (error) {
-    console.warn('Failed to load data from file:', error);
-  }
-}
-
-function saveDataToFile() {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(memoryStore, null, 2));
-  } catch (error) {
-    console.warn('Failed to save data to file:', error);
-  }
-}
+// Supabase-only storage system - no file-based fallback
 
 // Database connection initialization
 async function initializeDatabase() {
@@ -121,12 +102,38 @@ async function initializeDatabase() {
       throw new Error("DATABASE_URL not provided");
     }
   } catch (error) {
-    console.log("❌ Database connection failed, falling back to file-based storage:", error);
-    console.log("Error details:", error.message);
-    console.log("Error code:", error.code);
-    useMemoryStorage = true;
-    // Load data from file when using memory storage
-    loadDataFromFile();
+    console.log("❌ Initial Supabase connection failed:", error.message);
+    console.log("Attempting alternative Supabase connection method...");
+    
+    try {
+      // Try direct connection without pooler for Replit environment
+      const directUrl = process.env.DATABASE_URL?.replace('pooler.', '').replace(':6543', ':5432');
+      console.log("Trying direct connection to:", directUrl?.slice(0, 50) + "...");
+      
+      const pool = new Pool({
+        connectionString: directUrl,
+        ssl: { rejectUnauthorized: false },
+        max: 5,
+        idleTimeoutMillis: 10000,
+        connectionTimeoutMillis: 5000,
+      });
+      
+      const testClient = await pool.connect();
+      await testClient.query('SELECT 1');
+      testClient.release();
+      
+      db = drizzle(pool);
+      console.log("✅ Successfully connected to Supabase database (direct connection)");
+      await initializeSchema();
+      
+    } catch (directError) {
+      console.log("❌ Direct connection also failed:", directError.message);
+      console.log("🔄 System configured for Supabase only - connection required");
+      
+      // Force exit instead of fallback to ensure Supabase requirement
+      console.log("Please verify Supabase DATABASE_URL and try again");
+      process.exit(1);
+    }
   }
 }
 

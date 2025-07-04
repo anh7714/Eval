@@ -40,6 +40,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize Supabase storage first
+  await import("./storage-supabase").then(module => module.initializeStorage());
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
