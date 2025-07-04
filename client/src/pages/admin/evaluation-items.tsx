@@ -765,83 +765,125 @@ export default function EvaluationItemManagement() {
     const printStyle = `
       <style>
         @media print {
-          .page-break { page-break-before: always; }
+          .print\\:hidden { display: none !important; }
+          .print\\:block { display: block !important; }
+          .print\\:mb-4 { margin-bottom: 1rem !important; }
+          .print\\:text-center { text-align: center !important; }
+          .print\\:text-4xl { font-size: 2.25rem !important; }
+          .print\\:font-black { font-weight: 900 !important; }
+          .print\\:text-black { color: black !important; }
+          .print\\:border-none { border: none !important; }
+          
+          .page-break { page-break-before: always !important; }
           @page {
-            margin: 0;
-            size: A4;
+            margin: 0 !important;
+            size: A4 !important;
           }
           
           body { 
-            font-size: 14px; 
-            line-height: 1.5;
-            margin: 0;
-            padding: 50px;
-            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif;
+            font-size: 14px !important; 
+            line-height: 1.5 !important;
+            margin: 0 !important;
+            padding: 95px 50px 50px 50px !important;
+            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
           }
           
           /* 브라우저 기본 헤더/푸터 제거 */
           html {
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           
-          table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            margin-bottom: 30px;
-            font-size: 11px;
-            border: 2px solid #000;
+          .title {
+            text-align: center !important;
+            font-size: 24px !important;
+            font-weight: bold !important;
+            margin-bottom: 15px !important;
+            color: black !important;
           }
           
-          th, td { 
-            border: 1px solid #000; 
-            padding: 10px 8px; 
-            vertical-align: middle;
+          .title-separator {
+            width: 100% !important;
+            height: 2px !important;
+            background-color: #666 !important;
+            margin: 15px 0 30px 0 !important;
           }
           
-          th { 
-            background-color: #e8e8e8; 
-            text-align: center; 
-            font-weight: bold;
-            font-size: 11px;
-          }
-          
-          /* 각 열의 너비 조정 */
-          .category-col { width: 12%; }
-          .item-col { width: 45%; text-align: left; }
-          .type-col { width: 12%; text-align: center; }
-          .points-col { width: 12%; text-align: center; }
-          .score-col { width: 12%; text-align: center; }
-          .notes-col { width: 7%; text-align: center; }
-          
-          .section-cell { 
-            background-color: #f8f9fa; 
-            font-weight: bold; 
-            text-align: center;
-            vertical-align: top;
-          }
-          
-          .total-row { 
-            background-color: #e8e8e8; 
-            font-weight: bold; 
-          }
-          
-          .total-row td {
-            background-color: #f5f5f5;
-            font-weight: bold;
-            text-align: center;
-          }
-          
-          .total-row .category-col {
-            background-color: #e8e8e8;
-            text-align: center;
+          .category-info {
+            text-align: right !important;
+            font-size: 14px !important;
+            font-weight: bold !important;
+            margin-bottom: 20px !important;
+            display: block !important;
           }
           
           .evaluation-date {
-            text-align: center;
-            margin: 30px 0 15px 0;
-            font-size: 12px;
-            font-weight: bold;
+            text-align: center !important;
+            margin: 40px 0 20px 0 !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+          }
+          
+          .evaluator-info {
+            text-align: right !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+            font-size: 20px !important;
+            font-weight: bold !important;
+            padding: 20px !important;
+            text-decoration: underline !important;
+          }
+          
+          table { 
+            border-collapse: collapse !important; 
+            width: 100% !important; 
+            margin-bottom: 30px !important;
+            font-size: 13px !important;
+            border: 2px solid #666 !important;
+          }
+          
+          th, td { 
+            border: 1px solid #666 !important; 
+            padding: 12px 10px !important; 
+            vertical-align: middle !important;
+            text-align: left !important;
+          }
+          
+          th { 
+            background-color: #e8e8e8 !important; 
+            text-align: center !important;
+            font-weight: bold !important;
+          }
+          
+          .points-cell { text-align: center !important; }
+          .score-cell { text-align: center !important; }
+          .type-cell { text-align: center !important; }
+          
+          .section-row { 
+            background-color: #f0f0f0 !important; 
+            font-weight: bold !important; 
+          }
+          
+          .total-row { 
+            background-color: #e8e8e8 !important; 
+            font-weight: bold !important; 
+          }
+          
+          input {
+            border: none !important;
+            background: transparent !important;
+            font-size: inherit !important;
+            font-weight: inherit !important;
+            text-align: inherit !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          
+          select {
+            border: none !important;
+            background: transparent !important;
+            font-size: inherit !important;
           }
           
           .title {
@@ -967,18 +1009,15 @@ export default function EvaluationItemManagement() {
         
         // 새로운 표 구조로 제목과 구분 정보 교체
         let titleUpdatedContent = templateContent.replace(
-          /<td class="border-t border-l border-gray-400 p-2 text-sm"><\/td>/g,
-          `<td class="border-t border-l border-gray-400 p-2 text-sm"></td>`
-        ).replace(
-          /<td class="border-t border-r border-gray-400 p-2 text-sm text-right">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
-          `<td class="border-t border-r border-gray-400 p-2 text-sm text-right"><span>구분 : ${categoryInfo}</span></td>`
+          /<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
+          `<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right"><span>구분 : ${categoryInfo}</span></td>`
         ).replace(
           /<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">[^<]*<\/td>/,
           `<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">${dynamicTitle}</td>`
         );
 
         allPrintContent += `
-          <div class="${pageBreakClass}">
+          <div class="${pageBreakClass}" style="page-break-after: always;">
             ${titleUpdatedContent}
             ${evaluationFooter}
           </div>
