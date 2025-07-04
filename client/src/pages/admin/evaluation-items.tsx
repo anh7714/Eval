@@ -430,7 +430,7 @@ export default function EvaluationItemManagement() {
               font-size: 14px !important; 
               line-height: 1.5 !important;
               margin: 0 !important;
-              padding: 80px 50px 50px 50px !important;
+              padding: 95px 50px 50px 50px !important;
               font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
             }
             
