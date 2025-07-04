@@ -452,13 +452,6 @@ export default function EvaluationItemManagement() {
               font-weight: bold !important;
             }
             
-            .signature-separator {
-              width: 100% !important;
-              height: 2px !important;
-              background-color: #666 !important;
-              margin: 30px 0 20px 0 !important;
-            }
-            
             .evaluator-info {
               text-align: right !important;
               margin-top: 20px !important;
@@ -466,6 +459,7 @@ export default function EvaluationItemManagement() {
               font-size: 20px !important;
               font-weight: bold !important;
               padding: 20px !important;
+              border-bottom: 2px solid #000 !important;
             }
             
             table { 
@@ -579,7 +573,6 @@ export default function EvaluationItemManagement() {
         <div class="evaluator-info">
           평가위원 : ${evaluatorInfo.name}${positionText} (서명)
         </div>
-        <div class="signature-separator"></div>
       `;
       
       const printWindow = window.open('', '_blank');
@@ -708,21 +701,14 @@ export default function EvaluationItemManagement() {
             font-weight: bold;
           }
           
-          .signature-separator {
-            width: 100%;
-            height: 2px;
-            background-color: #000;
-            margin: 30px 0 20px 0;
-          }
-          
           .evaluator-info {
             text-align: right;
             margin-top: 20px;
             margin-bottom: 20px;
-            font-size: 16px;
-            border: 2px solid #000;
+            font-size: 20px;
+            font-weight: bold;
             padding: 20px;
-            background-color: #f9f9f9;
+            border-bottom: 2px solid #000;
           }
           .title {
             text-align: center;
@@ -801,7 +787,6 @@ export default function EvaluationItemManagement() {
           <div class="evaluator-info">
             평가위원 : ${evaluator.name}${positionText} (서명)
           </div>
-          <div class="signature-separator"></div>
         `;
 
         const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
