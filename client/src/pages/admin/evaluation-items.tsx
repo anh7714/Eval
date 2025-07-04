@@ -445,6 +445,14 @@ export default function EvaluationItemManagement() {
               margin: 15px 0 30px 0 !important;
             }
             
+            .category-info {
+              text-align: right !important;
+              font-size: 14px !important;
+              font-weight: bold !important;
+              margin-bottom: 20px !important;
+              display: block !important;
+            }
+            
             .evaluation-date {
               text-align: center !important;
               margin: 40px 0 20px 0 !important;
@@ -589,6 +597,10 @@ export default function EvaluationItemManagement() {
         </div>
       `;
       
+      // 분류 정보 헤더 추가
+      const categoryHeader = selectedCandidateInfo ? 
+        `<div class="category-info">분류 : ${selectedCandidateInfo.category || selectedCandidateInfo.department}</div>` : '';
+      
       const printWindow = window.open('', '_blank');
       printWindow?.document.write(`
         <html>
@@ -598,6 +610,7 @@ export default function EvaluationItemManagement() {
             ${printStyle}
           </head>
           <body>
+            ${categoryHeader}
             ${printContent.innerHTML}
             ${evaluationFooter}
           </body>
@@ -819,6 +832,9 @@ export default function EvaluationItemManagement() {
 
         const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
         const dynamicTitle = `${candidate.name} 심사표`;
+        const categoryInfo = candidate.category || candidate.department;
+        const categoryHeader = `<div class="category-info">분류 : ${categoryInfo}</div>`;
+        
         const titleUpdatedContent = templateContent.replace(
           /<input[^>]*value="[^"]*"[^>]*class="[^"]*title[^"]*"[^>]*>/,
           `<div class="title">${dynamicTitle}</div><div class="title-separator"></div>`
@@ -826,6 +842,7 @@ export default function EvaluationItemManagement() {
 
         allPrintContent += `
           <div class="${pageBreakClass}">
+            ${categoryHeader}
             ${titleUpdatedContent}
             ${evaluationFooter}
           </div>
@@ -1425,6 +1442,13 @@ export default function EvaluationItemManagement() {
 
                   {/* 인쇄용 영역 */}
                   <div id="template-print-area">
+                    {/* 헤더 영역 - 분류 정보 표시 */}
+                    {selectedCandidateInfo && (
+                      <div className="mb-4 text-right text-sm">
+                        <span className="category-info">분류 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                      </div>
+                    )}
+                    
                     {/* 템플릿 제목 - 동적 제목 표시 */}
                     <div className="mb-6">
                       {selectedCandidateInfo ? (
