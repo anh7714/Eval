@@ -566,23 +566,10 @@ export default function EvaluationItemManagement() {
               margin-top: 0 !important;
             }
             
-            /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
+            /* 데이터 표 세로선 제거 (기존 규칙 무효화) */
             table:last-child td,
             table:last-child th {
-              border-top: 1px solid #666 !important;
-              border-bottom: 1px solid #666 !important;
-              border-left: 1px solid #666 !important;
-              border-right: 1px solid #666 !important;
-            }
-            
-            /* 데이터 표 좌우 끝선 제거 */
-            table:last-child td:first-child,
-            table:last-child th:first-child {
               border-left: none !important;
-            }
-            
-            table:last-child td:last-child,
-            table:last-child th:last-child {
               border-right: none !important;
             }
 
@@ -889,14 +876,10 @@ export default function EvaluationItemManagement() {
             margin-top: 0 !important;
           }
           
-          /* 데이터 표 좌우 끝선 제거 */
-          table:last-child td:first-child,
-          table:last-child th:first-child {
+          /* 데이터 표 세로선 제거 (기존 규칙 무효화) */
+          table:last-child td,
+          table:last-child th {
             border-left: none !important;
-          }
-          
-          table:last-child td:last-child,
-          table:last-child th:last-child {
             border-right: none !important;
           }
           
