@@ -579,16 +579,27 @@ export default function EvaluationItemManagement() {
               border-right: 1px solid #666 !important;
             }
             
-            /* 첫 번째 열의 왼쪽 선 제거 */
+            /* 첫 번째 열의 왼쪽 선만 제거 */
             .print-area table:nth-of-type(2) td:first-child,
             .print-area table:nth-of-type(2) th:first-child {
               border-left: none !important;
             }
             
-            /* 마지막 열의 오른쪽 선 제거 */
+            /* 마지막 열의 오른쪽 선만 제거 */
             .print-area table:nth-of-type(2) td:last-child,
             .print-area table:nth-of-type(2) th:last-child {
               border-right: none !important;
+            }
+            
+            /* 내부 모든 세로선 강제 표시 (다른 CSS 무효화) */
+            .print-area table:nth-of-type(2) td:not(:first-child),
+            .print-area table:nth-of-type(2) th:not(:first-child) {
+              border-left: 1px solid #666 !important;
+            }
+            
+            .print-area table:nth-of-type(2) td:not(:last-child),
+            .print-area table:nth-of-type(2) th:not(:last-child) {
+              border-right: 1px solid #666 !important;
             }
             
             /* 첫 번째 행의 윗선만 굵게 */
