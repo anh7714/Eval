@@ -94,30 +94,29 @@ export default function ResultsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          {/* 헤더와 탭 */}
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-4xl font-bold text-gray-900">종합평가시스템</h1>
-              
-              <TabsList className="flex space-x-1">
-                <TabsTrigger value="dashboard" className="px-4 py-2">대시보드</TabsTrigger>
-                <TabsTrigger value="evaluations" className="px-4 py-2">평가하기 관리</TabsTrigger>
-                <TabsTrigger value="ranking" className="px-4 py-2">후보자 관리</TabsTrigger>
-                <TabsTrigger value="detailed" className="px-4 py-2">평가항목 관리</TabsTrigger>
-                <TabsTrigger value="statistics" className="px-4 py-2">결과 관리</TabsTrigger>
-              </TabsList>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                홈
-              </Button>
-              <Button onClick={handleExportResults} size="sm">
-                내보내기
-              </Button>
-            </div>
+        {/* 헤더 */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-4xl font-bold text-gray-900">종합평가시스템</h1>
+          
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm">
+              홈
+            </Button>
+            <Button onClick={handleExportResults} size="sm">
+              내보내기
+            </Button>
           </div>
+        </div>
+
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          {/* 탭 메뉴바 */}
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="dashboard">대시보드</TabsTrigger>
+            <TabsTrigger value="evaluations">평가하기</TabsTrigger>
+            <TabsTrigger value="ranking">순위</TabsTrigger>
+            <TabsTrigger value="detailed">상세 결과</TabsTrigger>
+            <TabsTrigger value="statistics">통계</TabsTrigger>
+          </TabsList>
               
           <TabsContent value="dashboard">
             {/* Progress Cards */}
