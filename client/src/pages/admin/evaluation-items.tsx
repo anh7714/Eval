@@ -485,7 +485,7 @@ export default function EvaluationItemManagement() {
               width: 100% !important; 
               margin-bottom: 30px !important;
               font-size: 13px !important;
-              border: 2px solid #666 !important;
+              border: none !important;
             }
             
             th, td { 
