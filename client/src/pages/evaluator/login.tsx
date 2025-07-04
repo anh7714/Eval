@@ -91,7 +91,7 @@ export default function EvaluatorLogin() {
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="no-evaluators" disabled>
                       등록된 평가자가 없습니다
                     </SelectItem>
                   )}
