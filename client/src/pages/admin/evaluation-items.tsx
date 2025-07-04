@@ -507,12 +507,12 @@ export default function EvaluationItemManagement() {
             /* 제목 표 첫 번째 행 */
             table:first-child tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
-              border-bottom: 1px solid #666 !important;
+              border-bottom: none !important;
             }
             
             table:first-child tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
-              border-bottom: 1px solid #666 !important;
+              border-bottom: none !important;
               text-align: right !important;
             }
             
@@ -535,13 +535,24 @@ export default function EvaluationItemManagement() {
               margin-top: 0 !important;
             }
             
-            /* 데이터 표의 모든 셀에 세로 구분선 확실히 적용 */
+            /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
             table:last-child td,
             table:last-child th {
-              border-left: 1px solid #666 !important;
-              border-right: 1px solid #666 !important;
               border-top: 1px solid #666 !important;
               border-bottom: 1px solid #666 !important;
+              border-left: 1px solid #666 !important;
+              border-right: 1px solid #666 !important;
+            }
+            
+            /* 데이터 표 좌우 끝선 제거 */
+            table:last-child td:first-child,
+            table:last-child th:first-child {
+              border-left: none !important;
+            }
+            
+            table:last-child td:last-child,
+            table:last-child th:last-child {
+              border-right: none !important;
             }
 
             
@@ -581,32 +592,9 @@ export default function EvaluationItemManagement() {
             
             .type-cell {
               text-align: center !important;
-              font-size: 10px !important;
             }
             
-            /* 유형 열 강제 가운데 정렬 */
-            table:last-child td:nth-child(3) {
-              text-align: center !important;
-              vertical-align: middle !important;
-              padding: 12px 10px !important;
-            }
-            
-            table:last-child td:nth-child(3) * {
-              text-align: center !important;
-              margin: 0 auto !important;
-              display: block !important;
-              width: 100% !important;
-            }
-            
-            table:last-child td:nth-child(3) .text-xs {
-              text-align: center !important;
-              display: flex !important;
-              justify-content: center !important;
-              align-items: center !important;
-              margin: 0 auto !important;
-              width: 100% !important;
-              height: 100% !important;
-            }
+
             
             /* 데이터 표의 배점, 평가점수 열 가운데 정렬 강제 적용 */
             table:last-child td:nth-child(4), 
