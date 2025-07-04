@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3, FileDown } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function EvaluationItemManagement() {
@@ -37,6 +37,7 @@ export default function EvaluationItemManagement() {
   // 평가위원 및 평가대상 선택
   const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
+  const [batchPrintMode, setBatchPrintMode] = useState(false);
   
   // 평가위원 정보 (수동 입력용)
   const [evaluator, setEvaluator] = useState({
@@ -47,244 +48,720 @@ export default function EvaluationItemManagement() {
 
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
-    title: '평가표',
-    category: '구분',
-    data: [
-      { id: 1, text: '업무수행능력', type: '정량', points: 30, score: 0 },
-      { id: 2, text: '문제해결능력', type: '정량', points: 30, score: 0 },
-      { id: 3, text: '의사소통능력', type: '정성', points: 20, score: 0 },
-      { id: 4, text: '협력 및 적응력', type: '정성', points: 20, score: 0 },
+    title: "제공기관 선정 심의회 평가표",
+    totalScore: 100,
+    sections: [
+      {
+        id: 'A',
+        title: '기관수행능력',
+        totalPoints: 35,
+        items: [
+          { id: 1, text: '통계SOS 사업 운영 체계화 2단 완료', type: '정성', points: 20, score: 0 },
+          { id: 2, text: '심의 및 승인 목적 확인', type: '정량', points: 5, score: 0 },
+          { id: 3, text: '기관 운영 기간', type: '정성', points: 5, score: 0 },
+          { id: 4, text: '조직구성', type: '정량', points: 5, score: 0 }
+        ]
+      },
+      {
+        id: 'B',
+        title: '인력운영',
+        totalPoints: 20,
+        items: [
+          { id: 1, text: '사업 운영 총괄자 및 담당자의 전문성', type: '정성', points: 5, score: 0 },
+          { id: 2, text: '통계SOS 사업 운영 체계화부 담당자', type: '정량', points: 5, score: 0 },
+          { id: 3, text: 'SOS서비스 수행 인력의 확보', type: '정량', points: 10, score: 0 }
+        ]
+      }
     ]
   });
-
   const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // API 데이터 가져오기
-  const { data: categories, isLoading: categoriesLoading } = useQuery({
-    queryKey: ['/api/admin/categories'],
+  // 데이터 쿼리들
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["/api/admin/categories"],
   });
 
-  const { data: items, isLoading: itemsLoading } = useQuery({
-    queryKey: ['/api/admin/evaluation-items'],
+  const { data: items = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ["/api/admin/evaluation-items"],
   });
 
-  const { data: candidates } = useQuery({
-    queryKey: ['/api/admin/candidates'],
+  // 평가위원 목록 가져오기
+  const { data: evaluators = [] } = useQuery({
+    queryKey: ["/api/admin/evaluators"],
   });
 
-  const { data: evaluators } = useQuery({
-    queryKey: ['/api/admin/evaluators'],
+  // 후보자 목록 가져오기
+  const { data: candidates = [] } = useQuery({
+    queryKey: ["/api/admin/candidates"],
   });
 
-  const { data: systemConfig } = useQuery({
-    queryKey: ['/api/system/config'],
-  });
+  // 컬럼 설정 변경 시 기존 데이터 동기화
+  useEffect(() => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => {
+          const updatedItem = { ...item };
+          columnConfig.forEach(column => {
+            if (!['section', 'item', 'type', 'points', 'score'].includes(column.id)) {
+              if (!(column.id in updatedItem)) {
+                updatedItem[column.id] = column.type === 'number' ? 0 : '';
+              }
+            }
+          });
+          return updatedItem;
+        })
+      }))
+    }));
+  }, [columnConfig]);
 
-  // 알림 표시 함수
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    toast({
-      title: type === 'error' ? '오류' : type === 'info' ? '알림' : '성공',
-      description: message,
-      variant: type === 'error' ? 'destructive' : 'default',
-    });
+  // 템플릿 관련 함수들
+  const calculateSectionScore = (section: any) => {
+    return section.items.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
   };
+
+  const calculateSectionTotalPoints = (section: any) => {
+    return section.items.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
+  };
+
+  const calculateTotalPoints = () => {
+    return currentTemplate.sections.reduce((sum, section) => sum + calculateSectionTotalPoints(section), 0);
+  };
+
+  const calculateTotalScore = () => {
+    return currentTemplate.sections.reduce((sum, section) => sum + calculateSectionScore(section), 0);
+  };
+
+  // 보이는 컬럼들만 필터링
+  const visibleColumns = columnConfig.filter(col => col.visible);
+
+  // 선택된 평가위원과 후보자 정보
+  const selectedEvaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
+  const selectedCandidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
 
   // 동적 제목 생성
   const getDynamicTitle = () => {
-    if (selectedCandidate && candidates) {
-      const candidate = (candidates as any[]).find(c => c.id === selectedCandidate);
-      return candidate ? `${candidate.name} 심사표` : systemConfig?.evaluationTitle || '평가표';
+    if (selectedCandidateInfo) {
+      return `${selectedCandidateInfo.name} 심사표`;
     }
-    return systemConfig?.evaluationTitle || '평가표';
+    return currentTemplate.title;
   };
 
-  // 동적 구분 정보 생성
-  const getDynamicCategory = () => {
-    if (selectedCandidate && candidates) {
-      const candidate = (candidates as any[]).find(c => c.id === selectedCandidate);
-      return candidate ? (candidate.category || candidate.department) : '구분';
-    }
-    return '구분';
+  // 알림 함수
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 3000);
   };
 
-  // 템플릿 업데이트 함수
-  const updateTemplateData = (newData: any[]) => {
-    setCurrentTemplate(prev => ({
-      ...prev,
-      data: newData,
-      title: getDynamicTitle(),
-      category: getDynamicCategory()
-    }));
+  // 컬럼 설정 관리 함수들
+  const updateColumnConfig = (columnId: string, field: string, value: any) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.id === columnId ? { ...col, [field]: value } : col
+      )
+    );
   };
 
-  // 영역 추가
-  const addSection = () => {
-    const newSection = {
-      id: Date.now(),
-      text: '새 영역',
-      type: '정량',
-      points: 10,
-      score: 0
-    };
-    updateTemplateData([...currentTemplate.data, newSection]);
-  };
-
-  // 컬럼 추가
   const addColumn = () => {
-    const newColumnId = `column_${Date.now()}`;
     const newColumn = {
-      id: newColumnId,
+      id: `custom_${Date.now()}`,
       title: '새 컬럼',
-      type: 'number',
+      type: 'text',
       visible: true,
       required: false,
       width: 'w-20'
     };
     
-    // 배점 컬럼 앞에 새 컬럼 삽입
-    const pointsIndex = columnConfig.findIndex(col => col.id === 'points');
-    const newConfig = [...columnConfig];
-    newConfig.splice(pointsIndex, 0, newColumn);
-    setColumnConfig(newConfig);
-
-    // 기존 데이터에 새 컬럼 값 추가
-    const updatedData = currentTemplate.data.map(item => ({
-      ...item,
-      [newColumnId]: 0
+    // 배점(points) 앞에 새 컬럼 삽입
+    setColumnConfig(prev => {
+      const pointsIndex = prev.findIndex(col => col.id === 'points');
+      if (pointsIndex === -1) {
+        return [...prev, newColumn];
+      }
+      const newConfig = [...prev];
+      newConfig.splice(pointsIndex, 0, newColumn);
+      return newConfig;
+    });
+    
+    // 기존 데이터에 새 컬럼 필드 추가
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => ({
+          ...item,
+          [newColumn.id]: ''
+        }))
+      }))
     }));
-    updateTemplateData(updatedData);
+    
+    showNotification('새 컬럼이 추가되었습니다!');
   };
 
-  // 점수 초기화
-  const resetScores = () => {
-    const resetData = currentTemplate.data.map(item => ({
-      ...item,
-      score: 0,
-      // 동적 컬럼들도 0으로 초기화
-      ...Object.fromEntries(
-        columnConfig
-          .filter(col => !['section', 'item', 'type', 'points', 'score'].includes(col.id))
-          .map(col => [col.id, 0])
-      )
-    }));
-    updateTemplateData(resetData);
-    showNotification('모든 점수가 초기화되었습니다.');
-  };
-
-  // 컬럼 제거
-  const removeColumn = (columnId: string) => {
-    if (columnConfig.find(col => col.id === columnId)?.required) {
-      showNotification('필수 컬럼은 제거할 수 없습니다.', 'error');
+  const deleteColumn = (columnId: string) => {
+    const column = columnConfig.find(col => col.id === columnId);
+    if (column?.required) {
+      showNotification('필수 컬럼은 삭제할 수 없습니다.', 'error');
       return;
     }
     
     setColumnConfig(prev => prev.filter(col => col.id !== columnId));
     
-    // 데이터에서도 해당 컬럼 제거
-    const updatedData = currentTemplate.data.map(item => {
-      const { [columnId]: removed, ...rest } = item as any;
-      return rest;
-    });
-    updateTemplateData(updatedData);
-  };
-
-  // 컬럼 순서 변경
-  const moveColumn = (columnId: string, direction: 'left' | 'right') => {
-    const currentIndex = columnConfig.findIndex(col => col.id === columnId);
-    const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+    // 기존 데이터에서 해당 컬럼 필드 제거
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => {
+          const newItem = { ...item };
+          delete newItem[columnId];
+          return newItem;
+        })
+      }))
+    }));
     
-    if (newIndex < 0 || newIndex >= columnConfig.length) return;
-    
-    const newConfig = [...columnConfig];
-    [newConfig[currentIndex], newConfig[newIndex]] = [newConfig[newIndex], newConfig[currentIndex]];
-    setColumnConfig(newConfig);
+    showNotification('컬럼이 삭제되었습니다!');
   };
 
-  // 행 값 업데이트
-  const updateRowValue = (id: number, field: string, value: any) => {
-    const updatedData = currentTemplate.data.map(item =>
-      item.id === id ? { ...item, [field]: value } : item
-    );
-    updateTemplateData(updatedData);
+  const updateScore = (sectionId: string, itemId: number, score: number) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.map(item =>
+                item.id === itemId ? { ...item, score: Math.min(score, item.points) } : item
+              )
+            }
+          : section
+      )
+    }));
   };
 
-  // 행 삭제
-  const deleteRow = (id: number) => {
-    const updatedData = currentTemplate.data.filter(item => item.id !== id);
-    updateTemplateData(updatedData);
+  const addSection = () => {
+    const newId = String.fromCharCode(65 + currentTemplate.sections.length);
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: [...prev.sections, {
+        id: newId,
+        title: '새 평가영역',
+        totalPoints: 10,
+        items: [{ id: 1, text: '새 평가항목', type: '정량', points: 10, score: 0 }]
+      }]
+    }));
   };
 
-  // 템플릿 파일 저장
+  const deleteSection = (sectionId: string) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.filter(section => section.id !== sectionId)
+    }));
+  };
+
+  const addItem = (sectionId: string) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: [...section.items, {
+                id: Math.max(...section.items.map(i => i.id)) + 1,
+                text: '새 평가항목',
+                type: '정량',
+                points: 5,
+                score: 0
+              }]
+            }
+          : section
+      )
+    }));
+  };
+
+  const deleteItem = (sectionId: string, itemId: number) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.filter(item => item.id !== itemId)
+            }
+          : section
+      )
+    }));
+  };
+
+  const updateItem = (sectionId: string, itemId: number, field: string, value: any) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.map(item =>
+                item.id === itemId ? { ...item, [field]: value } : item
+              )
+            }
+          : section
+      )
+    }));
+  };
+
+  const updateSection = (sectionId: string, field: string, value: any) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section =>
+        section.id === sectionId ? { ...section, [field]: value } : section
+      )
+    }));
+  };
+
   const saveTemplate = () => {
-    const templateData = {
-      columnConfig,
-      data: currentTemplate.data,
-      title: currentTemplate.title,
-      category: currentTemplate.category,
-      timestamp: new Date().toISOString()
+    // 현재 날짜와 시간으로 파일명 생성
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+    const fileName = `평가표_${currentTemplate.title.replace(/[^\w\s]/gi, '')}_${dateStr}_${timeStr}.json`;
+    
+    // 평가위원 정보와 컬럼 설정도 포함해서 저장
+    const templateWithAll = {
+      ...currentTemplate,
+      evaluator: evaluator,
+      columnConfig: columnConfig
     };
     
-    const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `평가표_템플릿_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const dataStr = JSON.stringify(templateWithAll, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    showNotification('템플릿이 저장되었습니다.');
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', fileName);
+    linkElement.click();
+    
+    showNotification('✅ 템플릿이 저장되었습니다!');
   };
 
-  // 템플릿 파일 불러오기
   const loadTemplate = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const templateData = JSON.parse(e.target?.result as string);
-        if (templateData.columnConfig && templateData.data) {
-          setColumnConfig(templateData.columnConfig);
-          setCurrentTemplate({
-            title: templateData.title || getDynamicTitle(),
-            category: templateData.category || getDynamicCategory(),
-            data: templateData.data
-          });
-          showNotification('템플릿이 성공적으로 불러와졌습니다.');
-        } else {
-          showNotification('잘못된 템플릿 파일 형식입니다.', 'error');
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const template = JSON.parse(e.target?.result as string);
+          
+          // 템플릿 유효성 검사
+          if (!template.title || !template.sections || !Array.isArray(template.sections)) {
+            throw new Error('올바르지 않은 템플릿 형식입니다.');
+          }
+          
+          // 평가위원 정보가 있으면 같이 불러오기
+          if (template.evaluator) {
+            setEvaluator(template.evaluator);
+          }
+          
+          // 컬럼 설정이 있으면 같이 불러오기
+          if (template.columnConfig) {
+            setColumnConfig(template.columnConfig);
+          }
+          
+          setCurrentTemplate(template);
+          showNotification('✅ 템플릿이 성공적으로 불러와졌습니다!', 'info');
+          
+        } catch (error: any) {
+          showNotification('❌ ' + error.message, 'error');
         }
-      } catch (error) {
-        showNotification('파일을 읽는 중 오류가 발생했습니다.', 'error');
-      }
-    };
-    reader.readAsText(file);
+      };
+      reader.readAsText(file);
+    }
     
-    // 파일 입력 초기화
-    if (event.target) {
-      event.target.value = '';
+    // 파일 입력 초기화 (같은 파일 다시 선택 가능)
+    event.target.value = '';
+  };
+
+  const resetScores = () => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => ({ ...item, score: 0 }))
+      }))
+    }));
+    toast({ title: "성공", description: "모든 점수가 초기화되었습니다." });
+  };
+
+  const printTemplate = () => {
+    const printContent = document.getElementById('template-print-area');
+    if (printContent) {
+      const printStyle = `
+        <style>
+          @media print {
+            .print\\:hidden { display: none !important; }
+            .print\\:block { display: block !important; }
+            .print\\:mb-4 { margin-bottom: 1rem !important; }
+            .print\\:text-center { text-align: center !important; }
+            .print\\:text-4xl { font-size: 2.25rem !important; }
+            .print\\:font-black { font-weight: 900 !important; }
+            .print\\:text-black { color: black !important; }
+            .print\\:border-none { border: none !important; }
+            
+            @page {
+              margin: 0 !important;
+              size: A4 !important;
+            }
+            
+            body { 
+              font-size: 14px !important; 
+              line-height: 1.5 !important;
+              margin: 0 !important;
+              padding: 95px 50px 50px 50px !important;
+              font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
+            }
+            
+            /* 브라우저 기본 헤더/푸터 제거 */
+            html {
+              -webkit-print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            
+            .title {
+              text-align: center !important;
+              font-size: 24px !important;
+              font-weight: bold !important;
+              margin-bottom: 15px !important;
+              color: black !important;
+            }
+            
+            .title-separator {
+              width: 100% !important;
+              height: 2px !important;
+              background-color: #666 !important;
+              margin: 15px 0 30px 0 !important;
+            }
+            
+            .category-info {
+              text-align: right !important;
+              font-size: 14px !important;
+              font-weight: bold !important;
+              margin-bottom: 20px !important;
+              display: block !important;
+            }
+            
+            .evaluation-date {
+              text-align: center !important;
+              margin: 40px 0 20px 0 !important;
+              font-size: 16px !important;
+              font-weight: bold !important;
+            }
+            
+            .evaluator-info {
+              text-align: right !important;
+              margin-top: 20px !important;
+              margin-bottom: 20px !important;
+              font-size: 20px !important;
+              font-weight: bold !important;
+              padding: 20px !important;
+              text-decoration: underline !important;
+            }
+            
+            table { 
+              border-collapse: collapse !important; 
+              width: 100% !important; 
+              margin-bottom: 30px !important;
+              font-size: 13px !important;
+              border: 2px solid #666 !important;
+            }
+            
+            th, td { 
+              border: 1px solid #666 !important; 
+              padding: 12px 10px !important; 
+              vertical-align: middle !important;
+              text-align: left !important;
+            }
+            
+            th { 
+              background-color: #e8e8e8 !important; 
+              text-align: center !important; 
+              font-weight: bold !important;
+              font-size: 13px !important;
+            }
+            
+            /* 제목 표만의 특별 스타일 */
+            table:first-child {
+              margin-bottom: 20px !important;
+              border-left: none !important;
+              border-right: none !important;
+            }
+            
+            /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
+            table:first-child td {
+              border-left: none !important;
+              border-right: none !important;
+            }
+            
+            /* 제목 표 첫 번째 행 */
+            table:first-child tr:first-child td:first-child {
+              border-top: 1px solid #666 !important;
+              border-bottom: none !important;
+            }
+            
+            table:first-child tr:first-child td:last-child {
+              border-top: 1px solid #666 !important;
+              border-bottom: none !important;
+              text-align: right !important;
+            }
+            
+            /* 제목 표 두 번째 행 */
+            table:first-child tr:last-child td {
+              border-top: 1px solid #666 !important;
+              border-bottom: 1px solid #666 !important;
+              text-align: center !important;
+              font-weight: bold !important;
+              font-size: 18px !important;
+            }
+            
+            /* 데이터 표의 가로 구분선 추가 */
+            table:last-child .section-cell {
+              border-bottom: 1px solid #666 !important;
+            }
+            
+            /* 데이터 표만의 스타일 */
+            table:last-child {
+              margin-top: 0 !important;
+            }
+            
+            /* 데이터 표의 셀 스타일 - 좌우 끝선 제거 */
+            table:last-child td,
+            table:last-child th {
+              border-top: 1px solid #666 !important;
+              border-bottom: 1px solid #666 !important;
+              border-left: 1px solid #666 !important;
+              border-right: 1px solid #666 !important;
+            }
+            
+            /* 데이터 표 좌우 끝선 제거 */
+            table:last-child td:first-child,
+            table:last-child th:first-child {
+              border-left: none !important;
+            }
+            
+            table:last-child td:last-child,
+            table:last-child th:last-child {
+              border-right: none !important;
+            }
+
+            
+            /* 각 열의 너비 조정 */
+            .category-col { width: 12% !important; }
+            .item-col { width: 45% !important; text-align: left !important; }
+            .type-col { width: 12% !important; text-align: center !important; }
+            .points-col { width: 12% !important; text-align: center !important; }
+            .score-col { width: 12% !important; text-align: center !important; }
+            .notes-col { width: 7% !important; text-align: center !important; }
+            
+            /* 인쇄 시 데이터 표의 특정 열 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3),
+            table:last-child td:nth-child(4), 
+            table:last-child td:nth-child(5) {
+              text-align: center !important;
+              vertical-align: middle !important;
+            }
+            
+            /* 인쇄 시 셀 내부 요소도 가운데 정렬 */
+            table:last-child td:nth-child(3) *,
+            table:last-child td:nth-child(4) *,
+            table:last-child td:nth-child(5) * {
+              text-align: center !important;
+              margin: 0 auto !important;
+            }
+            
+            .section-cell { 
+              background-color: #f8f9fa !important; 
+              font-weight: bold !important; 
+              text-align: center !important;
+              vertical-align: top !important;
+            }
+            
+            .total-row { 
+              background-color: #e8e8e8 !important; 
+              font-weight: bold !important; 
+            }
+            
+            .total-row .category-col {
+              background-color: #e8e8e8 !important;
+              text-align: center !important;
+            }
+            
+            .score-cell {
+              text-align: center !important;
+              font-weight: bold !important;
+            }
+            
+            .points-cell {
+              text-align: center !important;
+            }
+            
+            .type-cell {
+              text-align: center !important;
+            }
+            
+
+            
+            /* 데이터 표의 유형, 배점, 평가점수 열 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3), 
+            table:last-child td:nth-child(4), 
+            table:last-child td:nth-child(5) {
+              text-align: center !important;
+              vertical-align: middle !important;
+            }
+            
+            /* 인쇄 시 가운데 정렬 강제 적용 */
+            table:last-child td:nth-child(3) *,
+            table:last-child td:nth-child(4) *,
+            table:last-child td:nth-child(5) * {
+              text-align: center !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              display: block !important;
+            }
+            
+            /* 숫자 데이터를 위한 추가 스타일 */
+            table:last-child td:nth-child(3) span,
+            table:last-child td:nth-child(4) span,
+            table:last-child td:nth-child(5) span {
+              text-align: center !important;
+              width: 100% !important;
+              display: inline-block !important;
+            }
+            
+            table:last-child td:nth-child(4) *, 
+            table:last-child td:nth-child(5) * {
+              text-align: center !important;
+              margin: 0 auto !important;
+              justify-content: center !important;
+              align-items: center !important;
+            }
+            
+            table:last-child td:nth-child(4) input, 
+            table:last-child td:nth-child(5) input {
+              text-align: center !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            
+            table:last-child td:nth-child(4) span, 
+            table:last-child td:nth-child(5) span {
+              display: flex !important;
+              justify-content: center !important;
+              align-items: center !important;
+              width: 100% !important;
+              height: 100% !important;
+            }
+            
+            /* 합계 행 가운데 정렬 */
+            table:last-child .total-row td {
+              text-align: center !important;
+              vertical-align: middle !important;
+            }
+            
+            table:last-child .total-row td * {
+              text-align: center !important;
+              margin: 0 auto !important;
+            }
+            
+            /* 구분 영역의 총점 가운데 정렬 */
+            .section-cell .text-xs {
+              text-align: center !important;
+            }
+            
+            .no-print { 
+              display: none !important; 
+            }
+            
+            input {
+              border: none !important;
+              background: transparent !important;
+              font-size: inherit !important;
+              font-weight: inherit !important;
+              text-align: inherit !important;
+              width: 100% !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            
+            select {
+              border: none !important;
+              background: transparent !important;
+              font-size: inherit !important;
+            }
+          }
+        </style>
+      `;
+      
+      // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
+      const evaluatorInfo = selectedEvaluatorInfo || evaluator;
+      const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
+      const today = new Date().toLocaleDateString('ko-KR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      
+      const evaluationFooter = `
+        <div class="evaluation-date">
+          평가일: ${today}
+        </div>
+        <div class="evaluator-info">
+          평가위원 : ${evaluatorInfo.name}${positionText} (서명)
+        </div>
+      `;
+      
+      const printWindow = window.open('', '_blank');
+      printWindow?.document.write(`
+        <html>
+          <head>
+            <title>평가표 출력 - ${getDynamicTitle()}</title>
+            <meta charset="UTF-8">
+            ${printStyle}
+          </head>
+          <body>
+            ${printContent.innerHTML}
+            ${evaluationFooter}
+          </body>
+        </html>
+      `);
+      printWindow?.document.close();
+      printWindow?.print();
+      
+      showNotification('인쇄 미리보기가 열렸습니다!', 'info');
     }
   };
 
-  // 총점 계산
-  const calculateTotal = () => {
-    return currentTemplate.data.reduce((sum, item) => sum + (item.score || 0), 0);
-  };
-
-  // 일반 인쇄 함수
-  const printTemplate = () => {
-    const printContent = document.getElementById('template-print-area');
-    if (!printContent) {
-      showNotification('인쇄할 내용을 찾을 수 없습니다.', 'error');
+  // 배치 인쇄 기능
+  const printAllCombinations = () => {
+    if (candidates.length === 0 || evaluators.length === 0) {
+      showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
       return;
     }
 
+    let allPrintContent = '';
     const printStyle = `
       <style>
         @media print {
@@ -297,6 +774,7 @@ export default function EvaluationItemManagement() {
           .print\\:text-black { color: black !important; }
           .print\\:border-none { border: none !important; }
           
+          .page-break { page-break-before: always !important; }
           @page {
             margin: 0 !important;
             size: A4 !important;
@@ -310,6 +788,7 @@ export default function EvaluationItemManagement() {
             font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
           }
           
+          /* 브라우저 기본 헤더/푸터 제거 */
           html {
             -webkit-print-color-adjust: exact !important;
             color-adjust: exact !important;
@@ -321,6 +800,21 @@ export default function EvaluationItemManagement() {
             font-weight: bold !important;
             margin-bottom: 15px !important;
             color: black !important;
+          }
+          
+          .title-separator {
+            width: 100% !important;
+            height: 2px !important;
+            background-color: #666 !important;
+            margin: 15px 0 30px 0 !important;
+          }
+          
+          .category-info {
+            text-align: right !important;
+            font-size: 14px !important;
+            font-weight: bold !important;
+            margin-bottom: 20px !important;
+            display: block !important;
           }
           
           .evaluation-date {
@@ -375,14 +869,6 @@ export default function EvaluationItemManagement() {
             font-weight: bold !important; 
           }
           
-          .section-cell .text-xs {
-            text-align: center !important;
-          }
-          
-          .no-print { 
-            display: none !important; 
-          }
-          
           input {
             border: none !important;
             background: transparent !important;
@@ -399,82 +885,115 @@ export default function EvaluationItemManagement() {
             background: transparent !important;
             font-size: inherit !important;
           }
+          
+          .title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: black;
+          }
+          
+          .evaluation-date {
+            text-align: center;
+            margin: 40px 0 20px 0;
+            font-size: 16px;
+            font-weight: bold;
+          }
+          
+          .evaluator-info {
+            text-align: right;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 20px;
+            border-bottom: 2px solid #000;
+          }
+          .title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: black;
+          }
+          .evaluator-info {
+            text-align: right;
+            margin-bottom: 20px;
+            font-size: 11px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+          }
+          table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin-bottom: 20px;
+            font-size: 13px;
+            border: 2px solid #666;
+          }
+          th, td { 
+            border: 1px solid #666; 
+            padding: 12px 10px; 
+            text-align: left;
+            vertical-align: middle;
+          }
+          th { 
+            background-color: #f5f5f5; 
+            text-align: center; 
+            font-weight: bold;
+            font-size: 10px;
+          }
+          .section-cell { 
+            background-color: #f8f9fa; 
+            font-weight: bold; 
+            text-align: center;
+            vertical-align: top;
+          }
+          .total-row { 
+            background-color: #e9ecef; 
+            font-weight: bold; 
+          }
+          .score-cell {
+            text-align: center;
+            font-weight: bold;
+          }
+          .points-cell {
+            text-align: center;
+          }
+          .type-cell {
+            text-align: center;
+            font-size: 10px;
+          }
+          
+          /* 테이블 데이터 가운데 정렬 강제 적용 */
+          td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+            text-align: center !important;
+          }
+          
+          td:nth-child(3) span, td:nth-child(4) span, td:nth-child(5) span {
+            text-align: center !important;
+            display: block !important;
+          }
+          
+          td:nth-child(3) input, td:nth-child(4) input, td:nth-child(5) input {
+            text-align: center !important;
+          }
         }
       </style>
     `;
-    
-    // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
-    const selectedEvaluatorInfo = selectedEvaluator && evaluators ? 
-      (evaluators as any[]).find(e => e.id === selectedEvaluator) : null;
-    const evaluatorInfo = selectedEvaluatorInfo || evaluator;
-    const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
-    const today = new Date().toLocaleDateString('ko-KR', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-    
-    const evaluationFooter = `
-      <div class="evaluation-date">
-        평가일: ${today}
-      </div>
-      <div class="evaluator-info">
-        평가위원 : ${evaluatorInfo.name}${positionText} (서명)
-      </div>
-    `;
-    
-    const printWindow = window.open('', '_blank');
-    printWindow?.document.write(`
-      <html>
-        <head>
-          <title>평가표 출력 - ${getDynamicTitle()}</title>
-          <meta charset="UTF-8">
-          ${printStyle}
-        </head>
-        <body>
-          ${printContent.innerHTML}
-          ${evaluationFooter}
-        </body>
-      </html>
-    `);
-    printWindow?.document.close();
-    printWindow?.print();
-    
-    showNotification('인쇄 미리보기가 열렸습니다!', 'info');
-  };
 
-  // 배치 인쇄 함수 - 모든 평가위원 x 모든 후보자 조합으로 자동 인쇄
-  const printAllCombinations = () => {
-    if (!candidates || (candidates as any[]).length === 0 || !evaluators || (evaluators as any[]).length === 0) {
-      showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
-      return;
-    }
-
-    const printContent = document.getElementById('template-print-area');
-    if (!printContent) {
-      showNotification('인쇄할 내용을 찾을 수 없습니다.', 'error');
-      return;
-    }
-
-    let allPrintContent = '';
-    let isFirstPage = true;
-    const today = new Date().toLocaleDateString('ko-KR', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-
-    // 모든 조합 생성 및 인쇄 내용 구성
-    (candidates as any[]).forEach((candidate: any) => {
-      (evaluators as any[]).forEach((evaluator: any) => {
-        // 평가위원 정보
+    candidates.forEach((candidate: any, candidateIndex) => {
+      evaluators.forEach((evaluator: any, evaluatorIndex) => {
+        const isFirstPage = candidateIndex === 0 && evaluatorIndex === 0;
+        const pageBreakClass = isFirstPage ? '' : 'page-break';
+        
         const positionText = evaluator.position ? ` (${evaluator.position})` : '';
+        const today = new Date().toLocaleDateString('ko-KR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
         
-        // 동적 제목과 구분 정보
-        const dynamicTitle = `${candidate.name} 심사표`;
-        const categoryInfo = candidate.category || candidate.department;
-        
-        // 평가일/평가위원 정보
         const evaluationFooter = `
           <div class="evaluation-date">
             평가일: ${today}
@@ -483,156 +1002,29 @@ export default function EvaluationItemManagement() {
             평가위원 : ${evaluator.name}${positionText} (서명)
           </div>
         `;
+
+        const templateContent = document.getElementById('template-print-area')?.innerHTML || '';
+        const dynamicTitle = `${candidate.name} 심사표`;
+        const categoryInfo = candidate.category || candidate.department;
         
-        // 템플릿 내용 복사 및 동적 정보 교체
-        let templateContent = printContent.innerHTML;
-        
-        // 구분 정보 교체
-        templateContent = templateContent.replace(
+        // 새로운 표 구조로 제목과 구분 정보 교체
+        let titleUpdatedContent = templateContent.replace(
           /<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right">\s*<span>구분 : [^<]*<\/span>\s*<\/td>/g,
           `<td colspan="2" class="border-t border-l border-r border-gray-400 p-2 text-sm text-right"><span>구분 : ${categoryInfo}</span></td>`
-        );
-        
-        // 제목 교체
-        templateContent = templateContent.replace(
+        ).replace(
           /<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">[^<]*<\/td>/,
           `<td colspan="2" class="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">${dynamicTitle}</td>`
         );
-        
-        // 페이지 구분 (첫 번째가 아니면 새 페이지)
-        const pageBreak = !isFirstPage ? '<div style="page-break-before: always;"></div>' : '';
-        
-        // 모든 내용 추가
+
         allPrintContent += `
-          ${pageBreak}
-          ${templateContent}
-          ${evaluationFooter}
+          <div class="${pageBreakClass}" style="page-break-after: always;">
+            ${titleUpdatedContent}
+            ${evaluationFooter}
+          </div>
         `;
-        
-        isFirstPage = false;
       });
     });
 
-    // 일반 인쇄와 완전히 동일한 스타일 사용
-    const printStyle = `
-      <style>
-        @media print {
-          .print\\:hidden { display: none !important; }
-          .print\\:block { display: block !important; }
-          .print\\:mb-4 { margin-bottom: 1rem !important; }
-          .print\\:text-center { text-align: center !important; }
-          .print\\:text-4xl { font-size: 2.25rem !important; }
-          .print\\:font-black { font-weight: 900 !important; }
-          .print\\:text-black { color: black !important; }
-          .print\\:border-none { border: none !important; }
-          
-          @page {
-            margin: 0 !important;
-            size: A4 !important;
-          }
-          
-          body { 
-            font-size: 14px !important; 
-            line-height: 1.5 !important;
-            margin: 0 !important;
-            padding: 95px 50px 50px 50px !important;
-            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
-          }
-          
-          html {
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          
-          .title {
-            text-align: center !important;
-            font-size: 24px !important;
-            font-weight: bold !important;
-            margin-bottom: 15px !important;
-            color: black !important;
-          }
-          
-          .evaluation-date {
-            text-align: center !important;
-            margin: 40px 0 20px 0 !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-          }
-          
-          .evaluator-info {
-            text-align: right !important;
-            margin-top: 20px !important;
-            margin-bottom: 20px !important;
-            font-size: 20px !important;
-            font-weight: bold !important;
-            padding: 20px !important;
-            text-decoration: underline !important;
-          }
-          
-          table { 
-            border-collapse: collapse !important; 
-            width: 100% !important; 
-            margin-bottom: 30px !important;
-            font-size: 13px !important;
-            border: 2px solid #666 !important;
-          }
-          
-          th, td { 
-            border: 1px solid #666 !important; 
-            padding: 12px 10px !important; 
-            vertical-align: middle !important;
-            text-align: left !important;
-          }
-          
-          th { 
-            background-color: #e8e8e8 !important; 
-            text-align: center !important;
-            font-weight: bold !important;
-          }
-          
-          .points-cell { text-align: center !important; }
-          .score-cell { text-align: center !important; }
-          .type-cell { text-align: center !important; }
-          
-          .section-row { 
-            background-color: #f0f0f0 !important; 
-            font-weight: bold !important; 
-          }
-          
-          .total-row { 
-            background-color: #e8e8e8 !important; 
-            font-weight: bold !important; 
-          }
-          
-          .section-cell .text-xs {
-            text-align: center !important;
-          }
-          
-          .no-print { 
-            display: none !important; 
-          }
-          
-          input {
-            border: none !important;
-            background: transparent !important;
-            font-size: inherit !important;
-            font-weight: inherit !important;
-            text-align: inherit !important;
-            width: 100% !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          
-          select {
-            border: none !important;
-            background: transparent !important;
-            font-size: inherit !important;
-          }
-        }
-      </style>
-    `;
-
-    // 배치 인쇄 실행
     const printWindow = window.open('', '_blank');
     printWindow?.document.write(`
       <html>
@@ -649,529 +1041,762 @@ export default function EvaluationItemManagement() {
     printWindow?.document.close();
     printWindow?.print();
     
-    showNotification(`총 ${(candidates as any[]).length * (evaluators as any[]).length}개의 평가표를 배치 인쇄합니다!`, 'info');
+    showNotification(`총 ${candidates.length * evaluators.length}개의 평가표가 생성되었습니다!`, 'info');
   };
 
   const createCategoryMutation = useMutation({
     mutationFn: async (category: typeof newCategory) => {
-      const response = await fetch('/api/admin/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(category),
       });
-      if (!response.ok) throw new Error('Failed to create category');
+      if (!response.ok) throw new Error("Failed to create category");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/categories'] });
-      toast({ title: "성공", description: "카테고리가 생성되었습니다." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+      toast({ title: "성공", description: "평가 카테고리가 추가되었습니다." });
       setIsAddingCategory(false);
       setNewCategory({ categoryCode: "", categoryName: "", description: "" });
     },
     onError: () => {
-      toast({ title: "오류", description: "카테고리 생성에 실패했습니다.", variant: "destructive" });
-    }
+      toast({ title: "오류", description: "카테고리 추가에 실패했습니다.", variant: "destructive" });
+    },
   });
 
   const createItemMutation = useMutation({
     mutationFn: async (item: typeof newItem) => {
-      const response = await fetch('/api/admin/evaluation-items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/admin/evaluation-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...item,
           categoryId: parseInt(item.categoryId),
-          maxScore: parseFloat(item.maxScore),
+          maxScore: parseInt(item.maxScore),
           weight: parseFloat(item.weight),
         }),
       });
-      if (!response.ok) throw new Error('Failed to create item');
+      if (!response.ok) throw new Error("Failed to create item");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/evaluation-items'] });
-      toast({ title: "성공", description: "평가 항목이 생성되었습니다." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluation-items"] });
+      toast({ title: "성공", description: "평가 항목이 추가되었습니다." });
       setIsAddingItem(false);
       setNewItem({ categoryId: "", itemCode: "", itemName: "", description: "", maxScore: "", weight: "" });
     },
     onError: () => {
-      toast({ title: "오류", description: "평가 항목 생성에 실패했습니다.", variant: "destructive" });
-    }
+      toast({ title: "오류", description: "평가 항목 추가에 실패했습니다.", variant: "destructive" });
+    },
   });
 
+  const handleCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createCategoryMutation.mutate(newCategory);
+  };
+
+  const handleItemSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createItemMutation.mutate(newItem);
+  };
+
   if (categoriesLoading || itemsLoading) {
-    return <div className="p-6">로딩 중...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">평가 템플릿 관리</h1>
-        <div className="flex gap-2">
-          <Button onClick={printAllCombinations} variant="outline" size="sm">
-            <FileDown className="h-4 w-4 mr-2" />
-            전체 배치 인쇄
-          </Button>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">평가항목 관리</h1>
+            <p className="text-lg text-gray-600">평가 카테고리와 항목을 관리할 수 있습니다.</p>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm">
+              <Upload className="h-4 w-4 mr-2" />
+              엑셀 업로드
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              엑셀 다운로드
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <Tabs defaultValue="template" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="template">평가표 템플릿</TabsTrigger>
-          <TabsTrigger value="categories">카테고리 관리</TabsTrigger>
-          <TabsTrigger value="items">평가 항목 관리</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="categories" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="categories">평가 카테고리</TabsTrigger>
+            <TabsTrigger value="items">평가 항목</TabsTrigger>
+            <TabsTrigger value="template">평가표 템플릿</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="template" className="space-y-6">
-          <Card>
-            <CardHeader>
+          <TabsContent value="categories">
+            <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>평가표 템플릿</CardTitle>
-                  <CardDescription>
-                    평가표 템플릿을 편집하고 설정할 수 있습니다.
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => setIsEditing(!isEditing)} variant="outline" size="sm">
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    {isEditing ? '편집 완료' : '편집 모드'}
-                  </Button>
-                  <Button onClick={saveTemplate} variant="outline" size="sm">
-                    <Save className="h-4 w-4 mr-2" />
-                    저장
-                  </Button>
-                  <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
-                    <Upload className="h-4 w-4 mr-2" />
-                    불러오기
-                  </Button>
-                  <Button onClick={resetScores} variant="outline" size="sm">
-                    <X className="h-4 w-4 mr-2" />
-                    점수 초기화
-                  </Button>
-                  <Button onClick={printTemplate} variant="outline" size="sm">
-                    <Printer className="h-4 w-4 mr-2" />
-                    인쇄
-                  </Button>
-                  {isEditing && (
-                    <>
-                      <Button onClick={addSection} size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        영역 추가
-                      </Button>
-                      <Button onClick={addColumn} size="sm" variant="secondary">
-                        <Plus className="h-4 w-4 mr-2" />
-                        컬럼 추가
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={loadTemplate}
-                accept=".json"
-                className="hidden"
-              />
-
-              {/* 평가위원 및 평가대상 선택 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <label className="block text-sm font-medium mb-2">평가위원 선택</label>
-                  <select 
-                    value={selectedEvaluator || ''} 
-                    onChange={(e) => setSelectedEvaluator(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">평가위원을 선택하세요</option>
-                    {evaluators && (evaluators as any[]).map((evaluator: any) => (
-                      <option key={evaluator.id} value={evaluator.id}>
-                        {evaluator.name} {evaluator.position && `(${evaluator.position})`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">평가대상 선택</label>
-                  <select 
-                    value={selectedCandidate || ''} 
-                    onChange={(e) => setSelectedCandidate(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">평가대상을 선택하세요</option>
-                    {candidates && (candidates as any[]).map((candidate: any) => (
-                      <option key={candidate.id} value={candidate.id}>
-                        {candidate.name} ({candidate.department})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* 수동 평가위원 정보 입력 (선택된 평가위원이 없을 때만) */}
-              {!selectedEvaluator && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">평가위원명</label>
-                    <Input
-                      value={evaluator.name}
-                      onChange={(e) => setEvaluator(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="평가위원명을 입력하세요"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">직책</label>
-                    <Input
-                      value={evaluator.position}
-                      onChange={(e) => setEvaluator(prev => ({ ...prev, position: e.target.value }))}
-                      placeholder="직책을 입력하세요"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">소속기관</label>
-                    <Input
-                      value={evaluator.department}
-                      onChange={(e) => setEvaluator(prev => ({ ...prev, department: e.target.value }))}
-                      placeholder="소속기관을 입력하세요"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* 미리보기 및 실제 템플릿 */}
-              <div id="template-print-area" className="print:block">
-                {/* 상단 정보 테이블 */}
-                <table className="w-full border-2 border-gray-400 mb-4">
-                  <tbody>
-                    <tr>
-                      <td colSpan={2} className="border-t border-l border-r border-gray-400 p-2 text-sm text-right">
-                        <span>구분 : {getDynamicCategory()}</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td colSpan={2} className="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">
-                        {getDynamicTitle()}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                {/* 메인 평가 테이블 */}
-                <table className="w-full border-2 border-gray-400">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      {columnConfig.filter(col => col.visible).map((column) => (
-                        <th key={column.id} className={`border border-gray-400 p-3 text-center text-sm font-medium ${column.width}`}>
-                          {column.title}
-                          {isEditing && !column.required && (
-                            <div className="flex gap-1 mt-1 justify-center">
-                              <button
-                                onClick={() => moveColumn(column.id, 'left')}
-                                className="text-xs px-1 py-0.5 bg-blue-100 rounded hover:bg-blue-200"
-                                title="왼쪽으로 이동"
-                              >
-                                ←
-                              </button>
-                              <button
-                                onClick={() => moveColumn(column.id, 'right')}
-                                className="text-xs px-1 py-0.5 bg-blue-100 rounded hover:bg-blue-200"
-                                title="오른쪽으로 이동"
-                              >
-                                →
-                              </button>
-                              <button
-                                onClick={() => removeColumn(column.id)}
-                                className="text-xs px-1 py-0.5 bg-red-100 rounded hover:bg-red-200"
-                                title="컬럼 삭제"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
-                        </th>
-                      ))}
-                      {isEditing && <th className="border border-gray-400 p-3 text-center text-sm font-medium w-20">작업</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentTemplate.data.map((item, index) => (
-                      <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        {columnConfig.filter(col => col.visible).map((column) => (
-                          <td key={column.id} className="border border-gray-400 p-2">
-                            {column.type === 'section' ? (
-                              isEditing ? (
-                                <Input
-                                  value={item.text || ''}
-                                  onChange={(e) => updateRowValue(item.id, 'text', e.target.value)}
-                                  className="text-center"
-                                />
-                              ) : (
-                                <div className="text-center">{item.text}</div>
-                              )
-                            ) : column.type === 'text' ? (
-                              isEditing ? (
-                                <Input
-                                  value={item.text || ''}
-                                  onChange={(e) => updateRowValue(item.id, 'text', e.target.value)}
-                                />
-                              ) : (
-                                <div>{item.text}</div>
-                              )
-                            ) : column.type === 'select' ? (
-                              isEditing ? (
-                                <select
-                                  value={item.type || ''}
-                                  onChange={(e) => updateRowValue(item.id, 'type', e.target.value)}
-                                  className="w-full p-1 border rounded text-center"
-                                >
-                                  {column.options?.map(option => (
-                                    <option key={option} value={option}>{option}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <div className="text-center">{item.type}</div>
-                              )
-                            ) : column.type === 'number' ? (
-                              column.id === 'points' ? (
-                                isEditing ? (
-                                  <Input
-                                    type="number"
-                                    value={item[column.id as keyof typeof item] || 0}
-                                    onChange={(e) => updateRowValue(item.id, column.id, parseInt(e.target.value) || 0)}
-                                    className="text-center"
-                                  />
-                                ) : (
-                                  <div className="text-center">{item[column.id as keyof typeof item] || 0}</div>
-                                )
-                              ) : (
-                                <Input
-                                  type="number"
-                                  value={item[column.id as keyof typeof item] || 0}
-                                  onChange={(e) => updateRowValue(item.id, column.id, parseInt(e.target.value) || 0)}
-                                  className="text-center"
-                                  min="0"
-                                  max={column.id === 'score' ? item.points : undefined}
-                                />
-                              )
-                            ) : (
-                              <div className="text-center">
-                                {item[column.id as keyof typeof item] || 0}
-                              </div>
-                            )}
-                          </td>
-                        ))}
-                        {isEditing && (
-                          <td className="border border-gray-400 p-2 text-center">
-                            <Button
-                              onClick={() => deleteRow(item.id)}
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                    
-                    {/* 총점 행 */}
-                    <tr className="bg-gray-200 font-bold">
-                      <td colSpan={columnConfig.filter(col => col.visible && !['points', 'score'].includes(col.id)).length} 
-                          className="border border-gray-400 p-3 text-center">
-                        총점
-                      </td>
-                      <td className="border border-gray-400 p-3 text-center">
-                        {currentTemplate.data.reduce((sum, item) => sum + (item.points || 0), 0)}
-                      </td>
-                      <td className="border border-gray-400 p-3 text-center">
-                        {calculateTotal()}
-                      </td>
-                      {isEditing && <td className="border border-gray-400 p-3"></td>}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="categories" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>카테고리 관리</CardTitle>
-                  <CardDescription>평가 카테고리를 관리할 수 있습니다.</CardDescription>
-                </div>
-                <Button onClick={() => setIsAddingCategory(true)} size="sm">
+                <h2 className="text-2xl font-semibold">평가 카테고리</h2>
+                <Button onClick={() => setIsAddingCategory(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   카테고리 추가
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
+
               {isAddingCategory && (
-                <div className="mb-4 p-4 border rounded-lg space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <Input
-                      placeholder="카테고리 코드"
-                      value={newCategory.categoryCode}
-                      onChange={(e) => setNewCategory(prev => ({ ...prev, categoryCode: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="카테고리명"
-                      value={newCategory.categoryName}
-                      onChange={(e) => setNewCategory(prev => ({ ...prev, categoryName: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="설명"
-                      value={newCategory.description}
-                      onChange={(e) => setNewCategory(prev => ({ ...prev, description: e.target.value }))}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => createCategoryMutation.mutate(newCategory)}
-                      disabled={createCategoryMutation.isPending}
-                    >
-                      저장
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsAddingCategory(false)}>
-                      취소
-                    </Button>
-                  </div>
-                </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>새 카테고리 추가</CardTitle>
+                    <CardDescription>평가 카테고리 정보를 입력하세요.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleCategorySubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">카테고리 코드</label>
+                          <Input
+                            value={newCategory.categoryCode}
+                            onChange={(e) => setNewCategory({ ...newCategory, categoryCode: e.target.value })}
+                            required
+                            placeholder="예: TECH"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">카테고리 이름</label>
+                          <Input
+                            value={newCategory.categoryName}
+                            onChange={(e) => setNewCategory({ ...newCategory, categoryName: e.target.value })}
+                            required
+                            placeholder="예: 기술 역량"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-sm font-medium">설명</label>
+                          <Input
+                            value={newCategory.description}
+                            onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                            placeholder="카테고리에 대한 설명"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button type="submit" disabled={createCategoryMutation.isPending}>
+                          {createCategoryMutation.isPending ? "추가 중..." : "추가"}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setIsAddingCategory(false)}>
+                          취소
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
               )}
 
-              <div className="space-y-3">
-                {categories && (categories as any[]).map((category: any) => (
-                  <div key={category.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">{category.categoryName}</div>
-                      <div className="text-sm text-gray-500">{category.categoryCode} - {category.description}</div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge variant={category.isActive ? "default" : "secondary"}>
-                        {category.isActive ? "활성" : "비활성"}
-                      </Badge>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>카테고리 목록</CardTitle>
+                  <CardDescription>총 {categories.length}개의 카테고리가 등록되어 있습니다.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {categories.map((category: any) => (
+                      <div
+                        key={category.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div>
+                            <h3 className="font-semibold">{category.categoryName}</h3>
+                            <p className="text-sm text-gray-600">
+                              {category.categoryCode} · {category.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={category.isActive ? "default" : "secondary"}>
+                            {category.isActive ? "활성" : "비활성"}
+                          </Badge>
+                          <Button size="sm" variant="outline">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {categories.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        등록된 카테고리가 없습니다.
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-        <TabsContent value="items" className="space-y-6">
-          <Card>
-            <CardHeader>
+          <TabsContent value="items">
+            <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>평가 항목 관리</CardTitle>
-                  <CardDescription>평가 항목을 관리할 수 있습니다.</CardDescription>
-                </div>
-                <Button onClick={() => setIsAddingItem(true)} size="sm">
+                <h2 className="text-2xl font-semibold">평가 항목</h2>
+                <Button 
+                  onClick={() => setIsAddingItem(true)}
+                  disabled={categories.length === 0}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   항목 추가
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {isAddingItem && (
-                <div className="mb-4 p-4 border rounded-lg space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <select
-                      value={newItem.categoryId}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, categoryId: e.target.value }))}
-                      className="p-2 border rounded-md"
-                    >
-                      <option value="">카테고리 선택</option>
-                      {categories && (categories as any[]).map((category: any) => (
-                        <option key={category.id} value={category.id}>
-                          {category.categoryName}
-                        </option>
-                      ))}
-                    </select>
-                    <Input
-                      placeholder="항목 코드"
-                      value={newItem.itemCode}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, itemCode: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="항목명"
-                      value={newItem.itemName}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, itemName: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="설명"
-                      value={newItem.description}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="최대 점수"
-                      type="number"
-                      value={newItem.maxScore}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, maxScore: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="가중치"
-                      type="number"
-                      step="0.1"
-                      value={newItem.weight}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, weight: e.target.value }))}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => createItemMutation.mutate(newItem)}
-                      disabled={createItemMutation.isPending}
-                    >
-                      저장
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsAddingItem(false)}>
-                      취소
-                    </Button>
-                  </div>
-                </div>
+
+              {categories.length === 0 && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-center text-gray-500">
+                      평가 항목을 추가하려면 먼저 카테고리를 생성해주세요.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
 
-              <div className="space-y-3">
-                {items && (items as any[]).map((item: any) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">{item.itemName}</div>
-                      <div className="text-sm text-gray-500">
-                        {item.categoryName} - {item.itemCode} - 최대: {item.maxScore}점, 가중치: {item.weight}
+              {isAddingItem && categories.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>새 평가 항목 추가</CardTitle>
+                    <CardDescription>평가 항목 정보를 입력하세요.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleItemSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">카테고리</label>
+                          <select
+                            className="w-full px-3 py-2 border rounded-md"
+                            value={newItem.categoryId}
+                            onChange={(e) => setNewItem({ ...newItem, categoryId: e.target.value })}
+                            required
+                          >
+                            <option value="">카테고리 선택</option>
+                            {categories.map((category: any) => (
+                              <option key={category.id} value={category.id}>
+                                {category.categoryName}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">항목 코드</label>
+                          <Input
+                            value={newItem.itemCode}
+                            onChange={(e) => setNewItem({ ...newItem, itemCode: e.target.value })}
+                            required
+                            placeholder="예: TECH001"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">항목 이름</label>
+                          <Input
+                            value={newItem.itemName}
+                            onChange={(e) => setNewItem({ ...newItem, itemName: e.target.value })}
+                            required
+                            placeholder="예: 프로그래밍 능력"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">최대 점수</label>
+                          <Input
+                            type="number"
+                            value={newItem.maxScore}
+                            onChange={(e) => setNewItem({ ...newItem, maxScore: e.target.value })}
+                            required
+                            placeholder="예: 100"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">가중치</label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={newItem.weight}
+                            onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })}
+                            required
+                            placeholder="예: 1.0"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-sm font-medium">설명</label>
+                          <Input
+                            value={newItem.description}
+                            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                            placeholder="평가 항목에 대한 설명"
+                          />
+                        </div>
                       </div>
+                      <div className="flex space-x-2">
+                        <Button type="submit" disabled={createItemMutation.isPending}>
+                          {createItemMutation.isPending ? "추가 중..." : "추가"}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setIsAddingItem(false)}>
+                          취소
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>평가 항목 목록</CardTitle>
+                  <CardDescription>총 {items.length}개의 평가 항목이 등록되어 있습니다.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {items.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div>
+                            <h3 className="font-semibold">{item.itemName}</h3>
+                            <p className="text-sm text-gray-600">
+                              {item.itemCode} · {item.categoryName} · 최대 {item.maxScore}점 · 가중치 {item.weight}
+                            </p>
+                            {item.description && (
+                              <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={item.isActive ? "default" : "secondary"}>
+                            {item.isActive ? "활성" : "비활성"}
+                          </Badge>
+                          <Button size="sm" variant="outline">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {items.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        등록된 평가 항목이 없습니다.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="template">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>평가표 템플릿</CardTitle>
+                      <CardDescription>평가표를 디자인하고 관리합니다.</CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Badge variant={item.isActive ? "default" : "secondary"}>
-                        {item.isActive ? "활성" : "비활성"}
-                      </Badge>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4" />
+                      <Button
+                        onClick={() => setIsEditing(!isEditing)}
+                        variant={isEditing ? "default" : "outline"}
+                        size="sm"
+                      >
+                        {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit3 className="h-4 w-4 mr-2" />}
+                        {isEditing ? "편집 완료" : "편집"}
                       </Button>
-                      <Button size="sm" variant="outline">
-                        <Trash2 className="h-4 w-4" />
+                      <Button onClick={saveTemplate} variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        저장
                       </Button>
+                      <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
+                        <Upload className="h-4 w-4 mr-2" />
+                        불러오기
+                      </Button>
+                      <Button onClick={resetScores} variant="outline" size="sm">
+                        <X className="h-4 w-4 mr-2" />
+                        점수 초기화
+                      </Button>
+                      <Button onClick={printTemplate} variant="outline" size="sm">
+                        <Printer className="h-4 w-4 mr-2" />
+                        인쇄
+                      </Button>
+                      {isEditing && (
+                        <>
+                          <Button onClick={addSection} size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            영역 추가
+                          </Button>
+                          <Button onClick={addColumn} size="sm" variant="secondary">
+                            <Plus className="h-4 w-4 mr-2" />
+                            컬럼 추가
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </CardHeader>
+                <CardContent>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={loadTemplate}
+                    accept=".json"
+                    className="hidden"
+                  />
+
+                  {/* 평가위원 및 평가대상 선택 */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택</label>
+                        <select
+                          value={selectedEvaluator || ''}
+                          onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">평가위원을 선택하세요</option>
+                          {(evaluators as any[]).map((evaluator: any) => (
+                            <option key={evaluator.id} value={evaluator.id}>
+                              {evaluator.name} ({evaluator.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택</label>
+                        <select
+                          value={selectedCandidate || ''}
+                          onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">평가대상을 선택하세요</option>
+                          {(candidates as any[]).map((candidate: any) => (
+                            <option key={candidate.id} value={candidate.id}>
+                              {candidate.name} ({candidate.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {/* 배치 인쇄 버튼 */}
+                    <div className="mt-4 flex items-center justify-between">
+                      <Button 
+                        onClick={printAllCombinations}
+                        variant="outline"
+                        size="sm"
+                        className="bg-white hover:bg-blue-50"
+                        disabled={candidates.length === 0 || evaluators.length === 0}
+                      >
+                        <Printer className="h-4 w-4 mr-2" />
+                        전체 배치 인쇄 ({candidates.length}명 × {evaluators.length}명)
+                      </Button>
+                      <div className="text-xs text-gray-600">
+                        선택된 평가위원과 평가대상으로 개별 심사표가 생성됩니다
+                        <br />
+                        <span className="text-orange-600 font-medium">💡 인쇄 팁:</span> 브라우저 인쇄 설정에서 '머리글 및 바닥글' 옵션을 해제하면 더 깨끗한 출력이 가능합니다
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 평가위원 정보 편집 (편집 모드에서만 표시) */}
+                  {isEditing && (
+                    <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <h3 className="text-sm font-bold mb-3 text-yellow-800">수동 평가위원 정보 입력</h3>
+                      <div className="text-xs text-yellow-700 mb-3">
+                        위에서 평가위원을 선택하지 않은 경우 수동으로 입력할 수 있습니다.
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium mb-1">이름</label>
+                          <Input
+                            value={evaluator.name}
+                            onChange={(e) => setEvaluator(prev => ({ ...prev, name: e.target.value }))}
+                            className="text-sm"
+                            placeholder="평가위원 이름"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">직책</label>
+                          <Input
+                            value={evaluator.position}
+                            onChange={(e) => setEvaluator(prev => ({ ...prev, position: e.target.value }))}
+                            className="text-sm"
+                            placeholder="직책"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">소속기관</label>
+                          <Input
+                            value={evaluator.department}
+                            onChange={(e) => setEvaluator(prev => ({ ...prev, department: e.target.value }))}
+                            className="text-sm"
+                            placeholder="소속기관"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 컬럼 관리 (편집 모드에서만 표시) */}
+                  {isEditing && (
+                    <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                      <h3 className="text-sm font-bold mb-3 text-amber-800">컬럼 설정</h3>
+                      <div className="mb-4 p-3 bg-amber-100 rounded-md border-l-4 border-amber-400">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-xs text-amber-800">
+                              <strong>제목박스의 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.</strong>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {columnConfig.map((column) => (
+                          <div key={column.id} className="flex items-center gap-2 text-xs bg-white p-2 rounded border">
+                            <Input
+                              value={column.title}
+                              onChange={(e) => updateColumnConfig(column.id, 'title', e.target.value)}
+                              className="w-32 text-xs"
+                              disabled={column.required}
+                            />
+                            <select
+                              value={column.type}
+                              onChange={(e) => updateColumnConfig(column.id, 'type', e.target.value)}
+                              className="text-xs border rounded px-2 py-1 bg-white"
+                              disabled={column.required}
+                            >
+                              <option value="text">텍스트</option>
+                              <option value="number">숫자</option>
+                              <option value="select">선택</option>
+                            </select>
+                            <label className="flex items-center gap-1">
+                              <input
+                                type="checkbox"
+                                checked={column.visible}
+                                onChange={(e) => updateColumnConfig(column.id, 'visible', e.target.checked)}
+                                className="rounded"
+                              />
+                              <span className="text-xs">표시</span>
+                            </label>
+                            <div className="text-xs text-gray-500">
+                              {column.required ? '필수' : '선택'}
+                            </div>
+                            {!column.required && (
+                              <Button
+                                onClick={() => deleteColumn(column.id)}
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0 hover:bg-red-50 hover:border-red-200"
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 인쇄용 영역 */}
+                  <div id="template-print-area">
+                    {/* 제목과 구분 정보 표 */}
+                    <div className="overflow-x-auto mb-0">
+                      <table className="w-full border-collapse border border-gray-400 text-sm">
+                        <tbody>
+                          <tr>
+                            <td colSpan={2} className="border-t border-l border-r border-gray-400 p-2 text-sm text-right">
+                              {selectedCandidateInfo && (
+                                <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                              )}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td colSpan={2} className="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">
+                              {selectedCandidateInfo ? getDynamicTitle() : currentTemplate.title}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* 평가표 데이터 테이블 */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-400 text-sm">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점)</th>
+                            <th className="border border-gray-400 px-4 py-3 text-center font-bold">세부 항목</th>
+                            {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                              <th key={column.id} className="border border-gray-400 px-2 py-3 text-center font-bold w-16">
+                                {column.title}
+                              </th>
+                            ))}
+                            {isEditing && <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">관리</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentTemplate.sections.flatMap((section) => 
+                            section.items.map((item, itemIndex) => (
+                                <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
+                                  {itemIndex === 0 && (
+                                    <td 
+                                      className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-top text-center"
+                                      rowSpan={section.items.length}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="w-full">
+                                          {isEditing ? (
+                                            <Input
+                                              value={section.title}
+                                              onChange={(e) => updateSection(section.id, 'title', e.target.value)}
+                                              className="font-bold text-sm bg-transparent border-b border-gray-300"
+                                            />
+                                          ) : (
+                                            <span className="font-bold text-sm">{section.id}. {section.title}</span>
+                                          )}
+                                          <div className="text-xs text-gray-600 mt-1 text-center">
+                                            ({calculateSectionScore(section)}점)
+                                          </div>
+                                        </div>
+                                        {isEditing && (
+                                          <div className="flex flex-col gap-1 ml-2">
+                                            <Button
+                                              onClick={() => addItem(section.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 w-6 p-0"
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              onClick={() => deleteSection(section.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 w-6 p-0"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                  )}
+                                  
+                                  <td className="border border-gray-400 px-4 py-2">
+                                    {isEditing ? (
+                                      <Input
+                                        value={item.text}
+                                        onChange={(e) => updateItem(section.id, item.id, 'text', e.target.value)}
+                                        className="text-sm"
+                                      />
+                                    ) : (
+                                      <span className="text-sm">{itemIndex + 1}. {item.text}</span>
+                                    )}
+                                  </td>
+                                  
+                                  {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                                    <td key={column.id} className={`border border-gray-400 px-2 py-2 text-center ${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : ''}`}>
+                                      {column.id === 'score' ? (
+                                        <div className="flex justify-center items-center">
+                                          <Input
+                                            type="number"
+                                            value={item.score}
+                                            onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
+                                            max={item.points}
+                                            min={0}
+                                            className="text-xs text-center w-16 mx-auto"
+                                          />
+                                        </div>
+                                      ) : isEditing ? (
+                                        column.id === 'type' ? (
+                                          <div className="flex justify-center items-center">
+                                            <select
+                                              value={item.type}
+                                              onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
+                                              className="text-xs border rounded px-1 py-1 text-center mx-auto"
+                                            >
+                                              <option value="정량">정량</option>
+                                              <option value="정성">정성</option>
+                                            </select>
+                                          </div>
+                                        ) : (
+                                          <div className="flex justify-center items-center">
+                                            <Input
+                                              type={column.type === 'number' ? 'number' : 'text'}
+                                              value={item[column.id] || (column.type === 'number' ? 0 : '')}
+                                              onChange={(e) => updateItem(section.id, item.id, column.id, column.type === 'number' ? (parseInt(e.target.value) || 0) : e.target.value)}
+                                              className="text-xs text-center w-12 mx-auto"
+                                            />
+                                          </div>
+                                        )
+                                      ) : (
+                                        <span className="text-xs">
+                                          {column.id === 'points' ? `${item[column.id]}점` : 
+                                           column.id === 'score' ? item[column.id] :
+                                           item[column.id]}
+                                        </span>
+                                      )}
+                                    </td>
+                                  ))}
+                                  
+                                  {isEditing && (
+                                    <td className="border border-gray-400 px-2 py-2 text-center">
+                                      <Button
+                                        onClick={() => deleteItem(section.id, item.id)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </td>
+                                  )}
+                                </tr>
+                              ))
+                          )}
+                          {/* 합계 행 */}
+                          <tr className="bg-gray-100 font-bold">
+                            <td className="border border-gray-400 px-4 py-3 text-center">합계</td>
+                            <td className="border border-gray-400 px-4 py-3"></td>
+                            {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                              <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                                {column.id === 'points' ? (
+                                  `${currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점`
+                                ) : column.id === 'score' ? (
+                                  <span className="text-lg font-bold">{calculateTotalScore()}점</span>
+                                ) : ''}
+                              </td>
+                            ))}
+                            {isEditing && <td className="border border-gray-400 px-2 py-3"></td>}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
