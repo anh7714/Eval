@@ -498,7 +498,7 @@ export default function EvaluationItemManagement() {
               border-right: none !important;
             }
             
-            /* 제목 표의 모든 셀에서 좌우 경계선 제거 */
+            /* 제목 표의 좌우 경계선만 제거, 상하 경계선은 유지 */
             table:first-child td {
               border-left: none !important;
               border-right: none !important;
@@ -507,18 +507,18 @@ export default function EvaluationItemManagement() {
             /* 제목 표 첫 번째 행 */
             table:first-child tr:first-child td:first-child {
               border-top: 1px solid #666 !important;
-              border-bottom: none !important;
+              border-bottom: 1px solid #666 !important;
             }
             
             table:first-child tr:first-child td:last-child {
               border-top: 1px solid #666 !important;
-              border-bottom: none !important;
+              border-bottom: 1px solid #666 !important;
               text-align: right !important;
             }
             
             /* 제목 표 두 번째 행 */
             table:first-child tr:last-child td {
-              border-top: none !important;
+              border-top: 1px solid #666 !important;
               border-bottom: 1px solid #666 !important;
               text-align: center !important;
               font-weight: bold !important;
@@ -583,8 +583,8 @@ export default function EvaluationItemManagement() {
             table:last-child td:nth-child(5) * {
               text-align: center !important;
               margin: 0 auto !important;
-              display: block !important;
-              width: 100% !important;
+              justify-content: center !important;
+              align-items: center !important;
             }
             
             table:last-child td:nth-child(3) input, 
@@ -592,6 +592,18 @@ export default function EvaluationItemManagement() {
             table:last-child td:nth-child(5) input {
               text-align: center !important;
               width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            
+            table:last-child td:nth-child(3) span, 
+            table:last-child td:nth-child(4) span, 
+            table:last-child td:nth-child(5) span {
+              display: flex !important;
+              justify-content: center !important;
+              align-items: center !important;
+              width: 100% !important;
+              height: 100% !important;
             }
             
             /* 합계 행 가운데 정렬 */
