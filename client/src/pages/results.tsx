@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, TrendingUp, Users, FileText, BarChart3, Award, Trophy, Target, Scale, X, CheckCircle } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -466,80 +467,90 @@ export default function ResultsPage() {
 
   // 📋 상세결과 섹션
   const renderDetailedResults = () => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>상세 결과</CardTitle>
-          <CardDescription>모든 평가대상의 평가 결과를 확인할 수 있습니다</CardDescription>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="구분 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체</SelectItem>
-              {categories.map((category: any) => (
-                <SelectItem key={category.id} value={category.categoryName}>
-                  {category.categoryName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={handleExportResults} className="flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>엑셀 다운로드</span>
-          </Button>
-        </div>
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>상세 평가 결과</span>
+          <div className="flex items-center space-x-2">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="전체 카테고리" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 카테고리</SelectItem>
+                {categories.map((category: any) => (
+                  <SelectItem key={category.id} value={category.categoryName}>
+                    {category.categoryName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleExportResults} className="flex items-center space-x-2">
+              <Download className="h-4 w-4" />
+              <span>엑셀 다운로드</span>
+            </Button>
+          </div>
+        </CardTitle>
+        <CardDescription>
+          평가대상별 상세 점수와 순위를 확인할 수 있습니다.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border border-gray-300 px-4 py-2 text-left">순위</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">이름</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">소속</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">구분</th>
-                <th className="border border-gray-300 px-4 py-2 text-center">득점률</th>
-                <th className="border border-gray-300 px-4 py-2 text-center">총점</th>
-                <th className="border border-gray-300 px-4 py-2 text-center">진행률</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredResults.map((result: CandidateResult) => (
-                <tr key={result.candidate.id} className="hover:bg-gray-50">
-                  <td className="border border-gray-300 px-4 py-2 text-center font-semibold">
-                    {result.rank}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">
-                    {result.candidate.name}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {result.candidate.department}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {result.candidate.category}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    <span className={`font-semibold ${
-                      result.percentage >= 90 ? 'text-green-600' :
-                      result.percentage >= 80 ? 'text-blue-600' :
-                      result.percentage >= 70 ? 'text-yellow-600' : 'text-red-600'
-                    }`}>
-                      {result.percentage.toFixed(1)}%
-                    </span>
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    {result.totalScore}/{result.maxPossibleScore}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    {result.completedEvaluations}/{result.evaluatorCount}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>순위</TableHead>
+                <TableHead>기관명(성명)</TableHead>
+                <TableHead>소속(부서)</TableHead>
+                <TableHead>직책(직급)</TableHead>
+                <TableHead>카테고리</TableHead>
+                <TableHead className="text-right">총점</TableHead>
+                <TableHead className="text-right">백분율</TableHead>
+                <TableHead className="text-center">평가자수</TableHead>
+                <TableHead className="text-center">완료평가</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredResults.length > 0 ? (
+                filteredResults.map((result: CandidateResult, index: number) => (
+                  <TableRow key={result.candidate.id}>
+                    <TableCell className="font-medium">{result.rank || index + 1}</TableCell>
+                    <TableCell>{result.candidate.name}</TableCell>
+                    <TableCell>{result.candidate.department}</TableCell>
+                    <TableCell>{result.candidate.position}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{result.candidate.category}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {result.totalScore.toFixed(1)} / {result.maxPossibleScore.toFixed(1)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge 
+                        variant={
+                          result.percentage >= 90 ? "default" : 
+                          result.percentage >= 80 ? "secondary" : 
+                          result.percentage >= 70 ? "outline" : "destructive"
+                        }
+                      >
+                        {result.percentage.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">{result.evaluatorCount}</TableCell>
+                    <TableCell className="text-center">{result.completedEvaluations}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    평가 결과가 없습니다.
+                    <p className="text-sm mt-1">평가를 완료하면 여기에 결과가 표시됩니다.</p>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
     </Card>
