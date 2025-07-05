@@ -434,7 +434,11 @@ export class SupabaseStorage {
   }
 
   async getAllCandidates(): Promise<Candidate[]> {
-    return [];
+    const { data, error } = await supabase
+      .from('candidates')
+      .select('*');
+    if (error) throw error;
+    return data || [];
   }
 
   async getActiveCandidates(): Promise<Candidate[]> {
@@ -442,7 +446,13 @@ export class SupabaseStorage {
   }
 
   async createCandidate(candidate: InsertCandidate): Promise<Candidate> {
-    throw new Error("Not implemented");
+    const { data, error } = await supabase
+      .from('candidates')
+      .insert(candidate)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   }
 
   async createManyCandidates(candidateList: InsertCandidate[]): Promise<Candidate[]> {
@@ -450,11 +460,98 @@ export class SupabaseStorage {
   }
 
   async updateCandidate(id: number, candidate: Partial<InsertCandidate>): Promise<Candidate> {
-    throw new Error("Not implemented");
+    try {
+      // Map camelCase to snake_case for database
+      const mappedData: any = {};
+      
+      if (candidate.name !== undefined) mappedData.name = candidate.name;
+      if (candidate.department !== undefined) mappedData.department = candidate.department;
+      if (candidate.position !== undefined) mappedData.position = candidate.position;
+      if (candidate.category !== undefined) mappedData.category = candidate.category;
+      if (candidate.mainCategory !== undefined) mappedData.main_category = candidate.mainCategory;
+      if (candidate.subCategory !== undefined) mappedData.sub_category = candidate.subCategory;
+      if (candidate.description !== undefined) mappedData.description = candidate.description;
+      if (candidate.sortOrder !== undefined) mappedData.sort_order = candidate.sortOrder;
+      if (candidate.isActive !== undefined) mappedData.is_active = candidate.isActive;
+      
+      // If no data to update, return the existing candidate
+      if (Object.keys(mappedData).length === 0) {
+        const { data: existingCandidate, error: fetchError } = await supabase
+          .from('candidates')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (fetchError) {
+          console.error('Error fetching candidate:', fetchError);
+          throw fetchError;
+        }
+        
+        // Map back to camelCase for frontend
+        return {
+          id: existingCandidate.id,
+          name: existingCandidate.name,
+          department: existingCandidate.department,
+          position: existingCandidate.position,
+          category: existingCandidate.category,
+          mainCategory: existingCandidate.main_category,
+          subCategory: existingCandidate.sub_category,
+          description: existingCandidate.description,
+          sortOrder: existingCandidate.sort_order,
+          isActive: existingCandidate.is_active,
+          createdAt: existingCandidate.created_at,
+          updatedAt: existingCandidate.updated_at
+        };
+      }
+      
+      const { data, error } = await supabase
+        .from('candidates')
+        .update(mappedData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating candidate:', error);
+        throw error;
+      }
+      
+      // Map back to camelCase for frontend
+      return {
+        id: data.id,
+        name: data.name,
+        department: data.department,
+        position: data.position,
+        category: data.category,
+        mainCategory: data.main_category,
+        subCategory: data.sub_category,
+        description: data.description,
+        sortOrder: data.sort_order,
+        isActive: data.is_active,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    } catch (error) {
+      console.error('Error in updateCandidate:', error);
+      throw error;
+    }
   }
 
   async deleteCandidate(id: number): Promise<void> {
-    throw new Error("Not implemented");
+    try {
+      const { error } = await supabase
+        .from('candidates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting candidate:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in deleteCandidate:', error);
+      throw error;
+    }
   }
 
   // Category Options methods
@@ -572,20 +669,60 @@ export class SupabaseStorage {
   }
 
   async getSystemStatistics(): Promise<{
-    totalEvaluators: number;
-    activeEvaluators: number;
     totalCandidates: number;
-    totalEvaluationItems: number;
-    totalCategories: number;
+    completed: number;
+    inProgress: number;
+    notStarted: number;
     completionRate: number;
   }> {
+    // 1. 전체 후보자 수
+    const { data: candidates, error: candidatesError } = await supabase
+      .from('candidates')
+      .select('id');
+    if (candidatesError) throw candidatesError;
+    const totalCandidates = candidates.length;
+
+    // 2. 전체 평가위원 수
+    const { data: evaluators, error: evaluatorsError } = await supabase
+      .from('evaluators')
+      .select('id')
+      .eq('is_active', true);
+    if (evaluatorsError) throw evaluatorsError;
+    const totalEvaluators = evaluators.length;
+
+    // 3. 후보자별 평가 제출 현황
+    // 평가 제출 테이블: evaluation_submissions (evaluatorId, candidateId)
+    const { data: submissions, error: submissionsError } = await supabase
+      .from('evaluation_submissions')
+      .select('candidateId, evaluatorId');
+    if (submissionsError) throw submissionsError;
+
+    // 후보자별 제출된 평가위원 수 집계
+    const candidateSubmissionMap: Record<number, Set<number>> = {};
+    submissions.forEach((s: any) => {
+      if (!candidateSubmissionMap[s.candidateId]) candidateSubmissionMap[s.candidateId] = new Set();
+      candidateSubmissionMap[s.candidateId].add(s.evaluatorId);
+    });
+
+    let completed = 0;
+    let notStarted = 0;
+    let inProgress = 0;
+
+    candidates.forEach((c: any) => {
+      const submitted = candidateSubmissionMap[c.id]?.size || 0;
+      if (submitted === 0) notStarted++;
+      else if (submitted === totalEvaluators && totalEvaluators > 0) completed++;
+      else inProgress++;
+    });
+
+    const completionRate = totalCandidates > 0 ? Math.round((completed / totalCandidates) * 100) : 0;
+
     return {
-      totalEvaluators: 0,
-      activeEvaluators: 0,
-      totalCandidates: 0,
-      totalEvaluationItems: 0,
-      totalCategories: 0,
-      completionRate: 0
+      totalCandidates,
+      completed,
+      inProgress,
+      notStarted,
+      completionRate
     };
   }
 

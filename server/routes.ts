@@ -12,6 +12,9 @@ import {
   admins, systemConfig, evaluators, evaluationCategories, 
   evaluationItems, candidates, evaluations, evaluationSubmissions 
 } from "../shared/schema";
+import { createClient } from '@supabase/supabase-js';
+import type { Request, Response } from 'express';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Extend session data interface
 declare module 'express-session' {
@@ -342,6 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const candidate = await storage.createCandidate(validatedData);
       res.json(candidate);
     } catch (error) {
+      console.error("후보자 추가 에러:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
@@ -403,6 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const candidate = await storage.createCandidate(validatedData);
       res.json(candidate);
     } catch (error) {
+      console.error("후보자 추가 에러:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
@@ -427,14 +432,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/admin/candidates/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      console.log("PATCH /api/admin/candidates/:id - Request body:", req.body);
+      console.log("PATCH /api/admin/candidates/:id - Candidate ID:", id);
+      
       const validatedData = insertCandidateSchema.partial().parse(req.body);
+      console.log("PATCH /api/admin/candidates/:id - Validated data:", validatedData);
+      
       const candidate = await storage.updateCandidate(id, validatedData);
+      console.log("PATCH /api/admin/candidates/:id - Updated candidate:", candidate);
       res.json(candidate);
     } catch (error) {
+      console.error("PATCH /api/admin/candidates/:id - Error details:", error);
       if (error instanceof z.ZodError) {
+        console.error("PATCH /api/admin/candidates/:id - Zod validation errors:", error.errors);
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to update candidate" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to update candidate", error: errorMessage });
     }
   });
 
@@ -721,6 +735,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(progress);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch progress" });
+    }
+  });
+
+  // ===== INCOMPLETE DETAILS ROUTE =====
+  app.get("/api/admin/incomplete-details", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // 전체 후보자
+      const candidates = await storage.getAllCandidates();
+      // 전체 평가위원
+      const evaluators = await storage.getActiveEvaluators();
+      // Supabase 클라이언트 직접 import
+      const supabase: SupabaseClient = require('../shared/supabase').supabase;
+      // 전체 평가 제출 현황
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('evaluation_submissions')
+        .select('candidateId, evaluatorId');
+      if (submissionsError) throw submissionsError;
+      // 후보자별 미평가 평가위원 목록 생성
+      const candidateSubmissionMap: { [key: number]: Set<number> } = {};
+      (submissions as any[]).forEach((s: any) => {
+        if (!candidateSubmissionMap[s.candidateId]) candidateSubmissionMap[s.candidateId] = new Set();
+        candidateSubmissionMap[s.candidateId].add(s.evaluatorId);
+      });
+      const result = candidates.map((c: any) => {
+        const submittedSet = candidateSubmissionMap[c.id] || new Set();
+        const notEvaluated = evaluators.filter((e: any) => !submittedSet.has(e.id));
+        return {
+          candidateName: c.name,
+          notEvaluatedEvaluators: notEvaluated.map((e: any) => e.name)
+        };
+      });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch incomplete details", error: error.message });
     }
   });
 

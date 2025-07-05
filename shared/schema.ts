@@ -78,10 +78,13 @@ export const candidates = pgTable("candidates", {
   department: text("department").notNull(),
   position: text("position").notNull(),
   category: text("category"),
+  mainCategory: text("main_category"),
+  subCategory: text("sub_category"),
   description: text("description"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Evaluations (Scores)

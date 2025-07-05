@@ -88,7 +88,9 @@ CREATE TABLE candidates (
     sort_order INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    main_category TEXT,
+    sub_category TEXT
 );
 
 -- Create evaluations table

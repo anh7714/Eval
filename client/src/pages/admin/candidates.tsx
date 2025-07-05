@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Upload, Download, Settings, Users } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Plus, Edit, Trash2, Upload, Download, Settings, Users, Search, Filter, ArrowUpDown, RefreshCw, CheckCircle, AlertCircle, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseExcelFile, exportToExcel } from "@/lib/excel";
 
@@ -14,6 +16,20 @@ export default function CandidateManagement() {
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<any>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  
+  // 테이블 관련 상태
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortField, setSortField] = useState("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // 💡 핵심: 낙관적 업데이트를 위한 상태
+  const [pendingOperations, setPendingOperations] = useState<Set<number>>(new Set());
+  const [failedOperations, setFailedOperations] = useState<Set<number>>(new Set());
+
   const [newCandidate, setNewCandidate] = useState({
     name: "",
     department: "",
@@ -22,15 +38,19 @@ export default function CandidateManagement() {
     mainCategory: "",
     subCategory: "",
     description: "",
-    sortOrder: 0,
+    sort_order: 0,
   });
 
   // 카테고리 관리 상태
   const [managedCategories, setManagedCategories] = useState({
     main: ["신규", "재협약"],
-    sub: ["일시동행", "주거편의", "식사배달", "단기시설"]
+    sub: ["일시동행", "주거편의", "식사배달", "단시설"]
   });
   const [newCategoryInput, setNewCategoryInput] = useState({ main: "", sub: "" });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // 카테고리 관리 함수들
   const addMainCategory = () => {
@@ -71,14 +91,263 @@ export default function CandidateManagement() {
     toast({ title: "성공", description: "세부구분이 삭제되었습니다." });
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  // 서버 데이터 조회
+  const fetchCandidates = async () => {
+    const timestamp = Date.now();
+    console.log(`🔄 서버 데이터 조회: ${timestamp}`);
+    
+    const response = await fetch(`/api/admin/candidates?_t=${timestamp}`, {
+      method: 'GET',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+      cache: 'no-store',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch candidates');
+    }
+    
+    const data = await response.json();
+    console.log(`✅ 서버 데이터 조회 완료: ${data.length}개`);
+    return data;
+  };
 
-  const { data: candidates = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/candidates"],
+  const { data: candidates = [], isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["candidates"],
+    queryFn: fetchCandidates,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 1,
   });
 
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // 💡 낙관적 업데이트를 위한 mutation
+  const toggleCandidateMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const response = await fetch(`/api/admin/candidates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive }),
+      });
+      if (!response.ok) throw new Error('Failed to toggle candidate');
+      return response.json();
+    },
+    onMutate: async ({ id, isActive }) => {
+      // 💡 낙관적 업데이트: 즉시 UI 반영
+      setPendingOperations(prev => new Set(Array.from(prev).concat([id])));
+      
+      // 캐시에서 즉시 업데이트
+      queryClient.setQueryData(['candidates'], (old: any[]) =>
+        old?.map(candidate =>
+          candidate.id === id ? { ...candidate, isActive } : candidate
+        ) || []
+      );
+    },
+    onError: (error, { id, isActive }) => {
+      // 💡 실패 시 롤백
+      setFailedOperations(prev => new Set(Array.from(prev).concat([id])));
+      toast({ 
+        title: "오류", 
+        description: "상태 변경에 실패했습니다.", 
+        variant: "destructive" 
+      });
+      
+      // 캐시 롤백
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+    },
+    onSettled: (data, error, { id }) => {
+      // 💡 완료 시 pending 상태 제거
+      setPendingOperations(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.delete(id);
+        return newSet;
+      });
+      setFailedOperations(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.delete(id);
+        return newSet;
+      });
+    },
+  });
+
+  // 💡 일괄 토글을 위한 mutation
+  const bulkToggleMutation = useMutation({
+    mutationFn: async ({ ids, isActive }: { ids: number[]; isActive: boolean }) => {
+      const results = await Promise.allSettled(
+        ids.map(id =>
+          fetch(`/api/admin/candidates/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isActive }),
+          })
+        )
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
+      const failCount = results.length - successCount;
+      
+      return { successCount, failCount, total: results.length };
+    },
+    onMutate: async ({ ids, isActive }) => {
+      // 💡 낙관적 업데이트: 즉시 UI 반영
+      setPendingOperations(prev => new Set(Array.from(prev).concat(ids)));
+      
+      // 캐시에서 즉시 업데이트
+      queryClient.setQueryData(['candidates'], (old: any[]) =>
+        old?.map(candidate =>
+          ids.includes(candidate.id) ? { ...candidate, isActive } : candidate
+        ) || []
+      );
+    },
+    onError: (error, { ids }) => {
+      // 💡 실패 시 롤백
+      setFailedOperations(prev => new Set(Array.from(prev).concat(ids)));
+      toast({ 
+        title: "오류", 
+        description: "일괄 변경에 실패했습니다.", 
+        variant: "destructive" 
+      });
+      
+      // 캐시 롤백
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+    },
+    onSuccess: (data, { ids, isActive }) => {
+      // 💡 성공 시 pending 상태 제거
+      setPendingOperations(prev => {
+        const newSet = new Set(Array.from(prev));
+        ids.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+      setFailedOperations(prev => {
+        const newSet = new Set(Array.from(prev));
+        ids.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+      
+      if (data.failCount === 0) {
+        toast({ 
+          title: "완료", 
+          description: `${data.successCount}명 ${isActive ? '활성화' : '비활성화'} 완료` 
+        });
+      } else {
+        toast({ 
+          title: "부분 완료", 
+          description: `${data.successCount}명 성공, ${data.failCount}명 실패`, 
+          variant: "destructive" 
+        });
+      }
+    },
+  });
+
+  // 개별 토글 - 낙관적 업데이트
+  const handleIndividualToggle = (candidate: any) => {
+    const newStatus = !candidate.isActive;
+    toggleCandidateMutation.mutate({ id: candidate.id, isActive: newStatus });
+  };
+
+  // 일괄 토글 - 낙관적 업데이트
+  const handleBulkToggle = (active: boolean) => {
+    const targets = selectedIds.length > 0 ? selectedIds : candidates.map((c: any) => c.id);
+    if (targets.length === 0) {
+      toast({ title: "알림", description: "처리할 대상이 없습니다." });
+      return;
+    }
+    
+    bulkToggleMutation.mutate({ ids: targets, isActive: active });
+    setSelectedIds([]);
+  };
+
+  // 필터링 및 정렬 로직
+  const filteredAndSortedCandidates = (candidates as any[])
+    .filter((candidate: any) => {
+      const matchesSearch = 
+        candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        candidate.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        candidate.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        candidate.category?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" || 
+        (statusFilter === "active" && candidate.isActive) ||
+        (statusFilter === "inactive" && !candidate.isActive);
+      
+      const matchesCategory = categoryFilter === "all" || 
+        candidate.category?.includes(categoryFilter);
+      
+      return matchesSearch && matchesStatus && matchesCategory;
+    })
+    .sort((a: any, b: any) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      if (sortField === "name" || sortField === "department" || sortField === "position" || sortField === "category") {
+        aValue = aValue || "";
+        bValue = bValue || "";
+        return sortDirection === "asc" 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (sortField === "isActive") {
+        return sortDirection === "asc" 
+          ? (a.isActive ? 1 : -1)
+          : (a.isActive ? -1 : 1);
+      }
+      
+      return 0;
+    });
+
+  // 페이지네이션 로직
+  const totalPages = Math.ceil(filteredAndSortedCandidates.length / itemsPerPage);
+  const paginatedCandidates = filteredAndSortedCandidates.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // 정렬 핸들러
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // 검색/필터 리셋
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setCurrentPage(1);
+  };
+
+  // 선택 관련 핸들러
+  const handleSelect = (id: number) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === paginatedCandidates.length && paginatedCandidates.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(paginatedCandidates.map((c: any) => c.id));
+    }
+  };
+
+  // 수동 새로고침
+  const handleManualRefresh = async () => {
+    console.log("🔄 수동 서버 새로고침");
+    await refetch();
+    toast({ title: "새로고침", description: "서버에서 최신 데이터를 가져왔습니다." });
+  };
+
+  // CRUD 뮤테이션들
   const createMutation = useMutation({
     mutationFn: async (candidate: typeof newCandidate) => {
       const response = await fetch("/api/admin/candidates", {
@@ -89,11 +358,13 @@ export default function CandidateManagement() {
       if (!response.ok) throw new Error("Failed to create candidate");
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
+    onSuccess: async (newCandidate) => {
+      // 캐시에 즉시 추가
+      queryClient.setQueryData(['candidates'], (old: any[]) => [...(old || []), newCandidate]);
+      await refetch();
       toast({ title: "성공", description: "평가대상이 추가되었습니다." });
       setIsAddingCandidate(false);
-      setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sortOrder: 0 });
+      setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sort_order: 0 });
     },
     onError: () => {
       toast({ title: "오류", description: "평가대상 추가에 실패했습니다.", variant: "destructive" });
@@ -110,9 +381,11 @@ export default function CandidateManagement() {
       if (!response.ok) throw new Error("Failed to create candidates");
       return response.json();
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
-      toast({ title: "성공", description: `${data.length}명의 평가대상이 추가되었습니다.` });
+    onSuccess: async (newCandidates) => {
+      // 캐시에 즉시 추가
+      queryClient.setQueryData(['candidates'], (old: any[]) => [...(old || []), ...newCandidates]);
+      await refetch();
+      toast({ title: "성공", description: `${newCandidates.length}명의 평가대상이 추가되었습니다.` });
     },
     onError: () => {
       toast({ title: "오류", description: "평가대상 일괄 추가에 실패했습니다.", variant: "destructive" });
@@ -121,6 +394,10 @@ export default function CandidateManagement() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      if (!data || Object.keys(data).length === 0) {
+        throw new Error("No data to update");
+      }
+      
       const response = await fetch(`/api/admin/candidates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -129,14 +406,21 @@ export default function CandidateManagement() {
       if (!response.ok) throw new Error("Failed to update candidate");
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
+    onSuccess: async (updatedCandidate, { id }) => {
+      // 캐시에서 즉시 업데이트
+      queryClient.setQueryData(['candidates'], (old: any[]) =>
+        old?.map(candidate =>
+          candidate.id === id ? { ...candidate, ...updatedCandidate } : candidate
+        ) || []
+      );
+      await refetch();
       toast({ title: "성공", description: "평가대상이 수정되었습니다." });
       setEditingCandidate(null);
       setIsAddingCandidate(false);
-      setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sortOrder: 0 });
+      setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sort_order: 0 });
     },
-    onError: () => {
+    onError: (error: any) => {
+      if (error.message === "No data to update") return;
       toast({ title: "오류", description: "평가대상 수정에 실패했습니다.", variant: "destructive" });
     },
   });
@@ -149,8 +433,12 @@ export default function CandidateManagement() {
       if (!response.ok) throw new Error("Failed to delete candidate");
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
+    onSuccess: async (_, id) => {
+      // 캐시에서 즉시 제거
+      queryClient.setQueryData(['candidates'], (old: any[]) =>
+        old?.filter(candidate => candidate.id !== id) || []
+      );
+      await refetch();
       toast({ title: "성공", description: "평가대상이 삭제되었습니다." });
     },
     onError: () => {
@@ -158,33 +446,22 @@ export default function CandidateManagement() {
     },
   });
 
-  const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      const response = await fetch(`/api/admin/candidates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !isActive }),
-      });
-      if (!response.ok) throw new Error("Failed to update candidate");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
-      toast({ title: "성공", description: "평가대상 상태가 변경되었습니다." });
-    },
-  });
-
+  // 폼 핸들러들
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 2단계 카테고리를 기존 category 필드에 통합 저장
     const combinedCategory = newCandidate.mainCategory && newCandidate.subCategory 
       ? `${newCandidate.mainCategory} > ${newCandidate.subCategory}` 
-      : newCandidate.category;
+      : newCandidate.mainCategory || newCandidate.category;
     
     const candidateData = {
-      ...newCandidate,
-      category: combinedCategory
+      name: newCandidate.name,
+      department: newCandidate.department,
+      position: newCandidate.position,
+      category: combinedCategory,
+      mainCategory: newCandidate.mainCategory,
+      subCategory: newCandidate.subCategory,
+      description: newCandidate.description,
+      sort_order: newCandidate.sort_order,
     };
 
     if (editingCandidate) {
@@ -196,26 +473,22 @@ export default function CandidateManagement() {
 
   const handleEdit = (candidate: any) => {
     setEditingCandidate(candidate);
-    
-    // 기존 카테고리에서 2단계 카테고리 분리
-    let mainCategory = "";
-    let subCategory = "";
-    
-    if (candidate.category && candidate.category.includes(" > ")) {
+    let mainCategory = candidate.mainCategory || "";
+    let subCategory = candidate.subCategory || "";
+    if ((!mainCategory || !subCategory) && candidate.category && candidate.category.includes(" > ")) {
       const parts = candidate.category.split(" > ");
       mainCategory = parts[0] || "";
       subCategory = parts[1] || "";
     }
-    
     setNewCandidate({
       name: candidate.name,
       department: candidate.department,
       position: candidate.position,
       category: candidate.category,
-      mainCategory: mainCategory,
-      subCategory: subCategory,
+      mainCategory,
+      subCategory,
       description: candidate.description || "",
-      sortOrder: candidate.sortOrder || 0,
+      sort_order: candidate.sortOrder || candidate.sort_order || 0,
     });
     setIsAddingCandidate(true);
   };
@@ -229,26 +502,33 @@ export default function CandidateManagement() {
   const handleCancel = () => {
     setEditingCandidate(null);
     setIsAddingCandidate(false);
-    setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sortOrder: 0 });
+    setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sort_order: 0 });
   };
 
+  // 엑셀 관련 핸들러들
   const handleExcelUpload = async (file: File) => {
     try {
       const data = await parseExcelFile(file);
-      const validCandidates = data.map((row: any, index: number) => ({
-        name: row['기관명(성명)'] || row['이름'] || row['name'] || '',
-        department: row['소속(부서)'] || row['부서'] || row['department'] || '',
-        position: row['직책(직급)'] || row['직책'] || row['position'] || '',
-        category: row['구분'] || row['category'] || '',
-        description: row['설명'] || row['description'] || '',
-        sortOrder: index,
-      })).filter(candidate => candidate.name && candidate.department);
-
+      const validCandidates = data.map((row: any, index: number) => {
+        let mainCategory = row['구분'] || row['mainCategory'] || '';
+        let subCategory = row['세부구분'] || row['subCategory'] || '';
+        let category = mainCategory && subCategory ? `${mainCategory} > ${subCategory}` : mainCategory || '';
+        return {
+          name: row['기관명(성명)'] || row['이름'] || row['name'] || '',
+          department: row['소속(부서)'] || row['부서'] || row['department'] || '',
+          position: row['직책(직급)'] || row['직책'] || row['position'] || '',
+          category,
+          mainCategory,
+          subCategory,
+          description: row['설명'] || row['description'] || '',
+          sort_order: index,
+        };
+      }).filter(candidate => candidate.name && candidate.department);
+      
       if (validCandidates.length === 0) {
         toast({ title: "오류", description: "유효한 평가대상 데이터가 없습니다.", variant: "destructive" });
         return;
       }
-
       bulkCreateMutation.mutate(validCandidates);
     } catch (error) {
       toast({ title: "오류", description: "엑셀 파일 처리 중 오류가 발생했습니다.", variant: "destructive" });
@@ -268,28 +548,36 @@ export default function CandidateManagement() {
         "기관명(성명)": "홍길동",
         "소속(부서)": "기획팀",
         "직책(직급)": "과장",
-        구분: "정규직",
+        구분: "신규",
+        세부구분: "일시동행",
         설명: "기획업무 담당"
       },
       {
         "기관명(성명)": "김영희",
         "소속(부서)": "마케팅팀",
         "직책(직급)": "대리",
-        구분: "정규직",
+        구분: "재협약",
+        세부구분: "주거편의",
         설명: "마케팅 전략 수립"
       },
       {
         "기관명(성명)": "박철수",
         "소속(부서)": "개발팀",
         "직책(직급)": "팀장",
-        구분: "정규직",
+        구분: "신규",
+        세부구분: "식사배달",
         설명: "시스템 개발 총괄"
       }
     ];
-
     exportToExcel(templateData, `평가대상_업로드_템플릿.xlsx`);
     toast({ title: "성공", description: "업로드 템플릿 파일이 다운로드되었습니다." });
   };
+
+  const isAnyOperationInProgress = 
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    deleteMutation.isPending ||
+    bulkCreateMutation.isPending;
 
   if (isLoading) {
     return (
@@ -312,6 +600,12 @@ export default function CandidateManagement() {
             <p className="text-sm text-gray-500 mt-2">
               💡 엑셀 업로드 형식: 기관명(성명), 소속(부서), 직책(직급), 구분, 설명 컬럼을 포함해주세요.
             </p>
+            {/* 실시간 상태 정보 */}
+            <div className="text-xs text-gray-400 mt-2 space-x-4">
+              <span>🌐 서버: {candidates.length}개</span>
+              <span>⏳ 처리중: {pendingOperations.size}개</span>
+              <span>❌ 실패: {failedOperations.size}개</span>
+            </div>
           </div>
           <div className="flex space-x-2">
             <input
@@ -389,7 +683,7 @@ export default function CandidateManagement() {
                   </div>
                   <div>
                     <label className="text-sm font-medium flex items-center justify-between">
-                      구분 (기존)
+                      구분
                       <Button
                         type="button"
                         variant="outline"
@@ -468,7 +762,7 @@ export default function CandidateManagement() {
                 <div className="flex space-x-3 pt-4">
                   <Button 
                     type="submit" 
-                    disabled={createMutation.isPending || updateMutation.isPending}
+                    disabled={isAnyOperationInProgress}
                     className="btn-gradient-primary px-8 py-3 h-12"
                   >
                     {editingCandidate ? 
@@ -481,6 +775,7 @@ export default function CandidateManagement() {
                     variant="outline" 
                     onClick={handleCancel}
                     className="px-8 py-3 h-12 border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+                    disabled={isAnyOperationInProgress}
                   >
                     취소
                   </Button>
@@ -497,94 +792,328 @@ export default function CandidateManagement() {
                 <Users className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </div>
               평가대상 목록
+              {isFetching && (
+                <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+              )}
+              {pendingOperations.size > 0 && (
+                <span className="text-sm text-blue-600 animate-pulse">
+                  동기화 중: {pendingOperations.size}개
+                </span>
+              )}
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-300">총 {(candidates as any[])?.length || 0}명의 평가대상이 등록되어 있습니다.</CardDescription>
+            <CardDescription className="text-gray-600 dark:text-gray-300">
+              총 {candidates.length}명의 평가대상이 등록되어 있습니다.
+              {filteredAndSortedCandidates.length !== candidates.length && 
+                ` (검색 결과: ${filteredAndSortedCandidates.length}명)`
+              }
+              {failedOperations.size > 0 && (
+                <span className="text-red-600 ml-2">⚠️ {failedOperations.size}개 동기화 실패</span>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {(candidates as any[])?.map((candidate: any) => (
-                <div
-                  key={candidate.id}
-                  className="item-card-professional group"
+            {/* 검색 및 필터 영역 */}
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="이름, 부서, 직책, 구분으로 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="상태" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 상태</SelectItem>
+                    <SelectItem value="active">활성</SelectItem>
+                    <SelectItem value="inactive">비활성</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="구분" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 구분</SelectItem>
+                    {Array.from(new Set(candidates.map((c: any) => c.category).filter(Boolean))).map((category: any) => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={resetFilters}
+                  className="px-4"
                 >
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-800 dark:text-white">{candidate.name}</h3>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1 mt-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-blue-600 dark:text-blue-400">소속:</span>
-                          <span>{candidate.department || "정보 없음"}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-blue-600 dark:text-blue-400">직책:</span>
-                          <span>{candidate.position || "정보 없음"}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-blue-600 dark:text-blue-400">구분:</span>
-                          <span>{candidate.category || "정보 없음"}</span>
-                        </div>
-                      </div>
-                      {candidate.description && (
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-md">{candidate.description}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
-                    <Badge 
-                      variant={candidate.isActive ? "default" : "secondary"}
-                      className="px-3 py-1"
-                    >
-                      {candidate.isActive ? "활성" : "비활성"}
-                    </Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => toggleActiveMutation.mutate({
-                        id: candidate.id,
-                        isActive: candidate.isActive
-                      })}
-                      className="h-9 px-3 text-xs hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20"
-                    >
-                      {candidate.isActive ? "비활성화" : "활성화"}
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleEdit(candidate)}
-                      className="h-9 w-9 p-0 hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20"
-                    >
-                      <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleDelete(candidate)}
-                      className="h-9 w-9 p-0 hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {(candidates as any[])?.length === 0 && (
-                <div className="text-center py-16">
-                  <Users className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">등록된 평가대상이 없습니다</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">상단의 "새 평가대상 추가" 버튼을 사용하여 첫 평가대상을 추가해보세요.</p>
-                  <Button 
-                    onClick={() => setIsAddingCandidate(true)}
-                    className="btn-gradient-primary"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    평가대상 추가하기
-                  </Button>
-                </div>
-              )}
+                  필터 초기화
+                </Button>
+              </div>
             </div>
+
+            {/* 컨트롤 버튼들 */}
+            <div className="flex gap-2 mb-4 justify-between">
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleManualRefresh}
+                  disabled={isFetching}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                  서버 동기화
+                </Button>
+              </div>
+              
+              <div className="flex gap-2 items-center">
+                {selectedIds.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    {selectedIds.length}개 선택됨
+                  </span>
+                )}
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleBulkToggle(true)} 
+                  disabled={false}
+                  className="relative"
+                >
+                  ⚡ {selectedIds.length > 0 ? `선택항목 활성화 (${selectedIds.length})` : "전체 활성화"}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleBulkToggle(false)} 
+                  disabled={false}
+                  className="relative"
+                >
+                  ⚡ {selectedIds.length > 0 ? `선택항목 비활성화 (${selectedIds.length})` : "전체 비활성화"}
+                </Button>
+              </div>
+            </div>
+
+            {/* 테이블 */}
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.length === paginatedCandidates.length && paginatedCandidates.length > 0} 
+                        onChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center gap-2">
+                        이름
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("department")}
+                    >
+                      <div className="flex items-center gap-2">
+                        소속/부서
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("position")}
+                    >
+                      <div className="flex items-center gap-2">
+                        직책/직급
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("category")}
+                    >
+                      <div className="flex items-center gap-2">
+                        구분
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("isActive")}
+                    >
+                      <div className="flex items-center gap-2">
+                        상태
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">관리</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCandidates.map((candidate: any) => {
+                    const isPending = pendingOperations.has(candidate.id);
+                    const isFailed = failedOperations.has(candidate.id);
+                    
+                    return (
+                      <TableRow 
+                        key={candidate.id}
+                        className={isPending ? "opacity-75 bg-blue-50" : isFailed ? "bg-red-50" : ""}
+                      >
+                        <TableCell>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.includes(candidate.id)} 
+                            onChange={() => handleSelect(candidate.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div className="font-semibold flex items-center gap-2">
+                              {candidate.name}
+                              {isPending && <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />}
+                              {isFailed && <AlertCircle className="h-3 w-3 text-red-500" />}
+                              {!isPending && !isFailed && <CheckCircle className="h-3 w-3 text-green-500" />}
+                            </div>
+                            {candidate.description && (
+                              <div className="text-sm text-gray-500 mt-1">
+                                {candidate.description}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{candidate.department || "정보 없음"}</TableCell>
+                        <TableCell>{candidate.position || "정보 없음"}</TableCell>
+                        <TableCell>{candidate.category || "정보 없음"}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={candidate.isActive ? "default" : "secondary"}
+                            className={`px-2 py-1 ${isPending ? 'animate-pulse' : ''}`}
+                          >
+                            {candidate.isActive ? "활성" : "비활성"}
+                            {isPending && " (동기화중)"}
+                            {isFailed && " (실패)"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleIndividualToggle(candidate)}
+                              className="h-8 px-2 text-xs relative"
+                            >
+                              ⚡ {candidate.isActive ? "비활성화" : "활성화"}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleEdit(candidate)}
+                              className="h-8 w-8 p-0"
+                              disabled={isAnyOperationInProgress}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleDelete(candidate)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              disabled={isAnyOperationInProgress}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <div className="mt-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+
+            {/* 빈 상태 */}
+            {paginatedCandidates.length === 0 && (
+              <div className="text-center py-16">
+                <Users className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  {filteredAndSortedCandidates.length === 0 ? "검색 결과가 없습니다" : "등록된 평가대상이 없습니다"}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  {filteredAndSortedCandidates.length === 0 
+                    ? "다른 검색어나 필터를 시도해보세요."
+                    : "상단의 '평가대상 추가' 버튼을 사용하여 첫 평가대상을 추가해보세요."
+                  }
+                </p>
+                {filteredAndSortedCandidates.length === 0 && (
+                  <Button 
+                    onClick={resetFilters}
+                    variant="outline"
+                    className="mr-2"
+                  >
+                    필터 초기화
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => setIsAddingCandidate(true)}
+                  className="btn-gradient-primary"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  평가대상 추가하기
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* 카테고리 관리 다이얼로그 - 고급스러운 디자인 */}
+        {/* 카테고리 관리 다이얼로그 */}
         <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
           <DialogContent className="max-w-4xl max-h-[75vh] overflow-hidden bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-2xl">
             <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -599,132 +1128,77 @@ export default function CandidateManagement() {
             <div className="flex-1 overflow-y-auto py-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 구분 관리 */}
-                <div className="space-y-4">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      구분 관리
-                    </h3>
-                    
-                    <div className="space-y-4">
-                      <div className="flex gap-3">
-                        <div className="flex-1 relative">
-                          <Input
-                            placeholder="새 구분 입력"
-                            value={newCategoryInput.main}
-                            onChange={(e) => setNewCategoryInput(prev => ({ ...prev, main: e.target.value }))}
-                            onKeyPress={(e) => e.key === 'Enter' && addMainCategory()}
-                            className="pl-4 pr-12 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all"
-                          />
-                        </div>
-                        <Button 
-                          onClick={addMainCategory} 
-                          disabled={!newCategoryInput.main.trim()}
-                          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          추가
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 min-h-[120px]">
-                        <div className="flex flex-wrap gap-2">
-                          {managedCategories.main.map((category: string) => (
-                            <Badge 
-                              key={category} 
-                              variant="secondary" 
-                              className="px-4 py-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700 rounded-full hover:bg-green-200 dark:hover:bg-green-800 transition-colors group"
-                            >
-                              {category}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-4 w-4 p-0 ml-2 hover:bg-red-100 dark:hover:bg-red-900 rounded-full group-hover:opacity-100 opacity-60"
-                                onClick={() => removeMainCategory(category)}
-                              >
-                                <Trash2 className="h-3 w-3 text-red-500" />
-                              </Button>
-                            </Badge>
-                          ))}
-                          {managedCategories.main.length === 0 && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                              아직 등록된 구분이 없습니다
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                <Card className="card-professional">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                    <CardTitle className="text-lg text-gray-800 dark:text-white">구분 관리</CardTitle>
+                    <CardDescription>평가대상의 주요 구분을 관리합니다.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex space-x-2">
+                      <Input
+                        placeholder="새 구분 입력"
+                        value={newCategoryInput.main}
+                        onChange={(e) => setNewCategoryInput({ ...newCategoryInput, main: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Button onClick={addMainCategory} size="sm">
+                        추가
+                      </Button>
                     </div>
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      {managedCategories.main.map((category: string) => (
+                        <div key={category} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{category}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeMainCategory(category)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {/* 세부구분 관리 */}
-                <div className="space-y-4">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      세부구분 관리
-                    </h3>
-                    
-                    <div className="space-y-4">
-                      <div className="flex gap-3">
-                        <div className="flex-1 relative">
-                          <Input
-                            placeholder="새 세부구분 입력"
-                            value={newCategoryInput.sub}
-                            onChange={(e) => setNewCategoryInput(prev => ({ ...prev, sub: e.target.value }))}
-                            onKeyPress={(e) => e.key === 'Enter' && addSubCategory()}
-                            className="pl-4 pr-12 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 transition-all"
-                          />
-                        </div>
-                        <Button 
-                          onClick={addSubCategory} 
-                          disabled={!newCategoryInput.sub.trim()}
-                          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          추가
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 min-h-[120px]">
-                        <div className="flex flex-wrap gap-2">
-                          {managedCategories.sub.map((category: string) => (
-                            <Badge 
-                              key={category} 
-                              variant="secondary" 
-                              className="px-4 py-2 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700 rounded-full hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors group"
-                            >
-                              {category}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-4 w-4 p-0 ml-2 hover:bg-red-100 dark:hover:bg-red-900 rounded-full group-hover:opacity-100 opacity-60"
-                                onClick={() => removeSubCategory(category)}
-                              >
-                                <Trash2 className="h-3 w-3 text-red-500" />
-                              </Button>
-                            </Badge>
-                          ))}
-                          {managedCategories.sub.length === 0 && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                              아직 등록된 세부구분이 없습니다
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                <Card className="card-professional">
+                  <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+                    <CardTitle className="text-lg text-gray-800 dark:text-white">세부구분 관리</CardTitle>
+                    <CardDescription>평가대상의 세부 구분을 관리합니다.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex space-x-2">
+                      <Input
+                        placeholder="새 세부구분 입력"
+                        value={newCategoryInput.sub}
+                        onChange={(e) => setNewCategoryInput({ ...newCategoryInput, sub: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Button onClick={addSubCategory} size="sm">
+                        추가
+                      </Button>
                     </div>
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      {managedCategories.sub.map((category: string) => (
+                        <div key={category} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{category}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeSubCategory(category)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-
-            <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
-              <Button 
-                onClick={() => setShowCategoryManager(false)}
-                className="px-8 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                완료
-              </Button>
             </div>
           </DialogContent>
         </Dialog>
