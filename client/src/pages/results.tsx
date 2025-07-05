@@ -30,6 +30,37 @@ interface CandidateResult {
 export default function ResultsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("ranking");
+  
+  // 보고서 출력용 상태 변수들
+  const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
+  const [currentTemplate, setCurrentTemplate] = useState({
+    title: "제공기관 선정 심의회 평가표",
+    totalScore: 100,
+    sections: [
+      {
+        id: 'A',
+        title: '기관수행능력',
+        totalPoints: 35,
+        items: [
+          { id: 1, text: '통계SOS 사업 운영 체계화 2단 완료', type: '정성', points: 20, score: 0 },
+          { id: 2, text: '심의 및 승인 목적 확인', type: '정량', points: 5, score: 0 },
+          { id: 3, text: '기관 운영 기간', type: '정성', points: 5, score: 0 },
+          { id: 4, text: '조직구성', type: '정량', points: 5, score: 0 }
+        ]
+      },
+      {
+        id: 'B',
+        title: '인력운영',
+        totalPoints: 20,
+        items: [
+          { id: 1, text: '사업 운영 총괄자 및 담당자의 전문성', type: '정성', points: 5, score: 0 },
+          { id: 2, text: '통계SOS 사업 운영 체계화부 담당자', type: '정량', points: 5, score: 0 },
+          { id: 3, text: 'SOS서비스 수행 인력의 확보', type: '정량', points: 10, score: 0 }
+        ]
+      }
+    ]
+  });
 
   useEffect(() => {
     const handleTabChange = (event: CustomEvent) => {
@@ -54,6 +85,15 @@ export default function ResultsPage() {
     queryKey: ["/api/system/stats"],
   });
 
+  // 보고서 출력용 데이터
+  const { data: evaluators = [] } = useQuery({
+    queryKey: ["/api/admin/evaluators"],
+  });
+
+  const { data: candidates = [] } = useQuery({
+    queryKey: ["/api/admin/candidates"],
+  });
+
   if (resultsLoading || categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -76,6 +116,94 @@ export default function ResultsPage() {
   const totalCandidates = results.length;
   const averageScore = results.reduce((sum: number, result: CandidateResult) => 
     sum + result.percentage, 0) / results.length || 0;
+
+  // 보고서 출력용 함수들
+  const printTemplate = () => {
+    const printContents = document.getElementById('print-area')?.innerHTML;
+    if (!printContents) return;
+
+    const originalContents = document.body.innerHTML;
+    const printStyles = `
+      <style>
+        @page { 
+          size: A4; 
+          margin: 25mm 20mm 15mm 20mm; 
+        }
+        body { 
+          font-family: 'PT Sans', sans-serif; 
+          font-size: 12px; 
+          line-height: 1.4;
+          color: #000;
+        }
+        .template-container { 
+          width: 100% !important; 
+        }
+        table { 
+          width: 100% !important; 
+          border-collapse: collapse !important;
+          margin-bottom: 20px !important;
+        }
+        th, td { 
+          border: 1px solid #000 !important; 
+          padding: 8px !important; 
+          text-align: left !important;
+          vertical-align: middle !important;
+        }
+        .text-center { 
+          text-align: center !important; 
+        }
+        .bg-gray-50 { 
+          background-color: #f9f9f9 !important; 
+        }
+        .font-bold { 
+          font-weight: bold !important; 
+        }
+        .text-lg { 
+          font-size: 14px !important; 
+        }
+        .text-sm { 
+          font-size: 11px !important; 
+        }
+        .mb-4 { 
+          margin-bottom: 16px !important; 
+        }
+        .text-right { 
+          text-align: right !important; 
+        }
+        @media print {
+          body { margin: 0; }
+          .template-container { width: 100% !important; }
+        }
+      </style>
+    `;
+
+    document.body.innerHTML = printStyles + printContents;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  };
+
+  const calculateTotalPoints = () => {
+    return currentTemplate.sections.reduce((sum, section) => 
+      sum + section.items.reduce((itemSum, item) => itemSum + (item.points || 0), 0), 0
+    );
+  };
+
+  const calculateTotalScore = () => {
+    return currentTemplate.sections.reduce((sum, section) => 
+      sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0
+    );
+  };
+
+  const selectedCandidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
+  const selectedEvaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
+
+  const getDynamicTitle = () => {
+    if (selectedCandidateInfo) {
+      return `${selectedCandidateInfo.name} 심사표`;
+    }
+    return currentTemplate.title;
+  };
 
   const handleExportResults = () => {
     const exportData = filteredResults.map((result: CandidateResult) => ({
@@ -655,6 +783,160 @@ export default function ResultsPage() {
     </div>
   );
 
+  // 📄 보고서 출력 섹션
+  const renderReportSection = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>평가표 보고서 출력</CardTitle>
+              <CardDescription>평가표를 인쇄하거나 PDF로 저장할 수 있습니다.</CardDescription>
+            </div>
+            <Button onClick={printTemplate} variant="outline" size="sm">
+              <FileText className="h-4 w-4 mr-2" />
+              인쇄
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* 평가위원 및 평가대상 선택 */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택</label>
+                <div className="relative">
+                  <select
+                    value={selectedEvaluator || ''}
+                    onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">평가위원을 선택하세요</option>
+                    {(evaluators as any[]).map((evaluator: any) => (
+                      <option key={evaluator.id} value={evaluator.id}>
+                        {evaluator.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택</label>
+                <div className="relative">
+                  <select
+                    value={selectedCandidate || ''}
+                    onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">평가대상을 선택하세요</option>
+                    {(candidates as any[]).map((candidate: any) => (
+                      <option key={candidate.id} value={candidate.id}>
+                        {candidate.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 평가표 미리보기 */}
+          <div id="print-area" className="template-container">
+            <div className="mb-6">
+              <div className="text-right mb-2">
+                <span className="text-sm text-gray-600">
+                  구분: {selectedCandidateInfo?.category || selectedCandidateInfo?.department || ''}
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold text-center mb-6">{getDynamicTitle()}</h1>
+            </div>
+
+            {/* 제목 및 구분 정보 테이블 */}
+            <table className="w-full border-collapse border border-gray-300 mb-4">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 px-4 py-2 text-center font-bold">
+                    구분 ({calculateTotalPoints()}점)
+                  </th>
+                  <th className="border border-gray-300 px-4 py-2 text-center font-bold">세부 항목</th>
+                  <th className="border border-gray-300 px-4 py-2 text-center font-bold">유형</th>
+                  <th className="border border-gray-300 px-4 py-2 text-center font-bold">배점</th>
+                  <th className="border border-gray-300 px-4 py-2 text-center font-bold">평가점수</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentTemplate.sections.map((section, sectionIndex) => (
+                  section.items.map((item, itemIndex) => (
+                    <tr key={`${section.id}-${item.id}`}>
+                      {itemIndex === 0 && (
+                        <td 
+                          className="border border-gray-300 px-4 py-2 text-center font-medium bg-blue-50"
+                          rowSpan={section.items.length}
+                        >
+                          {section.title}
+                          <br />
+                          <span className="text-sm text-gray-600">
+                            ({section.items.reduce((sum, i) => sum + (i.points || 0), 0)}점)
+                          </span>
+                        </td>
+                      )}
+                      <td className="border border-gray-300 px-4 py-2">{item.text}</td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">{item.type}</td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">{item.points}</td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">
+                        <input 
+                          type="number" 
+                          min="0" 
+                          max={item.points}
+                          value={item.score}
+                          onChange={(e) => {
+                            const newScore = parseInt(e.target.value) || 0;
+                            setCurrentTemplate(prev => ({
+                              ...prev,
+                              sections: prev.sections.map(s => 
+                                s.id === section.id 
+                                  ? {
+                                      ...s,
+                                      items: s.items.map(i => 
+                                        i.id === item.id ? { ...i, score: Math.min(newScore, item.points) } : i
+                                      )
+                                    }
+                                  : s
+                              )
+                            }));
+                          }}
+                          className="w-16 text-center border rounded px-2 py-1"
+                        />
+                      </td>
+                    </tr>
+                  ))
+                ))}
+                <tr className="bg-yellow-50 font-bold">
+                  <td className="border border-gray-300 px-4 py-2 text-center">합계</td>
+                  <td className="border border-gray-300 px-4 py-2 text-center">-</td>
+                  <td className="border border-gray-300 px-4 py-2 text-center">-</td>
+                  <td className="border border-gray-300 px-4 py-2 text-center">{calculateTotalPoints()}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-center">{calculateTotalScore()}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* 평가위원 정보 */}
+            <div className="mt-8 text-right">
+              <p className="text-sm">
+                평가위원: {selectedEvaluatorInfo?.name || '_______________'}
+              </p>
+              <p className="text-sm mt-2">
+                날짜: {new Date().toLocaleDateString('ko-KR')}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -663,6 +945,7 @@ export default function ResultsPage() {
           {activeTab === "ranking" && renderRankingSection()}
           {activeTab === "detailed" && renderDetailedResults()}
           {activeTab === "statistics" && renderStatistics()}
+          {activeTab === "report" && renderReportSection()}
         </div>
       </div>
     </div>

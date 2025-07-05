@@ -93,6 +93,9 @@ export default function Header() {
                 <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'statistics' }))}>
                   📊 통계
                 </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('tabChange', { detail: 'report' }))}>
+                  📄 보고서 출력
+                </Button>
               </nav>
             )}
           </div>
