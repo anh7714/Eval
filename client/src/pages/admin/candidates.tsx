@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Upload, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseExcelFile, exportToExcel } from "@/lib/excel";
@@ -16,9 +17,15 @@ export default function CandidateManagement() {
     department: "",
     position: "",
     category: "",
+    mainCategory: "",
+    subCategory: "",
     description: "",
     sortOrder: 0,
   });
+
+  // 카테고리 옵션 정의
+  const mainCategories = ["신규", "재협약"];
+  const subCategories = ["일시동행", "주거편의", "식사배달", "단기시설"];
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -42,7 +49,7 @@ export default function CandidateManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/candidates"] });
       toast({ title: "성공", description: "평가대상이 추가되었습니다." });
       setIsAddingCandidate(false);
-      setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
+      setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sortOrder: 0 });
     },
     onError: () => {
       toast({ title: "오류", description: "평가대상 추가에 실패했습니다.", variant: "destructive" });
@@ -83,7 +90,7 @@ export default function CandidateManagement() {
       toast({ title: "성공", description: "평가대상이 수정되었습니다." });
       setEditingCandidate(null);
       setIsAddingCandidate(false);
-      setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
+      setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sortOrder: 0 });
     },
     onError: () => {
       toast({ title: "오류", description: "평가대상 수정에 실패했습니다.", variant: "destructive" });
@@ -125,20 +132,44 @@ export default function CandidateManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 2단계 카테고리를 기존 category 필드에 통합 저장
+    const combinedCategory = newCandidate.mainCategory && newCandidate.subCategory 
+      ? `${newCandidate.mainCategory} > ${newCandidate.subCategory}` 
+      : newCandidate.category;
+    
+    const candidateData = {
+      ...newCandidate,
+      category: combinedCategory
+    };
+
     if (editingCandidate) {
-      updateMutation.mutate({ id: editingCandidate.id, data: newCandidate });
+      updateMutation.mutate({ id: editingCandidate.id, data: candidateData });
     } else {
-      createMutation.mutate(newCandidate);
+      createMutation.mutate(candidateData);
     }
   };
 
   const handleEdit = (candidate: any) => {
     setEditingCandidate(candidate);
+    
+    // 기존 카테고리에서 2단계 카테고리 분리
+    let mainCategory = "";
+    let subCategory = "";
+    
+    if (candidate.category && candidate.category.includes(" > ")) {
+      const parts = candidate.category.split(" > ");
+      mainCategory = parts[0] || "";
+      subCategory = parts[1] || "";
+    }
+    
     setNewCandidate({
       name: candidate.name,
       department: candidate.department,
       position: candidate.position,
       category: candidate.category,
+      mainCategory: mainCategory,
+      subCategory: subCategory,
       description: candidate.description || "",
       sortOrder: candidate.sortOrder || 0,
     });
@@ -154,7 +185,7 @@ export default function CandidateManagement() {
   const handleCancel = () => {
     setEditingCandidate(null);
     setIsAddingCandidate(false);
-    setNewCandidate({ name: "", department: "", position: "", category: "", description: "", sortOrder: 0 });
+    setNewCandidate({ name: "", department: "", position: "", category: "", mainCategory: "", subCategory: "", description: "", sortOrder: 0 });
   };
 
   const handleExcelUpload = async (file: File) => {
@@ -304,12 +335,36 @@ export default function CandidateManagement() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">구분</label>
-                    <Input
-                      value={newCandidate.category}
-                      onChange={(e) => setNewCandidate({ ...newCandidate, category: e.target.value })}
-                      required
-                    />
+                    <label className="text-sm font-medium">구분 (기존)</label>
+                    <Select 
+                      value={newCandidate.mainCategory}
+                      onValueChange={(value) => setNewCandidate({ ...newCandidate, mainCategory: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="구분 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mainCategories.map(category => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">세부 구분</label>
+                    <Select 
+                      value={newCandidate.subCategory}
+                      onValueChange={(value) => setNewCandidate({ ...newCandidate, subCategory: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="세부 구분 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subCategories.map(category => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="md:col-span-2">
                     <label className="text-sm font-medium">설명</label>
