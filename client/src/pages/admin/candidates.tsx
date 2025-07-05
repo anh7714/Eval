@@ -562,8 +562,8 @@ export default function CandidateManagement() {
 
         {/* 카테고리 관리 다이얼로그 - 고급스러운 디자인 */}
         <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
-          <DialogContent className="max-w-4xl h-[85vh] overflow-hidden bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-2xl">
-            <DialogHeader className="pb-6 border-b border-gray-200 dark:border-gray-700">
+          <DialogContent className="max-w-4xl max-h-[75vh] overflow-hidden bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-2xl">
+            <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                   <Settings className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -572,12 +572,12 @@ export default function CandidateManagement() {
               </DialogTitle>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto py-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="flex-1 overflow-y-auto py-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 구분 관리 */}
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                <div className="space-y-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       구분 관리
                     </h3>
@@ -634,9 +634,9 @@ export default function CandidateManagement() {
                 </div>
 
                 {/* 세부구분 관리 */}
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                <div className="space-y-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
                       <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                       세부구분 관리
                     </h3>
