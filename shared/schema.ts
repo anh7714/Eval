@@ -60,6 +60,17 @@ export const evaluationItems = pgTable("evaluation_items", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
+// Category Options (for candidate categorization)
+export const categoryOptions = pgTable("category_options", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // "main" or "sub"
+  name: text("name").notNull(),
+  parentId: integer("parent_id"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Candidates
 export const candidates = pgTable("candidates", {
   id: serial("id").primaryKey(),
@@ -120,6 +131,11 @@ export const insertEvaluationItemSchema = createInsertSchema(evaluationItems).om
   id: true,
 });
 
+export const insertCategoryOptionSchema = createInsertSchema(categoryOptions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertCandidateSchema = createInsertSchema(candidates).omit({
   id: true,
   createdAt: true,
@@ -151,6 +167,9 @@ export type InsertEvaluationCategory = z.infer<typeof insertEvaluationCategorySc
 
 export type EvaluationItem = typeof evaluationItems.$inferSelect;
 export type InsertEvaluationItem = z.infer<typeof insertEvaluationItemSchema>;
+
+export type CategoryOption = typeof categoryOptions.$inferSelect;
+export type InsertCategoryOption = z.infer<typeof insertCategoryOptionSchema>;
 
 export type Candidate = typeof candidates.$inferSelect;
 export type InsertCandidate = z.infer<typeof insertCandidateSchema>;

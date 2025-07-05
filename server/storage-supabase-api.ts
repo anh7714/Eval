@@ -8,13 +8,15 @@ import type {
   Candidate,
   Evaluation,
   EvaluationSubmission,
+  CategoryOption,
   InsertSystemConfig,
   InsertAdmin,
   InsertEvaluator,
   InsertEvaluationCategory,
   InsertEvaluationItem,
   InsertCandidate,
-  InsertEvaluation
+  InsertEvaluation,
+  InsertCategoryOption
 } from '../shared/schema';
 
 let supabase: ReturnType<typeof createClient>;
@@ -453,6 +455,84 @@ export class SupabaseStorage {
 
   async deleteCandidate(id: number): Promise<void> {
     throw new Error("Not implemented");
+  }
+
+  // Category Options methods
+  async getAllCategoryOptions(): Promise<CategoryOption[]> {
+    try {
+      const { data, error } = await supabase
+        .from('category_options')
+        .select('*')
+        .order('sortOrder', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching category options:', error);
+        throw error;
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error in getAllCategoryOptions:', error);
+      throw error;
+    }
+  }
+
+  async createCategoryOption(option: InsertCategoryOption): Promise<CategoryOption> {
+    try {
+      const { data, error } = await supabase
+        .from('category_options')
+        .insert([option])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating category option:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error in createCategoryOption:', error);
+      throw error;
+    }
+  }
+
+  async updateCategoryOption(id: number, option: Partial<InsertCategoryOption>): Promise<CategoryOption> {
+    try {
+      const { data, error } = await supabase
+        .from('category_options')
+        .update(option)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating category option:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error in updateCategoryOption:', error);
+      throw error;
+    }
+  }
+
+  async deleteCategoryOption(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('category_options')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting category option:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in deleteCategoryOption:', error);
+      throw error;
+    }
   }
 
   async getEvaluationsByEvaluator(evaluatorId: number): Promise<(Evaluation & { candidateName: string; itemName: string })[]> {

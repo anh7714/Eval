@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Upload, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Edit, Trash2, Upload, Download, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseExcelFile, exportToExcel } from "@/lib/excel";
 
 export default function CandidateManagement() {
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<any>(null);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [newCandidate, setNewCandidate] = useState({
     name: "",
     department: "",
@@ -23,9 +25,51 @@ export default function CandidateManagement() {
     sortOrder: 0,
   });
 
-  // 카테고리 옵션 정의
-  const mainCategories = ["신규", "재협약"];
-  const subCategories = ["일시동행", "주거편의", "식사배달", "단기시설"];
+  // 카테고리 관리 상태
+  const [managedCategories, setManagedCategories] = useState({
+    main: ["신규", "재협약"],
+    sub: ["일시동행", "주거편의", "식사배달", "단기시설"]
+  });
+  const [newCategoryInput, setNewCategoryInput] = useState({ main: "", sub: "" });
+
+  // 카테고리 관리 함수들
+  const addMainCategory = () => {
+    if (newCategoryInput.main.trim() && !managedCategories.main.includes(newCategoryInput.main.trim())) {
+      setManagedCategories(prev => ({
+        ...prev,
+        main: [...prev.main, newCategoryInput.main.trim()]
+      }));
+      setNewCategoryInput(prev => ({ ...prev, main: "" }));
+      toast({ title: "성공", description: "구분이 추가되었습니다." });
+    }
+  };
+
+  const addSubCategory = () => {
+    if (newCategoryInput.sub.trim() && !managedCategories.sub.includes(newCategoryInput.sub.trim())) {
+      setManagedCategories(prev => ({
+        ...prev,
+        sub: [...prev.sub, newCategoryInput.sub.trim()]
+      }));
+      setNewCategoryInput(prev => ({ ...prev, sub: "" }));
+      toast({ title: "성공", description: "세부구분이 추가되었습니다." });
+    }
+  };
+
+  const removeMainCategory = (category: string) => {
+    setManagedCategories(prev => ({
+      ...prev,
+      main: prev.main.filter(c => c !== category)
+    }));
+    toast({ title: "성공", description: "구분이 삭제되었습니다." });
+  };
+
+  const removeSubCategory = (category: string) => {
+    setManagedCategories(prev => ({
+      ...prev,
+      sub: prev.sub.filter(c => c !== category)
+    }));
+    toast({ title: "성공", description: "세부구분이 삭제되었습니다." });
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -323,7 +367,7 @@ export default function CandidateManagement() {
                     <Input
                       value={newCandidate.department}
                       onChange={(e) => setNewCandidate({ ...newCandidate, department: e.target.value })}
-                      required
+                      placeholder="선택사항"
                     />
                   </div>
                   <div>
@@ -331,11 +375,23 @@ export default function CandidateManagement() {
                     <Input
                       value={newCandidate.position}
                       onChange={(e) => setNewCandidate({ ...newCandidate, position: e.target.value })}
-                      required
+                      placeholder="선택사항"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">구분 (기존)</label>
+                    <label className="text-sm font-medium flex items-center justify-between">
+                      구분 (기존)
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowCategoryManager(true)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Settings className="h-3 w-3 mr-1" />
+                        관리
+                      </Button>
+                    </label>
                     <Select 
                       value={newCandidate.mainCategory}
                       onValueChange={(value) => setNewCandidate({ ...newCandidate, mainCategory: value })}
@@ -344,7 +400,7 @@ export default function CandidateManagement() {
                         <SelectValue placeholder="구분 선택" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mainCategories.map(category => (
+                        {managedCategories.main.map((category: string) => (
                           <SelectItem key={category} value={category}>{category}</SelectItem>
                         ))}
                       </SelectContent>
@@ -360,7 +416,7 @@ export default function CandidateManagement() {
                         <SelectValue placeholder="세부 구분 선택" />
                       </SelectTrigger>
                       <SelectContent>
-                        {subCategories.map(category => (
+                        {managedCategories.sub.map((category: string) => (
                           <SelectItem key={category} value={category}>{category}</SelectItem>
                         ))}
                       </SelectContent>
@@ -445,6 +501,86 @@ export default function CandidateManagement() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 카테고리 관리 다이얼로그 */}
+        <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>구분/세부구분 관리</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* 구분 관리 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">구분 관리</h3>
+                <div className="flex space-x-2 mb-3">
+                  <Input
+                    placeholder="새 구분 입력"
+                    value={newCategoryInput.main}
+                    onChange={(e) => setNewCategoryInput(prev => ({ ...prev, main: e.target.value }))}
+                    onKeyPress={(e) => e.key === 'Enter' && addMainCategory()}
+                  />
+                  <Button onClick={addMainCategory} disabled={!newCategoryInput.main.trim()}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    추가
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {managedCategories.main.map((category: string) => (
+                    <Badge key={category} variant="secondary" className="px-3 py-1">
+                      {category}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-4 w-4 p-0 ml-2 hover:bg-red-100"
+                        onClick={() => removeMainCategory(category)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* 세부구분 관리 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">세부구분 관리</h3>
+                <div className="flex space-x-2 mb-3">
+                  <Input
+                    placeholder="새 세부구분 입력"
+                    value={newCategoryInput.sub}
+                    onChange={(e) => setNewCategoryInput(prev => ({ ...prev, sub: e.target.value }))}
+                    onKeyPress={(e) => e.key === 'Enter' && addSubCategory()}
+                  />
+                  <Button onClick={addSubCategory} disabled={!newCategoryInput.sub.trim()}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    추가
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {managedCategories.sub.map((category: string) => (
+                    <Badge key={category} variant="secondary" className="px-3 py-1">
+                      {category}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-4 w-4 p-0 ml-2 hover:bg-red-100"
+                        onClick={() => removeSubCategory(category)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={() => setShowCategoryManager(false)}>
+                  닫기
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

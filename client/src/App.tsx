@@ -10,6 +10,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminEvaluators from "@/pages/admin/evaluators";
 import AdminCandidates from "@/pages/admin/candidates";
 import AdminEvaluationItems from "@/pages/admin/evaluation-items";
+import AdminCategoryOptions from "@/pages/admin/category-options";
 import AdminResults from "@/pages/admin/results";
 import AdminSettings from "@/pages/admin/settings";
 import EvaluatorLogin from "@/pages/evaluator/login";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/admin/evaluators" component={AdminEvaluators} />
       <Route path="/admin/candidates" component={AdminCandidates} />
       <Route path="/admin/evaluation-items" component={AdminEvaluationItems} />
+      <Route path="/admin/category-options" component={AdminCategoryOptions} />
       <Route path="/admin/results" component={AdminResults} />
       <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/evaluator/login" component={EvaluatorLogin} />

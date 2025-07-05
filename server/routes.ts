@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
 import { storage } from "./storage-supabase-api";
-import { insertAdminSchema, insertEvaluatorSchema, insertCandidateSchema, insertEvaluationCategorySchema, insertEvaluationItemSchema, insertEvaluationSchema, insertSystemConfigSchema } from "@shared/schema";
+import { insertAdminSchema, insertEvaluatorSchema, insertCandidateSchema, insertEvaluationCategorySchema, insertEvaluationItemSchema, insertEvaluationSchema, insertSystemConfigSchema, insertCategoryOptionSchema } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
@@ -501,6 +501,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Category deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // ===== CATEGORY OPTIONS ROUTES =====
+  app.get("/api/admin/category-options", requireAuth, async (req, res) => {
+    try {
+      const options = await storage.getAllCategoryOptions();
+      res.json(options);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch category options" });
+    }
+  });
+
+  app.post("/api/admin/category-options", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertCategoryOptionSchema.parse(req.body);
+      const option = await storage.createCategoryOption(validatedData);
+      res.json(option);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create category option" });
+    }
+  });
+
+  app.patch("/api/admin/category-options/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertCategoryOptionSchema.partial().parse(req.body);
+      const option = await storage.updateCategoryOption(id, validatedData);
+      res.json(option);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update category option" });
+    }
+  });
+
+  app.delete("/api/admin/category-options/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteCategoryOption(id);
+      res.json({ message: "Category option deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete category option" });
     }
   });
 
