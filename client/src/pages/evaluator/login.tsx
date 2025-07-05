@@ -18,7 +18,7 @@ export default function EvaluatorLogin() {
 
   // 등록된 평가자 목록 불러오기 (공개 엔드포인트 사용)
   const { data: evaluators, isLoading: evaluatorsLoading } = useQuery({
-    queryKey: ["/api/evaluators"],
+    queryKey: ["/api/evaluators/active"],
     refetchOnWindowFocus: false,
   });
 

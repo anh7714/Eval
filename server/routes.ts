@@ -198,6 +198,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 평가자 로그인용 공개 엔드포인트 - 활성 평가자 이름만 반환
+  app.get("/api/evaluators/active", async (req, res) => {
+    try {
+      const evaluators = await storage.getActiveEvaluators();
+      // 보안을 위해 이름만 반환
+      const evaluatorNames = evaluators.map(e => ({ id: e.id, name: e.name }));
+      res.json(evaluatorNames);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch active evaluators" });
+    }
+  });
+
   app.get("/api/evaluators/active", async (req, res) => {
     try {
       const evaluators = await storage.getActiveEvaluators();
