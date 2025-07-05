@@ -401,35 +401,59 @@ export default function CandidateManagement() {
                         관리
                       </Button>
                     </label>
-                    <Select 
-                      value={newCandidate.mainCategory}
-                      onValueChange={(value) => setNewCandidate({ ...newCandidate, mainCategory: value })}
-                    >
-                      <SelectTrigger className="input-professional h-12">
-                        <SelectValue placeholder="구분 선택" />
-                      </SelectTrigger>
-                      <SelectContent className="z-50">
-                        {managedCategories.main.map((category: string) => (
-                          <SelectItem key={category} value={category}>{category}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="relative">
+                      <Select 
+                        value={newCandidate.mainCategory}
+                        onValueChange={(value) => setNewCandidate({ ...newCandidate, mainCategory: value })}
+                      >
+                        <SelectTrigger className="input-professional h-12 border-2 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-colors duration-200 shadow-sm hover:shadow-md">
+                          <SelectValue placeholder="구분 선택" />
+                        </SelectTrigger>
+                        <SelectContent 
+                          className="z-[100] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
+                          position="popper"
+                          sideOffset={4}
+                        >
+                          {managedCategories.main.map((category: string) => (
+                            <SelectItem 
+                              key={category} 
+                              value={category}
+                              className="hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
+                            >
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">세부 구분</label>
-                    <Select 
-                      value={newCandidate.subCategory}
-                      onValueChange={(value) => setNewCandidate({ ...newCandidate, subCategory: value })}
-                    >
-                      <SelectTrigger className="input-professional h-12">
-                        <SelectValue placeholder="세부 구분 선택" />
-                      </SelectTrigger>
-                      <SelectContent className="z-50">
-                        {managedCategories.sub.map((category: string) => (
-                          <SelectItem key={category} value={category}>{category}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="relative">
+                      <Select 
+                        value={newCandidate.subCategory}
+                        onValueChange={(value) => setNewCandidate({ ...newCandidate, subCategory: value })}
+                      >
+                        <SelectTrigger className="input-professional h-12 border-2 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500 transition-colors duration-200 shadow-sm hover:shadow-md">
+                          <SelectValue placeholder="세부 구분 선택" />
+                        </SelectTrigger>
+                        <SelectContent 
+                          className="z-[100] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
+                          position="popper"
+                          sideOffset={4}
+                        >
+                          {managedCategories.sub.map((category: string) => (
+                            <SelectItem 
+                              key={category} 
+                              value={category}
+                              className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
+                            >
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="md:col-span-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">설명</label>

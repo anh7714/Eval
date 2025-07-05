@@ -91,11 +91,13 @@ div[style*="z-index: 9999"][style*="position: fixed"] *,
     @apply backdrop-blur-md bg-black/40 dark:bg-black/60;
   }
   
-  /* Professional Select Component */
+  /* Professional Select Component with Enhanced Z-Index */
   [data-radix-select-content] {
     @apply bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 shadow-2xl rounded-xl overflow-hidden backdrop-blur-md;
     animation: scaleIn 0.15s ease-out;
     transform-origin: var(--radix-select-content-transform-origin);
+    z-index: 9999 !important;
+    position: relative;
   }
   
   [data-radix-select-item] {
@@ -107,6 +109,28 @@ div[style*="z-index: 9999"][style*="position: fixed"] *,
   [data-radix-select-item][data-highlighted] {
     border-left-color: #3b82f6;
     @apply bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/30 dark:to-transparent;
+  }
+  
+  /* Enhanced Form Input Styling */
+  .input-professional {
+    @apply border-2 border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 transition-all duration-200;
+    @apply focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800;
+    @apply hover:border-gray-300 dark:hover:border-gray-500;
+    @apply shadow-sm hover:shadow-md focus:shadow-lg;
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+  }
+  
+  /* Professional Card Styling */
+  .card-professional {
+    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg;
+    @apply hover:shadow-xl transition-shadow duration-300;
+    @apply overflow-hidden;
+  }
+  
+  /* Enhanced Button Hover Effects */
+  .btn-professional {
+    @apply transition-all duration-200 shadow-sm hover:shadow-md active:shadow-sm;
+    @apply transform hover:scale-[1.02] active:scale-[0.98];
   }
   
   /* Professional Dialog Positioning */
