@@ -9,22 +9,9 @@ import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3 } from "l
 import { useToast } from "@/hooks/use-toast";
 
 export default function EvaluationItemManagement() {
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [isAddingItem, setIsAddingItem] = useState(false);
-  const [newCategory, setNewCategory] = useState({
-    categoryCode: "",
-    categoryName: "",
-    description: "",
-  });
-  const [newItem, setNewItem] = useState({
-    categoryId: "",
-    itemCode: "",
-    itemName: "",
-    description: "",
-    maxScore: "",
-    weight: "",
-  });
-
+  // 평가 항목 관리 상태
+  const [activeTab, setActiveTab] = useState("template");
+  
   // 컬럼 설정 관리
   const [columnConfig, setColumnConfig] = useState([
     { id: 'section', title: '구분', type: 'section', visible: true, required: true, width: 'w-32' },
@@ -33,20 +20,8 @@ export default function EvaluationItemManagement() {
     { id: 'points', title: '배점', type: 'number', visible: true, required: true, width: 'w-16' },
     { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
   ]);
-
-  // 평가위원 및 평가대상 선택
-  const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
-  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
-  const [batchPrintMode, setBatchPrintMode] = useState(false);
-
-  // 평가위원 정보 (수동 입력용)
-  const [evaluator, setEvaluator] = useState({
-    name: '평가위원명',
-    position: '직책',
-    department: '소속기관'
-  });
-
-  // 평가표 템플릿 상태
+  
+  // 평가 템플릿 상태 (평가 항목으로 활용)
   const [currentTemplate, setCurrentTemplate] = useState({
     title: "제공기관 선정 심의회 평가표",
     totalScore: 100,
@@ -74,31 +49,13 @@ export default function EvaluationItemManagement() {
       }
     ]
   });
+  
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // 데이터 쿼리들
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ["/api/admin/categories"],
-  });
-
-  const { data: items = [], isLoading: itemsLoading } = useQuery({
-    queryKey: ["/api/admin/evaluation-items"],
-  });
-
-  // 평가위원 목록 가져오기
-  const { data: evaluators = [] } = useQuery({
-    queryKey: ["/api/admin/evaluators"],
-  });
-
-  // 후보자 목록 가져오기
-  const { data: candidates = [] } = useQuery({
-    queryKey: ["/api/admin/candidates"],
-  });
 
   // 컬럼 설정 변경 시 기존 데이터 동기화
   useEffect(() => {
