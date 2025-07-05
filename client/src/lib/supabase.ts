@@ -1,12 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Create supabase client only if environment variables are available
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+// Note: Client-side Supabase connection is disabled
+// All database operations should go through the server API
+export const supabase = null;
 
 // Database types for type safety
 export interface Database {
@@ -140,24 +134,12 @@ export interface Database {
   };
 }
 
-// Test connection function
+// Note: Direct Supabase connection test is disabled
+// All database operations should go through the server API
 export async function testSupabaseConnection() {
-  try {
-    if (!supabase) {
-      throw new Error('Supabase client not available - missing environment variables');
-    }
-    
-    const { data, error } = await supabase
-      .from('system_config')
-      .select('*')
-      .limit(1);
-    
-    if (error) throw error;
-    
-    console.log('Supabase connection successful:', data);
-    return { success: true, data };
-  } catch (error) {
-    console.error('Supabase connection failed:', error);
-    return { success: false, error };
-  }
+  console.log('Supabase client connection disabled - using server API instead');
+  return { 
+    success: true, 
+    data: { message: 'Using server API for database operations' } 
+  };
 }

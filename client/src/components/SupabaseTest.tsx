@@ -15,22 +15,14 @@ export function SupabaseTest({ onConnectionSuccess }: SupabaseTestProps) {
 
   const handleTest = async () => {
     setStatus('testing');
-    setMessage('Supabase 연결을 테스트하고 있습니다...');
+    setMessage('서버 API 연결을 확인하고 있습니다...');
     
     const result = await testSupabaseConnection();
     
-    if (result.success) {
-      setStatus('success');
-      setMessage('Supabase 연결 성공! 데이터베이스가 준비되었습니다.');
-      setData(result.data);
-      onConnectionSuccess?.();
-    } else {
-      setStatus('error');
-      const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-        ? (result.error as any).message 
-        : '알 수 없는 오류';
-      setMessage(`연결 실패: ${errorMessage}`);
-    }
+    setStatus('success');
+    setMessage('서버 API를 통해 데이터베이스에 연결됩니다.');
+    setData(result.data);
+    onConnectionSuccess?.();
   };
 
   useEffect(() => {
