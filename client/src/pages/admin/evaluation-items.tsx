@@ -52,10 +52,43 @@ export default function EvaluationItemManagement() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [savedEvaluationTemplate, setSavedEvaluationTemplate] = useState(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState({
+    categoryCode: "",
+    categoryName: "",
+    description: "",
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // 평가항목으로 저장하는 함수
+  const saveToEvaluationItems = () => {
+    try {
+      const templateData = {
+        ...currentTemplate,
+        columnConfig,
+        savedAt: new Date().toISOString(),
+        totalPoints: calculateTotalPoints()
+      };
+      
+      setSavedEvaluationTemplate(templateData);
+      setActiveTab("items");
+      
+      toast({
+        title: "평가항목으로 저장 완료",
+        description: "평가표 템플릿이 평가항목으로 성공적으로 저장되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "저장 실패",
+        description: "평가항목 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // 컬럼 설정 변경 시 기존 데이터 동기화
   useEffect(() => {
@@ -1214,9 +1247,8 @@ export default function EvaluationItemManagement() {
           </div>
         </div>
 
-        <Tabs defaultValue="categories" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="categories">평가 카테고리</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="items">평가 항목</TabsTrigger>
             <TabsTrigger value="template">평가표 템플릿</TabsTrigger>
           </TabsList>
@@ -1328,26 +1360,123 @@ export default function EvaluationItemManagement() {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">평가 항목</h2>
-                <Button 
-                  onClick={() => setIsAddingItem(true)}
-                  disabled={categories.length === 0}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  항목 추가
-                </Button>
+                <div className="text-sm text-gray-500">
+                  평가표 템플릿에서 저장된 평가 항목을 확인합니다
+                </div>
               </div>
 
-              {categories.length === 0 && (
+              {savedEvaluationTemplate ? (
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle className="text-lg">{savedEvaluationTemplate.title}</CardTitle>
+                        <CardDescription>
+                          저장일: {new Date(savedEvaluationTemplate.savedAt).toLocaleString('ko-KR')} 
+                          | 총 배점: {savedEvaluationTemplate.totalPoints}점
+                        </CardDescription>
+                      </div>
+                      <Button
+                        onClick={() => setActiveTab("template")}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        템플릿 편집
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {savedEvaluationTemplate.sections.map((section: any) => (
+                        <div key={section.id} className="border rounded-lg p-4">
+                          <h3 className="text-lg font-semibold mb-3 text-blue-700">
+                            {section.id}. {section.title} ({section.items.reduce((sum: number, item: any) => sum + (item.points || 0), 0)}점)
+                          </h3>
+                          
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse border border-gray-300">
+                              <thead>
+                                <tr className="bg-gray-50">
+                                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">세부 항목</th>
+                                  {savedEvaluationTemplate.columnConfig
+                                    .filter((col: any) => col.visible && !['section', 'item'].includes(col.id))
+                                    .map((col: any) => (
+                                      <th key={col.id} className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
+                                        {col.title}
+                                      </th>
+                                    ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {section.items.map((item: any, index: number) => (
+                                  <tr key={item.id} className="hover:bg-gray-50">
+                                    <td className="border border-gray-300 px-3 py-2 text-sm">
+                                      {index + 1}. {item.text}
+                                    </td>
+                                    {savedEvaluationTemplate.columnConfig
+                                      .filter((col: any) => col.visible && !['section', 'item'].includes(col.id))
+                                      .map((col: any) => (
+                                        <td key={col.id} className="border border-gray-300 px-3 py-2 text-center text-sm">
+                                          {col.id === 'points' || col.id === 'score' 
+                                            ? `${item[col.id] || 0}점`
+                                            : item[col.id] || ''
+                                          }
+                                        </td>
+                                      ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* 합계 행 */}
+                      <div className="border-t-2 border-gray-400 pt-4">
+                        <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg">
+                          <span className="text-lg font-bold">합계</span>
+                          <span className="text-xl font-bold text-blue-600">
+                            {savedEvaluationTemplate.totalPoints}점
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
                 <Card>
                   <CardContent className="pt-6">
-                    <p className="text-center text-gray-500">
-                      평가 항목을 추가하려면 먼저 카테고리를 생성해주세요.
-                    </p>
+                    <div className="text-center py-12">
+                      <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">저장된 평가항목이 없습니다</h3>
+                      <p className="text-gray-500 mb-6">
+                        평가표 템플릿에서 평가표를 작성한 후 "평가항목으로 저장" 버튼을 눌러주세요.
+                      </p>
+                      <Button
+                        onClick={() => setActiveTab("template")}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        평가표 템플릿으로 이동
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
+            </div>
+          </TabsContent>
 
-              {isAddingItem && categories.length > 0 && (
+          <TabsContent value="categories">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-semibold">평가 카테고리</h2>
+                <Button onClick={() => setIsAddingCategory(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  카테고리 추가
+                </Button>
+              </div>
+
+              {isAddingCategory && (
                 <Card>
                   <CardHeader>
                     <CardTitle>새 평가 항목 추가</CardTitle>
@@ -1497,6 +1626,15 @@ export default function EvaluationItemManagement() {
                       >
                         {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit3 className="h-4 w-4 mr-2" />}
                         {isEditing ? "편집 완료" : "편집"}
+                      </Button>
+                      <Button
+                        onClick={saveToEvaluationItems}
+                        variant="default"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        평가항목으로 저장
                       </Button>
                       <Button onClick={saveTemplate} variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-2" />
