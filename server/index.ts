@@ -41,7 +41,12 @@ app.use((req, res, next) => {
 
 (async () => {
   // Initialize Supabase API storage system
-  await import("./storage-supabase-api").then(module => module.initializeStorage());
+  try {
+    await import("./storage-supabase-api").then(module => module.initializeStorage());
+  } catch (error: any) {
+    console.warn("⚠️  Storage initialization warning:", error?.message || error);
+    console.warn("System will continue with basic functionality");
+  }
   
   const server = await registerRoutes(app);
 

@@ -36,11 +36,15 @@ async function initializeSupabase() {
     supabase = createClient(supabaseUrl, supabaseAnonKey);
     
     // Test the connection with a simple heartbeat
-    const { data, error } = await supabase.from('system_config').select('count').limit(1);
-    
-    if (error && error.code !== 'PGRST116' && error.code !== 'PGRST104') { 
-      // PGRST116 = no rows returned, PGRST104 = table doesn't exist - both are ok for initial setup
-      console.warn("⚠️  Supabase API warning:", error.message);
+    try {
+      const { data, error } = await supabase.from('system_config').select('count').limit(1);
+      
+      if (error && error.code !== 'PGRST116' && error.code !== 'PGRST104') { 
+        // PGRST116 = no rows returned, PGRST104 = table doesn't exist - both are ok for initial setup
+        console.warn("⚠️  Supabase API warning:", error.message);
+      }
+    } catch (testError: any) {
+      console.warn("⚠️  Supabase connection test warning:", testError?.message || testError);
     }
     
     console.log("✅ Successfully connected to Supabase API");
