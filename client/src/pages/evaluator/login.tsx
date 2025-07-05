@@ -79,24 +79,37 @@ export default function EvaluatorLogin() {
               <Label htmlFor="name" className="text-slate-700 dark:text-slate-300">
                 평가자명
               </Label>
-              <Select value={name} onValueChange={setName} disabled={isLoading || evaluatorsLoading}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="평가자를 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  {evaluators && Array.isArray(evaluators) && evaluators.length > 0 ? (
-                    evaluators.map((evaluator: any) => (
-                      <SelectItem key={evaluator.id} value={evaluator.name}>
-                        {evaluator.name}
+              <div className="relative mt-1">
+                <Select value={name} onValueChange={setName} disabled={isLoading || evaluatorsLoading}>
+                  <SelectTrigger className="input-professional h-12 border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md">
+                    <SelectValue placeholder="평가자를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent 
+                    className="z-[100] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
+                    position="popper"
+                    sideOffset={4}
+                  >
+                    {evaluators && Array.isArray(evaluators) && evaluators.length > 0 ? (
+                      evaluators.map((evaluator: any) => (
+                        <SelectItem 
+                          key={evaluator.id} 
+                          value={evaluator.name}
+                          className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
+                        >
+                          {evaluator.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem 
+                        value="no-evaluators"
+                        className="hover:bg-gray-50 dark:hover:bg-gray-900/30 cursor-pointer py-3 px-4 transition-colors duration-150 text-gray-500"
+                      >
+                        등록된 평가자가 없습니다
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-evaluators">
-                      등록된 평가자가 없습니다
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>

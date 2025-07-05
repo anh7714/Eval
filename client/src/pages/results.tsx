@@ -221,19 +221,34 @@ export default function ResultsPage() {
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="구분 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체</SelectItem>
-                    {categories.map((category: any) => (
-                      <SelectItem key={category.id} value={category.categoryName}>
-                        {category.categoryName}
+                <div className="relative">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-48 input-professional h-12 border-2 border-gray-200 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-500 transition-colors duration-200 shadow-sm hover:shadow-md">
+                      <SelectValue placeholder="구분 선택" />
+                    </SelectTrigger>
+                    <SelectContent 
+                      className="z-[100] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
+                      position="popper"
+                      sideOffset={4}
+                    >
+                      <SelectItem 
+                        value="all"
+                        className="hover:bg-amber-50 dark:hover:bg-amber-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
+                      >
+                        전체
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      {categories.map((category: any) => (
+                        <SelectItem 
+                          key={category.id} 
+                          value={category.categoryName}
+                          className="hover:bg-amber-50 dark:hover:bg-amber-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
+                        >
+                          {category.categoryName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -472,19 +487,34 @@ export default function ResultsPage() {
         <CardTitle className="flex items-center justify-between">
           <span>상세 평가 결과</span>
           <div className="flex items-center space-x-2">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="전체 카테고리" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체 카테고리</SelectItem>
-                {categories.map((category: any) => (
-                  <SelectItem key={category.id} value={category.categoryName}>
-                    {category.categoryName}
+            <div className="relative">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-48 input-professional h-12 border-2 border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors duration-200 shadow-sm hover:shadow-md">
+                  <SelectValue placeholder="전체 카테고리" />
+                </SelectTrigger>
+                <SelectContent 
+                  className="z-[100] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
+                  position="popper"
+                  sideOffset={4}
+                >
+                  <SelectItem 
+                    value="all"
+                    className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
+                  >
+                    전체 카테고리
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {categories.map((category: any) => (
+                    <SelectItem 
+                      key={category.id} 
+                      value={category.categoryName}
+                      className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
+                    >
+                      {category.categoryName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={handleExportResults} className="flex items-center space-x-2">
               <Download className="h-4 w-4" />
               <span>엑셀 다운로드</span>
