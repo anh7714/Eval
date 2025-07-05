@@ -137,7 +137,7 @@ export default function AdminDashboard() {
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = 'supabase_migration.sql';
+                        a.download = 'database_export.sql';
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
