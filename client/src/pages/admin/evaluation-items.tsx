@@ -441,7 +441,7 @@ export default function EvaluationItemManagement() {
     }));
 
     return {
-      title: "제공기관 선정 심의회 평가표",
+      title: (systemConfig as any)?.evaluationTitle || "제공기관 선정 심의회 평가표",
       totalScore: sections.reduce((sum: number, section: any) => sum + section.totalPoints, 0),
       sections
     };
@@ -464,7 +464,7 @@ export default function EvaluationItemManagement() {
     } else if ((categories && Array.isArray(categories) && categories.length > 0) || (items && Array.isArray(items) && items.length > 0)) {
       console.log('⚠️ 부분 데이터만 로드됨');
     }
-  }, [categories, items]);
+  }, [categories, items, systemConfig]);
 
   // 컬럼 설정 변경 시 기존 데이터 동기화
   useEffect(() => {
