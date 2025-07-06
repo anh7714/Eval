@@ -95,12 +95,31 @@ export default function EvaluationItemManagement() {
     queryKey: ["/api/admin/candidates"],
   });
 
-  // 템플릿 저장 뮤테이션
+  // 템플릿 저장 뮤테이션 (덮어쓰기 방식)
   const saveTemplateMutation = useMutation({
     mutationFn: async (template: any) => {
-      console.log('📝 심사표 저장 시작...', template);
+      console.log('📝 심사표 저장 시작 (덮어쓰기 방식)...', template);
       
-      // 1. 카테고리들을 먼저 저장
+      // 1. 기존 데이터 모두 삭제
+      console.log('🗑️ 기존 데이터 삭제 중...');
+      
+      // 기존 평가항목 삭제
+      const deleteItemsResponse = await fetch('/api/admin/evaluation-items/clear', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      
+      // 기존 카테고리 삭제
+      const deleteCategoriesResponse = await fetch('/api/admin/evaluation-categories/clear', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+
+      console.log('✅ 기존 데이터 삭제 완료');
+
+      // 2. 새로운 카테고리들을 저장
       const savedCategories = [];
       for (let sectionIndex = 0; sectionIndex < template.sections.length; sectionIndex++) {
         const section = template.sections[sectionIndex];
@@ -127,10 +146,10 @@ export default function EvaluationItemManagement() {
         savedCategories.push(savedCategory);
         
         // 서버 부하 방지를 위한 지연
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
-      // 2. 평가항목들을 순차적으로 저장
+      // 3. 새로운 평가항목들을 저장
       const savedItems = [];
       for (let sectionIndex = 0; sectionIndex < template.sections.length; sectionIndex++) {
         const section = template.sections[sectionIndex];
@@ -164,7 +183,7 @@ export default function EvaluationItemManagement() {
           savedItems.push(savedItem);
           
           // 서버 부하 방지를 위한 지연
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
 
@@ -223,9 +242,20 @@ export default function EvaluationItemManagement() {
 
   // 데이터베이스 데이터가 로드되면 템플릿 업데이트
   useEffect(() => {
+    console.log('✅ 데이터 로드 상태:', { 
+      categoriesCount: categories.length, 
+      itemsCount: items.length,
+      categories,
+      items 
+    });
+    
     if (categories.length > 0 && items.length > 0) {
+      console.log('🔄 템플릿 변환 시작...');
       const convertedTemplate = convertDataToTemplate();
+      console.log('📋 변환된 템플릿:', convertedTemplate);
       setCurrentTemplate(convertedTemplate);
+    } else if (categories.length > 0 || items.length > 0) {
+      console.log('⚠️ 부분 데이터만 로드됨');
     }
   }, [categories, items]);
 

@@ -544,6 +544,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 모든 평가 카테고리 삭제 (덮어쓰기용)
+  app.delete("/api/admin/evaluation-categories/clear", requireAuth, async (req, res) => {
+    try {
+      if (storage.clearCategories) {
+        await storage.clearCategories();
+      } else {
+        // fallback: 모든 카테고리 가져와서 개별 삭제
+        const categories = await storage.getAllCategories();
+        for (const category of categories) {
+          await storage.deleteCategory(category.id);
+        }
+      }
+      res.json({ message: "모든 평가 카테고리가 삭제되었습니다." });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // 모든 평가 항목 삭제 (덮어쓰기용)
+  app.delete("/api/admin/evaluation-items/clear", requireAuth, async (req, res) => {
+    try {
+      if (storage.clearEvaluationItems) {
+        await storage.clearEvaluationItems();
+      } else {
+        // fallback: 모든 항목 가져와서 개별 삭제
+        const items = await storage.getAllEvaluationItems();
+        for (const item of items) {
+          await storage.deleteEvaluationItem(item.id);
+        }
+      }
+      res.json({ message: "모든 평가 항목이 삭제되었습니다." });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ===== ADMIN EVALUATION CATEGORY ROUTES =====
   app.get("/api/admin/categories", requireAuth, async (req, res) => {
     try {

@@ -471,7 +471,36 @@ export class SupabaseStorage {
   }
 
   async deleteCategory(id: number): Promise<void> {
-    throw new Error("Not implemented");
+    const { error } = await supabase
+      .from('evaluation_categories')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`카테고리 삭제 실패: ${error.message}`);
+    }
+  }
+
+  async clearCategories(): Promise<void> {
+    const { error } = await supabase
+      .from('evaluation_categories')
+      .delete()
+      .neq('id', 0); // 모든 데이터 삭제
+
+    if (error) {
+      throw new Error(`모든 카테고리 삭제 실패: ${error.message}`);
+    }
+  }
+
+  async clearEvaluationItems(): Promise<void> {
+    const { error } = await supabase
+      .from('evaluation_items')
+      .delete()
+      .neq('id', 0); // 모든 데이터 삭제
+
+    if (error) {
+      throw new Error(`모든 평가 항목 삭제 실패: ${error.message}`);
+    }
   }
 
   async getAllEvaluationItems(): Promise<(EvaluationItem & { categoryName: string })[]> {
