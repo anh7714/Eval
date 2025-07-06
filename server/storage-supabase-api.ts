@@ -434,15 +434,72 @@ export class SupabaseStorage {
   }
 
   async getAllCandidates(): Promise<Candidate[]> {
-    const { data, error } = await supabase
-      .from('candidates')
-      .select('*');
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await supabase
+        .from('candidates')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching candidates:', error);
+        throw error;
+      }
+      
+      // Map Supabase data to application schema
+      return (data || []).map(candidate => ({
+        id: candidate.id as number,
+        name: candidate.name as string,
+        department: candidate.department as string,
+        position: candidate.position as string,
+        category: candidate.category as string | null,
+        mainCategory: candidate.main_category as string | null,
+        subCategory: candidate.sub_category as string | null,
+        description: candidate.description as string | null,
+        sortOrder: candidate.sort_order as number,
+        isActive: candidate.is_active as boolean,
+        createdAt: new Date(candidate.created_at as string),
+        updatedAt: new Date(candidate.updated_at as string)
+      }));
+    } catch (error) {
+      console.error('Error in getAllCandidates:', error);
+      throw error;
+    }
   }
 
   async getActiveCandidates(): Promise<Candidate[]> {
-    return [];
+    try {
+      const { data, error } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching active candidates:', error);
+        throw error;
+      }
+      
+      // Map Supabase data to application schema
+      return (data || []).map(candidate => ({
+        id: candidate.id as number,
+        name: candidate.name as string,
+        department: candidate.department as string,
+        position: candidate.position as string,
+        category: candidate.category as string | null,
+        mainCategory: candidate.main_category as string | null,
+        subCategory: candidate.sub_category as string | null,
+        description: candidate.description as string | null,
+        sortOrder: candidate.sort_order as number,
+        isActive: candidate.is_active as boolean,
+        createdAt: new Date(candidate.created_at as string),
+        updatedAt: new Date(candidate.updated_at as string)
+      }));
+    } catch (error) {
+      console.error('Error in getActiveCandidates:', error);
+      throw error;
+    }
   }
 
   async createCandidate(candidate: InsertCandidate): Promise<Candidate> {
