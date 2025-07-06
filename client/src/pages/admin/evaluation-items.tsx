@@ -274,6 +274,11 @@ export default function EvaluationItemManagement() {
     queryKey: ["/api/admin/candidates"],
   });
 
+  // 시스템 설정 가져오기
+  const { data: systemConfig = {} } = useQuery({
+    queryKey: ["/api/system/config"],
+  });
+
   // 템플릿 저장 뮤테이션 (덮어쓰기 방식)
   const saveTemplateMutation = useMutation({
     mutationFn: async (template: any) => {
