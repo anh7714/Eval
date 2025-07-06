@@ -804,7 +804,7 @@ export default function EvaluationItemManagement() {
                           </label>
                           <span className="text-gray-500">{column.width}</span>
                           {column.required && (
-                            <Badge variant="secondary" className="text-xs px-1 py-0">필수</Badge>
+                            <Badge variant="destructive" className="text-xs px-1 py-0">필수</Badge>
                           )}
                           {!column.required && (
                             <Button
