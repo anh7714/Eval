@@ -41,10 +41,8 @@ export default function EvaluationItemManagement() {
     queryFn: () => fetch('/api/admin/evaluation-items').then(res => res.json())
   });
 
-  const { data: evaluators = [] } = useQuery({
-    queryKey: ['/api/evaluators'],
-    queryFn: () => fetch('/api/evaluators').then(res => res.json())
-  });
+  // 평가위원 데이터는 필요할 때만 로드 (현재는 사용하지 않음)
+  const evaluators: any[] = [];
 
   const { data: candidates = [] } = useQuery({
     queryKey: ['/api/candidates'],
@@ -175,8 +173,8 @@ export default function EvaluationItemManagement() {
   const visibleColumns = columnConfig.filter(col => col.visible);
 
   // 선택된 평가위원과 평가대상 정보
-  const selectedEvaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
-  const selectedCandidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
+  const selectedEvaluatorInfo = Array.isArray(evaluators) ? evaluators.find((e: any) => e.id === selectedEvaluator) : null;
+  const selectedCandidateInfo = Array.isArray(candidates) ? candidates.find((c: any) => c.id === selectedCandidate) : null;
 
   // 동적 제목 생성
   const getDynamicTitle = () => {
