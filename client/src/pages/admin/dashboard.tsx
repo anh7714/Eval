@@ -117,21 +117,16 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
-        <div className="text-center mb-12">
-          <div className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-            시스템 관리
-          </div>
-          <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2">
             관리자 대시보드
           </h1>
-          <div className="space-y-2">
-            <p className="text-xl font-semibold text-green-600 dark:text-green-400">
-              관리자님! 환영합니다.
-            </p>
-            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-              평가 시스템의 전체 현황을 확인하고 관리합니다
-            </p>
-          </div>
+          <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">
+            관리자님! 환영합니다.
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            평가 시스템의 전체 현황을 확인하고 관리합니다.
+          </p>
         </div>
         
         {/* Statistics Cards */}

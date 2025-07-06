@@ -73,21 +73,21 @@ export default function EvaluatorDashboard() {
     : results.filter((result: CandidateResult) => result.candidate.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="container mx-auto px-4 py-8">
         {/* 헤더 */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center space-x-8">
-            <h1 className="text-4xl font-bold text-gray-900">종합평가시스템</h1>
-            <div className="flex space-x-6">
-              <span className="text-lg font-medium text-blue-600">평가위원 대시보드</span>
-            </div>
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2">평가위원 대시보드</h1>
+            <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">
+              {(evaluator as any)?.name || "평가자"} 위원님! 환영합니다.
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              평가 현황을 확인하고 평가를 진행하세요.
+            </p>
           </div>
           
           <div className="flex items-center space-x-4">
-            <span className="text-lg font-semibold text-blue-600">
-              {(evaluator as any)?.name || "평가자"} 위원님! 환영합니다.
-            </span>
             <Button variant="outline" onClick={handleLogout} className="flex items-center space-x-2">
               <LogOut className="h-4 w-4" />
               <span>로그아웃</span>
