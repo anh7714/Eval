@@ -124,9 +124,14 @@ export default function AdminDashboard() {
           <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             관리자 대시보드
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            평가 시스템의 전체 현황을 확인하고 관리합니다
-          </p>
+          <div className="space-y-2">
+            <p className="text-xl font-semibold text-green-600 dark:text-green-400">
+              관리자님! 환영합니다.
+            </p>
+            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+              평가 시스템의 전체 현황을 확인하고 관리합니다
+            </p>
+          </div>
         </div>
         
         {/* Statistics Cards */}

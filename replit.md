@@ -158,6 +158,12 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ z-index 9999로 드롭다운 겹침 문제 완전 해결
 - ✓ 각 페이지별 색상 테마로 드롭다운 구분 (후보자관리: 파랑/보라, 평가자로그인: 초록, 결과페이지: 호박/인디고)
 - ✓ hover 효과와 부드러운 애니메이션으로 사용자 경험 향상
+- ✓ 평가 진행 상태 추적 기능 구현 (2025.07.06)
+- ✓ 대시보드 통계에 "진행중", "완료", "미완료" 평가대상 상태 표시
+- ✓ Supabase API 저장소에서 evaluation_submissions 테이블 기반 정확한 진행률 계산
+- ✓ 개인화된 환영 메시지 추가 (2025.07.06)
+- ✓ 평가위원 로그인 시 "[이름] 위원님! 환영합니다." 표시
+- ✓ 관리자 로그인 시 "관리자님! 환영합니다." 표시
 
 ## User Preferences
 

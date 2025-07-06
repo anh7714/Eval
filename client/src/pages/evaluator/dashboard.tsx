@@ -85,7 +85,9 @@ export default function EvaluatorDashboard() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">평가자: {(evaluator as any)?.name || "평가자"}</span>
+            <span className="text-lg font-semibold text-blue-600">
+              {(evaluator as any)?.name || "평가자"} 위원님! 환영합니다.
+            </span>
             <Button variant="outline" onClick={handleLogout} className="flex items-center space-x-2">
               <LogOut className="h-4 w-4" />
               <span>로그아웃</span>
