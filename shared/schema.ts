@@ -49,24 +49,28 @@ export const evaluators = pgTable("evaluators", {
 // Evaluation Categories
 export const evaluationCategories = pgTable("evaluation_categories", {
   id: serial("id").primaryKey(),
-  categoryCode: text("category_code").notNull(),
-  categoryName: text("category_name").notNull(),
+  name: text("name").notNull(),
+  type: text("type").notNull().default("evaluation"),
   description: text("description"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Evaluation Items
 export const evaluationItems = pgTable("evaluation_items", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id").references(() => evaluationCategories.id).notNull(),
-  itemCode: text("item_code").notNull(),
-  itemName: text("item_name").notNull(),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
   description: text("description"),
   maxScore: integer("max_score").notNull().default(10),
   weight: decimal("weight", { precision: 5, scale: 2 }).notNull().default("1.00"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Category Options (for candidate categorization)

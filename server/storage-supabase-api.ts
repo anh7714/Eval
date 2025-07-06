@@ -925,18 +925,20 @@ export class SupabaseStorage {
   private mapEvaluationCategory(data: any): EvaluationCategory {
     return {
       id: data.id,
-      categoryCode: data.category_code,
-      categoryName: data.category_name,
+      name: data.name,
+      type: data.type,
       description: data.description,
       sortOrder: data.sort_order,
-      isActive: data.is_active
+      isActive: data.is_active,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
     };
   }
 
   private mapToSupabaseEvaluationCategory(category: Partial<InsertEvaluationCategory>): any {
     return {
-      category_code: category.categoryCode,
-      category_name: category.categoryName,
+      name: category.name,
+      type: category.type,
       description: category.description,
       sort_order: category.sortOrder,
       is_active: category.isActive
@@ -948,21 +950,23 @@ export class SupabaseStorage {
     return {
       id: data.id,
       categoryId: data.category_id,
-      itemCode: data.item_code,
-      itemName: data.item_name,
+      code: data.code,
+      name: data.name,
       description: data.description,
       maxScore: data.max_score,
       weight: data.weight,
       sortOrder: data.sort_order,
-      isActive: data.is_active
+      isActive: data.is_active,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
     };
   }
 
   private mapToSupabaseEvaluationItem(item: Partial<InsertEvaluationItem>): any {
     return {
       category_id: item.categoryId,
-      item_code: item.itemCode,
-      item_name: item.itemName,
+      code: item.code,
+      name: item.name,
       description: item.description,
       max_score: item.maxScore,
       weight: item.weight,

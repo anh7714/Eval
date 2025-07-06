@@ -107,6 +107,7 @@ export default function EvaluationItemManagement() {
         const categoryData = {
           name: section.title,
           type: 'evaluation',
+          description: `${section.title} 관련 평가 카테고리`,
           isActive: true,
           sortOrder: sectionIndex + 1
         };
