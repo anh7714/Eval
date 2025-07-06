@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { createClient } from '@supabase/supabase-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { CheckCircle, Clock, User, ArrowRight, Eye, Edit3, X } from "lucide-reac
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 interface CandidateResult {
   candidate: {
@@ -43,8 +44,11 @@ export default function EvaluatorEvaluationPage() {
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
   const [evaluationTemplate, setEvaluationTemplate] = useState<any>(null);
+  const [evaluationScores, setEvaluationScores] = useState<{ [key: string]: number }>({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // 필터 초기화 함수
   const resetFilters = () => {
@@ -86,6 +90,111 @@ export default function EvaluatorEvaluationPage() {
       candidate: candidate,
       categories: categoryGroups
     };
+  };
+
+  // 평가 점수 변경 함수
+  const handleScoreChange = (itemId: string, score: number, maxScore: number) => {
+    if (score > maxScore) {
+      toast({
+        title: "점수 초과",
+        description: `최대 ${maxScore}점까지 입력 가능합니다.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setEvaluationScores(prev => ({
+      ...prev,
+      [itemId]: score
+    }));
+  };
+
+  // 임시 저장 뮤테이션
+  const saveTemporaryMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/evaluator/evaluation/save-temporary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('임시 저장 실패');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "임시 저장 완료",
+        description: "평가 내용이 임시 저장되었습니다.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "저장 실패",
+        description: "임시 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // 평가 완료 뮤테이션
+  const completeEvaluationMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/evaluator/evaluation/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('평가 완료 실패');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "평가 완료",
+        description: "평가가 성공적으로 완료되었습니다.",
+      });
+      setIsEvaluationModalOpen(false);
+      setShowConfirmDialog(false);
+      setEvaluationScores({});
+      // 데이터 새로고침
+      queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+    },
+    onError: () => {
+      toast({
+        title: "평가 실패",
+        description: "평가 완료 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // 임시 저장 함수
+  const handleTemporarySave = () => {
+    const totalScore = Object.values(evaluationScores).reduce((sum, score) => sum + score, 0);
+    const data = {
+      candidateId: selectedCandidate.id,
+      scores: evaluationScores,
+      totalScore,
+      isCompleted: false
+    };
+    saveTemporaryMutation.mutate(data);
+  };
+
+  // 평가 완료 함수
+  const handleCompleteEvaluation = () => {
+    setShowConfirmDialog(true);
+  };
+
+  // 평가 완료 확인 함수
+  const confirmCompleteEvaluation = () => {
+    const totalScore = Object.values(evaluationScores).reduce((sum, score) => sum + score, 0);
+    const data = {
+      candidateId: selectedCandidate.id,
+      scores: evaluationScores,
+      totalScore,
+      isCompleted: true
+    };
+    completeEvaluationMutation.mutate(data);
   };
 
   // Supabase 실시간 연결 및 폴링 백업 시스템
@@ -547,8 +656,16 @@ export default function EvaluatorEvaluationPage() {
                                       min="0"
                                       max={item.maxScore}
                                       placeholder="0"
-                                      className="w-20 text-center text-sm mx-auto bg-white border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md font-medium"
-                                      defaultValue=""
+                                      value={evaluationScores[item.id] || ""}
+                                      onChange={(e) => {
+                                        const value = parseInt(e.target.value) || 0;
+                                        handleScoreChange(item.id, value, item.maxScore);
+                                      }}
+                                      className="w-20 text-center text-sm mx-auto bg-white border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      style={{ 
+                                        MozAppearance: 'textfield',
+                                        WebkitAppearance: 'none'
+                                      }}
                                     />
                                   </td>
                                 </tr>
@@ -564,7 +681,9 @@ export default function EvaluatorEvaluationPage() {
                                   {totalPoints}점
                                 </td>
                                 <td className="border border-black px-3 py-4 text-center bg-blue-50">
-                                  <span className="text-lg font-bold text-blue-800">0점</span>
+                                  <span className="text-lg font-bold text-blue-800">
+                                    {Object.values(evaluationScores).reduce((sum, score) => sum + score, 0)}점
+                                  </span>
                                 </td>
                               </tr>
                             ]);
@@ -601,13 +720,17 @@ export default function EvaluatorEvaluationPage() {
                       <Button
                         variant="outline"
                         className="px-6 py-2 bg-gray-600 text-white hover:bg-gray-700 border-2 border-gray-600"
+                        onClick={handleTemporarySave}
+                        disabled={saveTemporaryMutation.isPending}
                       >
-                        임시 저장
+                        {saveTemporaryMutation.isPending ? "저장 중..." : "임시 저장"}
                       </Button>
                       <Button
                         className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-600 shadow-lg"
+                        onClick={handleCompleteEvaluation}
+                        disabled={completeEvaluationMutation.isPending}
                       >
-                        평가 완료
+                        {completeEvaluationMutation.isPending ? "완료 중..." : "평가 완료"}
                       </Button>
                     </div>
                   </div>
@@ -615,6 +738,43 @@ export default function EvaluatorEvaluationPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* 평가 완료 확인 다이얼로그 */}
+        {showConfirmDialog && (
+          <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-gray-900">
+                  평가 완료 확인
+                </DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-gray-700 mb-4">
+                  평가를 완료하시겠습니까?
+                </p>
+                <p className="text-red-600 font-medium text-sm">
+                  '평가 완료'를 누르면 더 이상 수정할 수 없습니다. 제출하시겠습니까?
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirmDialog(false)}
+                  className="px-4 py-2"
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={confirmCompleteEvaluation}
+                  disabled={completeEvaluationMutation.isPending}
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  {completeEvaluationMutation.isPending ? "완료 중..." : "평가 완료"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>

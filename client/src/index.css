@@ -18,6 +18,20 @@ div[style*="z-index: 9999"][style*="position: fixed"] *,
   z-index: -1 !important;
 }
 
+/* Remove number input spin buttons */
+input[type="number"] {
+  -moz-appearance: textfield;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+  display: none !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
