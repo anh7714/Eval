@@ -147,49 +147,45 @@ export default function EvaluatorEvaluationPage() {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-medium">구분:</label>
-                  <Select value={selectedMainCategory} onValueChange={setSelectedMainCategory}>
-                    <SelectTrigger className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md">
-                      <SelectValue placeholder="구분 선택" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
-                      <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 구분</SelectItem>
-                      {candidates && Array.isArray(candidates) && 
-                        Array.from(new Set((candidates as any[])
-                          .filter(c => c && c.category)
-                          .map((c: any) => c.category.split(' > ')[0])
-                          .filter(Boolean)
-                        ))
-                        .map((category: string) => (
-                          <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
-                            {category}
-                          </SelectItem>
-                        ))
-                      }
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    value={selectedMainCategory} 
+                    onChange={(e) => setSelectedMainCategory(e.target.value)}
+                    className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    <option value="all">전체 구분</option>
+                    {candidates && Array.isArray(candidates) && 
+                      Array.from(new Set((candidates as any[])
+                        .filter(c => c && c.category)
+                        .map((c: any) => c.category.split(' > ')[0])
+                        .filter(Boolean)
+                      )).map((category: string) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))
+                    }
+                  </select>
                 </div>
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-medium">세부구분:</label>
-                  <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
-                    <SelectTrigger className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md">
-                      <SelectValue placeholder="세부구분 선택" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
-                      <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 세부구분</SelectItem>
-                      {candidates && Array.isArray(candidates) && 
-                        Array.from(new Set((candidates as any[])
-                          .filter(c => c && c.category && c.category.includes(' > '))
-                          .map((c: any) => c.category.split(' > ')[1])
-                          .filter(Boolean)
-                        ))
-                        .map((category: string) => (
-                          <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
-                            {category}
-                          </SelectItem>
-                        ))
-                      }
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    value={selectedSubCategory} 
+                    onChange={(e) => setSelectedSubCategory(e.target.value)}
+                    className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    <option value="all">전체 세부구분</option>
+                    {candidates && Array.isArray(candidates) && 
+                      Array.from(new Set((candidates as any[])
+                        .filter(c => c && c.category && c.category.includes(' > '))
+                        .map((c: any) => c.category.split(' > ')[1])
+                        .filter(Boolean)
+                      )).map((category: string) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))
+                    }
+                  </select>
                 </div>
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-medium">상태:</label>
