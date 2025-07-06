@@ -354,7 +354,7 @@ export default function EvaluationItemManagement() {
     const newSectionId = String.fromCharCode(65 + currentTemplate.sections.length); // A, B, C...
     const newSection = {
       id: newSectionId,
-      title: '새 섹션',
+      title: '새구분',
       totalPoints: 10,
       items: [
         { id: 1, text: '새 항목', type: '정성', points: 10, score: 0 }
@@ -769,7 +769,7 @@ export default function EvaluationItemManagement() {
                         </div>
                         <div className="ml-3">
                           <p className="text-xs text-amber-800">
-                            <strong>평가표의 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.</strong>
+                            <strong>제목박스의 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.</strong>
                           </p>
                         </div>
                       </div>
@@ -780,40 +780,39 @@ export default function EvaluationItemManagement() {
                           <Input
                             value={column.title}
                             onChange={(e) => updateColumnConfig(column.id, 'title', e.target.value)}
-                            className="w-20 h-6 text-xs"
-                            placeholder="컬럼명"
+                            className="w-32 text-xs"
+                            disabled={column.required}
                           />
                           <select
                             value={column.type}
                             onChange={(e) => updateColumnConfig(column.id, 'type', e.target.value)}
-                            className="w-16 h-6 text-xs border rounded px-1"
+                            className="text-xs border rounded px-2 py-1 bg-white"
+                            disabled={column.required}
                           >
                             <option value="text">텍스트</option>
                             <option value="number">숫자</option>
                             <option value="select">선택</option>
-                            <option value="section">구분</option>
                           </select>
                           <label className="flex items-center gap-1">
                             <input
                               type="checkbox"
                               checked={column.visible}
                               onChange={(e) => updateColumnConfig(column.id, 'visible', e.target.checked)}
-                              className="w-3 h-3"
+                              className="rounded"
                             />
-                            <span>표시</span>
+                            <span className="text-xs">표시</span>
                           </label>
-                          <span className="text-gray-500">{column.width}</span>
-                          {column.required && (
-                            <Badge variant="destructive" className="text-xs px-1 py-0">필수</Badge>
-                          )}
+                          <div className="text-xs text-gray-500">
+                            {column.required ? '필수' : '선택'}
+                          </div>
                           {!column.required && (
                             <Button
                               onClick={() => deleteColumn(column.id)}
                               size="sm"
                               variant="outline"
-                              className="h-6 w-6 p-0"
+                              className="h-6 w-6 p-0 hover:bg-red-50 hover:border-red-200"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3 w-3 text-red-500" />
                             </Button>
                           )}
                         </div>
