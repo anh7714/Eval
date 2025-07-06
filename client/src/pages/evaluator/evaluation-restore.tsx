@@ -126,6 +126,9 @@ export default function EvaluatorEvaluationPage() {
         description: "평가 내용이 임시 저장되었습니다.",
         variant: "success" as any,
       });
+      // 데이터 새로고침
+      queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
     },
     onError: () => {
       toast({

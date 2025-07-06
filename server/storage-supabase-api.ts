@@ -870,7 +870,48 @@ export class SupabaseStorage {
   }
 
   async getEvaluatorProgress(evaluatorId: number): Promise<{ completed: number; total: number; progress: number }> {
-    return { completed: 0, total: 0, progress: 0 };
+    try {
+      console.log('📊 평가자 진행률 계산 시작:', evaluatorId);
+      
+      // 활성 평가대상 수 조회
+      const { data: candidates, error: candidatesError } = await supabase
+        .from('candidates')
+        .select('id')
+        .eq('is_active', true);
+
+      if (candidatesError) {
+        console.error('활성 평가대상 조회 오류:', candidatesError);
+        throw candidatesError;
+      }
+
+      const total = candidates?.length || 0;
+      console.log('📊 총 평가대상 수:', total);
+
+      // 완료된 평가 수 조회
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('evaluation_submissions')
+        .select('id')
+        .eq('evaluator_id', evaluatorId)
+        .eq('is_completed', true);
+
+      if (submissionsError) {
+        console.error('완료된 평가 조회 오류:', submissionsError);
+        // 컬럼이 없는 경우 0으로 반환
+        const completed = 0;
+        const progress = 0;
+        console.log('📊 평가자 진행률 (컬럼 없음):', { completed, total, progress });
+        return { completed, total, progress };
+      }
+
+      const completed = submissions?.length || 0;
+      const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      console.log('📊 평가자 진행률:', { completed, total, progress });
+      return { completed, total, progress };
+    } catch (error) {
+      console.error('평가자 진행률 계산 오류:', error);
+      return { completed: 0, total: 0, progress: 0 };
+    }
   }
 
   async getEvaluationResults(): Promise<any[]> {
