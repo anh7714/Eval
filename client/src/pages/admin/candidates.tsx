@@ -126,8 +126,8 @@ export default function CandidateManagement() {
   const { data: candidates = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["candidates"],
     queryFn: fetchCandidates,
-    staleTime: 2 * 60 * 1000, // 2분 - 더 긴 캐시 유지
-    gcTime: 10 * 60 * 1000, // 10분
+    staleTime: 30 * 1000, // 30초 - 빠른 업데이트를 위해 단축
+    gcTime: 5 * 60 * 1000, // 5분
     refetchOnWindowFocus: false,
     refetchOnMount: false, // 마운트 시에는 캐시 사용
     refetchInterval: false, // 자동 새로고침 비활성화
@@ -136,12 +136,12 @@ export default function CandidateManagement() {
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // 실시간 구독 최적화 - 성능 개선
+  // 실시간 양방향 동기화 - 즉시 반영
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    console.log('🔄 실시간 양방향 동기화 시작...');
     
     const channel = supabase
-      .channel('candidates-optimized')
+      .channel('candidates-realtime-fast')
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -149,19 +149,30 @@ export default function CandidateManagement() {
           table: 'candidates' 
         }, 
         (payload) => {
-          console.log('📡 데이터 변경 감지:', payload.eventType);
+          console.log('📡 실시간 변경 감지:', payload.eventType, payload.new || payload.old);
           
-          // debounce: 1초 내 여러 변경사항을 하나로 처리
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
+          // 즉시 캐시 업데이트 (debounce 제거)
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            queryClient.setQueryData(['candidates'], (old: any[]) => {
+              if (!old) return [];
+              return old.map(candidate => 
+                candidate.id === payload.new.id 
+                  ? { ...candidate, ...payload.new }
+                  : candidate
+              );
+            });
+          } else {
+            // INSERT/DELETE의 경우 전체 새로고침
             queryClient.invalidateQueries({ queryKey: ['candidates'] });
-          }, 1000);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 실시간 구독 상태:', status);
+      });
 
     return () => {
-      clearTimeout(timeoutId);
+      console.log('🔄 실시간 구독 종료');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
@@ -197,7 +208,7 @@ export default function CandidateManagement() {
       );
     },
     onError: (error, { id, isActive }) => {
-      // 실패 시 롤백
+      // 실패 시 즉시 롤백
       setFailedOperations(prev => new Set(Array.from(prev).concat([id])));
       toast({ 
         title: "오류", 
@@ -205,10 +216,8 @@ export default function CandidateManagement() {
         variant: "destructive" 
       });
       
-      // 캐시 롤백 (debounce 적용)
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['candidates'] });
-      }, 500);
+      // 즉시 캐시 롤백
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
     },
     onSettled: (data, error, { id }) => {
       // 💡 완료 시 pending 상태 제거
