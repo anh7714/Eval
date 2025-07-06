@@ -488,53 +488,69 @@ export default function EvaluatorEvaluationPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(evaluationTemplate.categories).map(([categoryName, category]: [string, any]) => {
-                        const categoryItems = category.items || [];
-                        const categoryTotal = categoryItems.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
+                      {(() => {
+                        // 카테고리별로 평가 항목을 그룹화
+                        const categoryGroups: { [key: string]: any[] } = {};
                         
-                        return categoryItems.map((item: any, itemIndex: number) => (
-                          <tr key={`${categoryName}-${itemIndex}`}>
-                            {itemIndex === 0 && (
-                              <td 
-                                className="border border-gray-400 px-2 py-3 text-center font-bold bg-gray-50 align-middle"
-                                rowSpan={categoryItems.length}
-                              >
-                                <div className="text-sm font-bold">{categoryName}</div>
-                                <div className="text-xs text-gray-600 mt-1">({categoryTotal}점)</div>
+                        evaluationItems.forEach((item: any) => {
+                          const category = categories.find((cat: any) => cat.id === item.categoryId);
+                          const categoryName = category?.name || '기타';
+                          
+                          if (!categoryGroups[categoryName]) {
+                            categoryGroups[categoryName] = [];
+                          }
+                          categoryGroups[categoryName].push(item);
+                        });
+
+                        const totalPoints = evaluationItems.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
+
+                        return Object.entries(categoryGroups).map(([categoryName, items]) => {
+                          const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
+                          
+                          return items.map((item: any, itemIndex: number) => (
+                            <tr key={`${categoryName}-${itemIndex}`}>
+                              {itemIndex === 0 && (
+                                <td 
+                                  className="border border-gray-400 px-2 py-3 text-center font-bold bg-gray-50 align-middle"
+                                  rowSpan={items.length}
+                                >
+                                  <div className="text-sm font-bold">{categoryName}</div>
+                                  <div className="text-xs text-gray-600 mt-1">({categoryTotal}점)</div>
+                                </td>
+                              )}
+                              <td className="border border-gray-400 px-3 py-2 text-sm">
+                                {itemIndex + 1}. {item.text}
                               </td>
-                            )}
-                            <td className="border border-gray-400 px-3 py-2 text-sm">
-                              {itemIndex + 1}. {item.text}
-                            </td>
-                            <td className="border border-gray-400 px-2 py-2 text-center text-sm">
-                              {item.type}
-                            </td>
-                            <td className="border border-gray-400 px-2 py-2 text-center text-sm">
-                              {item.points}점
-                            </td>
-                            <td className="border border-gray-400 px-2 py-2 text-center bg-blue-50">
-                              <Input
-                                type="number"
-                                min="0"
-                                max={item.points}
-                                placeholder="0"
-                                className="w-16 text-center text-sm mx-auto bg-blue-50 focus:bg-white"
-                                defaultValue={item.score || 0}
-                              />
+                              <td className="border border-gray-400 px-2 py-2 text-center text-sm">
+                                {item.type}
+                              </td>
+                              <td className="border border-gray-400 px-2 py-2 text-center text-sm">
+                                {item.points}점
+                              </td>
+                              <td className="border border-gray-400 px-2 py-2 text-center bg-blue-50">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={item.points}
+                                  placeholder="0"
+                                  className="w-16 text-center text-sm mx-auto bg-blue-50 focus:bg-white"
+                                  defaultValue={item.score || 0}
+                                />
+                              </td>
+                            </tr>
+                          ));
+                        }).flat().concat([
+                          // 합계 행
+                          <tr key="total" className="bg-yellow-50 font-bold">
+                            <td className="border border-gray-400 px-4 py-3 text-center" colSpan={2}>합계</td>
+                            <td className="border border-gray-400 px-2 py-3 text-center"></td>
+                            <td className="border border-gray-400 px-2 py-3 text-center">{totalPoints}점</td>
+                            <td className="border border-gray-400 px-2 py-3 text-center bg-blue-50">
+                              <span className="text-lg font-bold">0점</span>
                             </td>
                           </tr>
-                        ));
-                      })}
-                      
-                      {/* 합계 행 */}
-                      <tr className="bg-yellow-50 font-bold">
-                        <td className="border border-gray-400 px-4 py-3 text-center" colSpan={2}>합계</td>
-                        <td className="border border-gray-400 px-2 py-3 text-center"></td>
-                        <td className="border border-gray-400 px-2 py-3 text-center">100점</td>
-                        <td className="border border-gray-400 px-2 py-3 text-center bg-blue-50">
-                          <span className="text-lg font-bold">0점</span>
-                        </td>
-                      </tr>
+                        ]);
+                      })()}
                     </tbody>
                   </table>
                 </div>
