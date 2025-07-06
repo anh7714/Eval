@@ -197,9 +197,9 @@ export default function EvaluationItemManagement() {
       return currentTemplate; // 데이터가 없으면 기본 템플릿 반환
     }
 
-    const sections = categories.map((category: any) => ({
-      id: category.categoryCode,
-      title: category.categoryName,
+    const sections = categories.map((category: any, categoryIndex: number) => ({
+      id: String.fromCharCode(65 + categoryIndex), // A, B, C...
+      title: category.name,
       totalPoints: items
         .filter((item: any) => item.categoryId === category.id)
         .reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0),
@@ -207,7 +207,7 @@ export default function EvaluationItemManagement() {
         .filter((item: any) => item.categoryId === category.id)
         .map((item: any, index: number) => ({
           id: index + 1,
-          text: item.itemName,
+          text: item.name,
           type: '정성', // 기본값으로 설정
           points: item.maxScore || 0,
           score: 0
