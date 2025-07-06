@@ -1353,7 +1353,12 @@ export default function EvaluationItemManagement() {
             </CardContent>
           </Card>
         ) : (
-          // 관리 모드 - 평가표 템플릿 메인 화면
+          // 기존 관리 모드
+          <Tabs defaultValue="template" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="template">평가표 템플릿</TabsTrigger>
+            </TabsList>
+          <TabsContent value="categories">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">평가 카테고리</h2>
@@ -1603,9 +1608,9 @@ export default function EvaluationItemManagement() {
                   </div>
                 </CardContent>
               </Card>
-              
-              {/* 평가표 템플릿 섹션 */}
-              <Card>
+            </div>
+          </TabsContent>
+          <TabsContent value="template">
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -1909,7 +1914,8 @@ export default function EvaluationItemManagement() {
                 </CardContent>
               </Card>
             </div>
-          </div>
+          </TabsContent>
+        </Tabs>
         )}
       </div>
     </div>
