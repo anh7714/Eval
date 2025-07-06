@@ -126,21 +126,22 @@ export default function CandidateManagement() {
   const { data: candidates = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["candidates"],
     queryFn: fetchCandidates,
-    staleTime: 30 * 1000, // 30초
-    gcTime: 5 * 60 * 1000, // 5분
+    staleTime: 2 * 60 * 1000, // 2분 - 더 긴 캐시 유지
+    gcTime: 10 * 60 * 1000, // 10분
     refetchOnWindowFocus: false,
-    refetchOnMount: "always",
+    refetchOnMount: false, // 마운트 시에는 캐시 사용
+    refetchInterval: false, // 자동 새로고침 비활성화
     retry: 1,
   });
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // 💡 Supabase 실시간 구독
+  // 실시간 구독 최적화 - 성능 개선
   useEffect(() => {
-    console.log('🔄 Supabase 실시간 구독 시작...');
+    let timeoutId: NodeJS.Timeout;
     
     const channel = supabase
-      .channel('candidates-realtime')
+      .channel('candidates-optimized')
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -148,33 +149,22 @@ export default function CandidateManagement() {
           table: 'candidates' 
         }, 
         (payload) => {
-          console.log('📡 실시간 데이터 변경 감지:', payload);
+          console.log('📡 데이터 변경 감지:', payload.eventType);
           
-          // React Query 캐시 무효화하여 최신 데이터 가져오기
-          queryClient.invalidateQueries({ queryKey: ['candidates'] });
-          
-          // 토스트 알림
-          if (payload.eventType === 'UPDATE') {
-            toast({
-              title: "실시간 업데이트",
-              description: "평가대상 정보가 업데이트되었습니다.",
-              duration: 2000,
-            });
-          }
+          // debounce: 1초 내 여러 변경사항을 하나로 처리
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['candidates'] });
+          }, 1000);
         }
       )
-      .subscribe((status) => {
-        console.log('📡 구독 상태:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ 실시간 구독 활성화');
-        }
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔄 Supabase 실시간 구독 정리...');
+      clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [queryClient, toast]);
+  }, [queryClient]);
 
   // 💡 낙관적 업데이트를 위한 mutation
   const toggleCandidateMutation = useMutation({
@@ -199,19 +189,15 @@ export default function CandidateManagement() {
       );
     },
     onSuccess: (data, { id, isActive }) => {
-      // 💡 성공 시 서버 데이터로 캐시 업데이트
+      // 성공 시 서버 데이터로 캐시 업데이트 (불필요한 알림 제거)
       queryClient.setQueryData(['candidates'], (old: any[]) =>
         old?.map(candidate =>
           candidate.id === id ? { ...candidate, ...data } : candidate
         ) || []
       );
-      toast({ 
-        title: "성공", 
-        description: `평가대상이 ${isActive ? '활성화' : '비활성화'}되었습니다.` 
-      });
     },
     onError: (error, { id, isActive }) => {
-      // 💡 실패 시 롤백
+      // 실패 시 롤백
       setFailedOperations(prev => new Set(Array.from(prev).concat([id])));
       toast({ 
         title: "오류", 
@@ -219,8 +205,10 @@ export default function CandidateManagement() {
         variant: "destructive" 
       });
       
-      // 캐시 롤백
-      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      // 캐시 롤백 (debounce 적용)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      }, 500);
     },
     onSettled: (data, error, { id }) => {
       // 💡 완료 시 pending 상태 제거
