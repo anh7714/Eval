@@ -77,13 +77,37 @@ export default function EvaluationItemManagement() {
   const queryClient = useQueryClient();
 
   // 데이터 쿼리들
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["/api/admin/categories"],
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: items = [], isLoading: itemsLoading } = useQuery({
+  const { data: items = [], isLoading: itemsLoading, error: itemsError } = useQuery({
     queryKey: ["/api/admin/evaluation-items"],
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
+
+  // 에러 상태 로깅
+  useEffect(() => {
+    if (categoriesError) {
+      console.error('❌ 카테고리 조회 오류:', categoriesError);
+    }
+    if (itemsError) {
+      console.error('❌ 평가항목 조회 오류:', itemsError);
+    }
+  }, [categoriesError, itemsError]);
+
+  // 성공 상태 로깅
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      console.log('✅ 카테고리 조회 성공:', categories);
+    }
+    if (items && items.length > 0) {
+      console.log('✅ 평가항목 조회 성공:', items);
+    }
+  }, [categories, items]);
 
   // 평가위원 목록 가져오기
   const { data: evaluators = [] } = useQuery({
@@ -212,17 +236,17 @@ export default function EvaluationItemManagement() {
 
   // 데이터베이스 데이터를 템플릿 구조로 변환
   const convertDataToTemplate = () => {
-    if (!categories || !items || categories.length === 0 || items.length === 0) {
+    if (!categories || !items || !Array.isArray(categories) || !Array.isArray(items) || categories.length === 0 || items.length === 0) {
       return currentTemplate; // 데이터가 없으면 기본 템플릿 반환
     }
 
-    const sections = categories.map((category: any, categoryIndex: number) => ({
+    const sections = (categories as any[]).map((category: any, categoryIndex: number) => ({
       id: String.fromCharCode(65 + categoryIndex), // A, B, C...
       title: category.name,
-      totalPoints: items
+      totalPoints: (items as any[])
         .filter((item: any) => item.categoryId === category.id)
         .reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0),
-      items: items
+      items: (items as any[])
         .filter((item: any) => item.categoryId === category.id)
         .map((item: any, index: number) => ({
           id: index + 1,
