@@ -15,6 +15,7 @@ import AdminResults from "@/pages/admin/results";
 import AdminSettings from "@/pages/admin/settings";
 import EvaluatorLogin from "@/pages/evaluator/login";
 import EvaluatorDashboard from "@/pages/evaluator/dashboard";
+import EvaluatorEvaluation from "@/pages/evaluator/evaluation";
 import EvaluationForm from "@/pages/evaluator/evaluation-form";
 import Results from "@/pages/results";
 import NotFound from "@/pages/not-found";
@@ -33,7 +34,8 @@ function Router() {
       <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/evaluator/login" component={EvaluatorLogin} />
       <Route path="/evaluator/dashboard" component={EvaluatorDashboard} />
-      <Route path="/evaluator/evaluation/:candidateId" component={EvaluationForm} />
+      <Route path="/evaluator/evaluation" component={EvaluatorEvaluation} />
+      <Route path="/evaluator/evaluate/:candidateId" component={EvaluationForm} />
       <Route path="/results" component={Results} />
       <Route component={NotFound} />
     </Switch>

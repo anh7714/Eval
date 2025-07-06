@@ -76,7 +76,12 @@ export default function Header() {
               <nav className="hidden md:flex space-x-1">
                 <Link href="/evaluator/dashboard">
                   <Button variant={location === "/evaluator/dashboard" ? "default" : "ghost"} size="sm">
-                    평가 대시보드
+                    대시보드
+                  </Button>
+                </Link>
+                <Link href="/evaluator/evaluation">
+                  <Button variant={location === "/evaluator/evaluation" ? "default" : "ghost"} size="sm">
+                    평가하기
                   </Button>
                 </Link>
               </nav>

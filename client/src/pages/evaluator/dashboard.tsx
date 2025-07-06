@@ -1,35 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle, Clock, User, FileText, ClipboardList, ArrowRight, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import EvaluationList from "./evaluation-list";
-
-interface CandidateResult {
-  candidate: {
-    id: number;
-    name: string;
-    department: string;
-    position: string;
-    category: string;
-  };
-  totalScore: number;
-  maxPossibleScore: number;
-  percentage: number;
-  evaluatorCount: number;
-  completedEvaluations: number;
-  averageScore: number;
-  rank: number;
-}
 
 export default function EvaluatorDashboard() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -41,19 +20,8 @@ export default function EvaluatorDashboard() {
     queryKey: ["/api/evaluator/profile"],
   });
 
-  // 평가위원 프로필 데이터 로깅
-  React.useEffect(() => {
-    if (evaluator) {
-      console.log('👤 평가위원 프로필 데이터:', evaluator);
-    }
-  }, [evaluator]);
-
-  const { data: results = [], isLoading: resultsLoading } = useQuery({
-    queryKey: ["/api/results"],
-  });
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ["/api/admin/categories"],
+  const { data: candidates = [] } = useQuery({
+    queryKey: ["/api/evaluator/candidates"],
   });
 
   const handleLogout = () => {
@@ -65,7 +33,7 @@ export default function EvaluatorDashboard() {
     setLocation("/evaluator/login");
   };
 
-  if (progressLoading || resultsLoading) {
+  if (progressLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -76,175 +44,244 @@ export default function EvaluatorDashboard() {
     );
   }
 
-  const filteredResults = selectedCategory === "all" 
-    ? results 
-    : results.filter((result: CandidateResult) => result.candidate.category === selectedCategory);
+  const progressPercentage = progress?.completed && progress?.total 
+    ? Math.round((progress.completed / progress.total) * 100)
+    : 0;
+
+  const completedCount = progress?.completed || 0;
+  const totalCount = progress?.total || 0;
+  const remainingCount = totalCount - completedCount;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-8">
-        {/* 헤더 */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2">평가위원 대시보드</h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">
-              {(evaluator as any)?.name || "평가자"} 위원님! 환영합니다.
-            </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              평가 현황을 확인하고 평가를 진행하세요.
-            </p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={handleLogout} className="flex items-center space-x-2">
-              <LogOut className="h-4 w-4" />
-              <span>로그아웃</span>
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* 환영 메시지 */}
+        <div className="text-left">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            평가위원 대시보드
+          </h1>
+          <p className="text-lg text-gray-600 mt-2">
+            {evaluator?.name ? `${evaluator.name} 위원님! 환영합니다.` : '평가위원님! 환영합니다.'}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            현재 진행률을 확인하고 평가를 진행하세요.
+          </p>
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid grid-cols-2 w-full mb-6">
-            <TabsTrigger value="dashboard">평가 대시보드</TabsTrigger>
-            <TabsTrigger value="evaluation">평가하기</TabsTrigger>
-          </TabsList>
+        {/* 진행률 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">전체 진행률</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600 mb-2">
+                {progressPercentage}%
+              </div>
+              <Progress value={progressPercentage} className="h-2" />
+            </CardContent>
+          </Card>
 
-          <TabsContent value="dashboard">
-            {/* Progress Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">접수 분류</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">0</div>
-                  <p className="text-xs text-muted-foreground">
-                    평가자가 참여할 수 있는 현황
-                  </p>
-                </CardContent>
-              </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">완료된 평가</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {completedCount}
+              </div>
+              <p className="text-sm text-gray-500">건</p>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">카테고리별 평가</CardTitle>
-                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">90% 이상 (우수)</span>
-                      <span className="text-sm font-medium text-green-600">0명</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">80-89% (양호)</span>
-                      <span className="text-sm font-medium text-blue-600">0명</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">70-79% (보통)</span>
-                      <span className="text-sm font-medium text-yellow-600">0명</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">70% 미만 (개선요)</span>
-                      <span className="text-sm font-medium text-gray-600">0명</span>
-                    </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">남은 평가</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                {remainingCount}
+              </div>
+              <p className="text-sm text-gray-500">건</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">총 평가 대상</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-700">
+                {totalCount}
+              </div>
+              <p className="text-sm text-gray-500">건</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 평가 관리 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>평가 관리</span>
+              <Link href="/evaluator/evaluation">
+                <Button>
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  평가하기
+                </Button>
+              </Link>
+            </CardTitle>
+            <CardDescription>
+              평가 진행 상황을 확인하고 평가를 수행하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <ClipboardList className="h-5 w-5 text-blue-600" />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">카테고리별 평가</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">카테고리를 등록 후 보실</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">통계 (기본)</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">전체 평가대상</span>
-                      <span className="text-sm font-medium">0</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">평가 완료</span>
-                      <span className="text-sm font-medium">0.0%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">합격률</span>
-                      <span className="text-sm font-medium">0%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">최고 점수</span>
-                      <span className="text-sm font-medium">0%</span>
-                    </div>
+                  <div>
+                    <h3 className="font-medium">평가 진행</h3>
+                    <p className="text-sm text-gray-600">
+                      {totalCount > 0 ? `총 ${totalCount}건 중 ${completedCount}건 완료` : '평가 대상이 없습니다'}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Candidates List for Evaluation */}
-            <Card>
-              <CardHeader>
-                <CardTitle>평가대상</CardTitle>
-                <CardDescription>각 평가대상을 클릭하여 평가를 시작하거나 결과를 확인하세요</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(progress as any)?.candidates?.map((candidate: any) => (
-                    <Card key={candidate.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <User className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold">{candidate.name}</h3>
-                              <p className="text-sm text-gray-600">
-                                {candidate.department} · {candidate.position}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={candidate.isCompleted ? "default" : "secondary"}>
-                              {candidate.isCompleted ? "완료" : "미완료"}
-                            </Badge>
-                            <Link href={`/evaluator/evaluate/${candidate.id}`}>
-                              <Button size="sm" className="flex items-center space-x-1">
-                                <span>{candidate.isCompleted ? "수정" : "평가"}</span>
-                                <ArrowRight className="h-3 w-3" />
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
                 </div>
+                <div className="flex items-center space-x-2">
+                  {progressPercentage === 100 ? (
+                    <Badge className="bg-green-100 text-green-800">완료</Badge>
+                  ) : progressPercentage > 0 ? (
+                    <Badge className="bg-yellow-100 text-yellow-800">진행중</Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-100 text-gray-600">시작전</Badge>
+                  )}
+                  <Link href="/evaluator/evaluation">
+                    <Button variant="outline" size="sm">
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
 
-                {!((progress as any)?.candidates?.length) && (
-                  <div className="text-center py-12">
-                    <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">평가할 대상이 없습니다.</p>
-                    <p className="text-sm text-gray-400 mt-2">관리자가 평가대상을 등록하면 여기에 표시됩니다.</p>
+              {remainingCount > 0 && (
+                <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-orange-100 rounded-full">
+                      <Clock className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-orange-900">평가 대기 중</h3>
+                      <p className="text-sm text-orange-700">
+                        {remainingCount}건의 평가가 대기 중입니다
+                      </p>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  <Link href="/evaluator/evaluation">
+                    <Button variant="outline" size="sm" className="border-orange-300 text-orange-700 hover:bg-orange-50">
+                      평가 시작
+                    </Button>
+                  </Link>
+                </div>
+              )}
 
-          <TabsContent value="evaluation">
-            <EvaluationList />
-          </TabsContent>
-        </Tabs>
+              {completedCount > 0 && (
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-green-100 rounded-full">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-green-900">완료된 평가</h3>
+                      <p className="text-sm text-green-700">
+                        {completedCount}건의 평가를 완료했습니다
+                      </p>
+                    </div>
+                  </div>
+                  <Link href="/evaluator/evaluation">
+                    <Button variant="outline" size="sm" className="border-green-300 text-green-700 hover:bg-green-50">
+                      결과 확인
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 평가위원 정보 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <User className="h-5 w-5" />
+                <span>평가위원 정보</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">성명:</span>
+                  <span className="text-sm">{evaluator?.name || '정보 없음'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">소속:</span>
+                  <span className="text-sm">{evaluator?.department || '정보 없음'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">상태:</span>
+                  <Badge variant="outline" className="text-xs">활성</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span>시스템 정보</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">평가 시스템:</span>
+                  <span className="text-sm">종합평가시스템</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">평가 유형:</span>
+                  <span className="text-sm">종합 평가</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">상태:</span>
+                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800">운영 중</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 로그아웃 */}
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-700">시스템 종료</CardTitle>
+            <CardDescription className="text-red-600">
+              평가가 완료되었거나 시스템을 종료하려면 로그아웃하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              variant="destructive" 
+              onClick={handleLogout}
+              className="w-full sm:w-auto"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              로그아웃
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
