@@ -424,6 +424,35 @@ export default function EvaluationItemManagement() {
     window.print();
   };
 
+  const addColumn = () => {
+    const newColumnId = `col_${Date.now()}`;
+    const newColumn = {
+      id: newColumnId,
+      title: '새 컬럼',
+      type: 'text',
+      visible: true,
+      required: false,
+      width: 'w-20'
+    };
+    setColumnConfig(prev => [...prev, newColumn]);
+    toast({ title: "성공", description: "새 컬럼이 추가되었습니다." });
+  };
+
+  const updateColumnConfig = (id: string, field: string, value: any) => {
+    setColumnConfig(prev => prev.map(col => 
+      col.id === id ? { ...col, [field]: value } : col
+    ));
+  };
+
+  const deleteColumn = (id: string) => {
+    if (columnConfig.find(col => col.id === id)?.required) {
+      toast({ title: "오류", description: "필수 컬럼은 삭제할 수 없습니다.", variant: "destructive" });
+      return;
+    }
+    setColumnConfig(prev => prev.filter(col => col.id !== id));
+    toast({ title: "성공", description: "컬럼이 삭제되었습니다." });
+  };
+
   // 파일 업로드/다운로드 함수들
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -707,7 +736,11 @@ export default function EvaluationItemManagement() {
                       <>
                         <Button onClick={addSection} size="sm">
                           <Plus className="h-4 w-4 mr-2" />
-                          섹션 추가하기
+                          영역 추가
+                        </Button>
+                        <Button onClick={addColumn} size="sm" variant="secondary">
+                          <Plus className="h-4 w-4 mr-2" />
+                          컬럼 추가
                         </Button>
                       </>
                     )}
@@ -722,6 +755,72 @@ export default function EvaluationItemManagement() {
                   accept=".json"
                   className="hidden"
                 />
+                
+                {/* 컬럼 관리 (편집 모드에서만 표시) */}
+                {isEditing && (
+                  <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <h3 className="text-sm font-bold mb-3 text-amber-800">컬럼 설정</h3>
+                    <div className="mb-4 p-3 bg-amber-100 rounded-md border-l-4 border-amber-400">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs text-amber-800">
+                            <strong>평가표의 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.</strong>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {columnConfig.map((column) => (
+                        <div key={column.id} className="flex items-center gap-2 text-xs bg-white p-2 rounded border">
+                          <Input
+                            value={column.title}
+                            onChange={(e) => updateColumnConfig(column.id, 'title', e.target.value)}
+                            className="w-20 h-6 text-xs"
+                            placeholder="컬럼명"
+                          />
+                          <select
+                            value={column.type}
+                            onChange={(e) => updateColumnConfig(column.id, 'type', e.target.value)}
+                            className="w-16 h-6 text-xs border rounded px-1"
+                          >
+                            <option value="text">텍스트</option>
+                            <option value="number">숫자</option>
+                            <option value="select">선택</option>
+                            <option value="section">구분</option>
+                          </select>
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={column.visible}
+                              onChange={(e) => updateColumnConfig(column.id, 'visible', e.target.checked)}
+                              className="w-3 h-3"
+                            />
+                            <span>표시</span>
+                          </label>
+                          <span className="text-gray-500">{column.width}</span>
+                          {column.required && (
+                            <Badge variant="secondary" className="text-xs px-1 py-0">필수</Badge>
+                          )}
+                          {!column.required && (
+                            <Button
+                              onClick={() => deleteColumn(column.id)}
+                              size="sm"
+                              variant="outline"
+                              className="h-6 w-6 p-0"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {/* 평가표 제목 (편집 가능) */}
                 <div className="mb-6">
