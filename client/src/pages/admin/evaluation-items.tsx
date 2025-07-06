@@ -1117,29 +1117,40 @@ export default function EvaluationItemManagement() {
         const categoryId = savedCategories[sectionIndex].id;
         
         return section.items.map(async (item: any) => {
-          const itemData = {
-            categoryId: categoryId,
-            itemName: item.text,
-            description: item.text,
-            maxScore: item.points || 0,
-            weight: 1.0,
-            sortOrder: item.id,
-            isActive: true
-          };
+          try {
+            const itemData = {
+              categoryId: categoryId,
+              itemName: item.text,
+              description: item.text,
+              maxScore: item.points || 0,
+              weight: 1.0,
+              sortOrder: item.id,
+              isActive: true
+            };
 
-          const response = await fetch('/api/admin/evaluation-items', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(itemData)
-          });
+            console.log('Saving item:', itemData);
 
-          if (!response.ok) throw new Error('평가항목 저장 실패');
-          return response.json();
+            const response = await fetch('/api/admin/evaluation-items', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(itemData)
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('Item save failed:', errorText);
+              throw new Error(`평가항목 저장 실패: ${errorText}`);
+            }
+            return response.json();
+          } catch (error) {
+            console.error('Error saving item:', error);
+            throw error;
+          }
         });
       });
 
-      await Promise.all(itemPromises);
-      return { categories: savedCategories, itemCount: itemPromises.length };
+      const savedItems = await Promise.all(itemPromises);
+      return { categories: savedCategories, itemCount: savedItems.length };
     },
     onSuccess: (data) => {
       toast({

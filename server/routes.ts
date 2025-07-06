@@ -592,6 +592,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== EVALUATION ITEM ROUTES =====
+  // Admin routes for evaluation items
+  app.get("/api/admin/evaluation-items", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getAllEvaluationItems();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch evaluation items" });
+    }
+  });
+
+  app.post("/api/admin/evaluation-items", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertEvaluationItemSchema.parse(req.body);
+      const item = await storage.createEvaluationItem(validatedData);
+      res.json(item);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create evaluation item" });
+    }
+  });
+
   app.get("/api/evaluation-items", async (req, res) => {
     try {
       const items = await storage.getAllEvaluationItems();
