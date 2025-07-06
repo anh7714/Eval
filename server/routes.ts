@@ -797,6 +797,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 평가위원 전용 카테고리 조회 API
+  app.get("/api/evaluator/categories", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const categories = await storage.getAllCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // 평가위원 전용 평가 항목 조회 API
+  app.get("/api/evaluator/evaluation-items", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const items = await storage.getAllEvaluationItems();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch evaluation items" });
+    }
+  });
+
   app.get("/api/evaluations/progress", requireEvaluatorAuth, async (req, res) => {
     try {
       const evaluatorId = req.session.evaluator.id;

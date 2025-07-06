@@ -178,7 +178,7 @@ export default function EvaluatorEvaluationPage() {
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["/api/admin/categories"],
+    queryKey: ["/api/evaluator/categories"],
     refetchOnWindowFocus: true,
     refetchInterval: 5000, // 5초마다 자동 갱신
     staleTime: 2000,
@@ -186,7 +186,7 @@ export default function EvaluatorEvaluationPage() {
 
   // 평가 항목 데이터 가져오기
   const { data: evaluationItems = [] } = useQuery({
-    queryKey: ["/api/admin/evaluation-items"],
+    queryKey: ["/api/evaluator/evaluation-items"],
     refetchOnWindowFocus: true,
     refetchInterval: 5000,
     staleTime: 2000,
@@ -457,24 +457,32 @@ export default function EvaluatorEvaluationPage() {
                   </Button>
                 </div>
 
-                {/* 심사표 테이블 */}
-                <div className="bg-white border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-r">
+                {/* 심사표 테이블 - 관리자 화면과 동일한 스타일 */}
+                <div className="bg-white border border-gray-400 rounded-lg overflow-hidden">
+                  {/* 테이블 제목과 구분 정보 */}
+                  <div className="border-b-2 border-black p-4 text-center">
+                    <h2 className="text-xl font-bold mb-2">{evaluationTemplate.title}</h2>
+                    <div className="text-right text-sm text-gray-600">
+                      {evaluationTemplate.subtitle}
+                    </div>
+                  </div>
+
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
                           구분 (100점)
                         </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 border-r">
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
                           세부 항목
                         </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 border-r">
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
                           유형
                         </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 border-r">
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
                           배점
                         </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
                           평가점수
                         </th>
                       </tr>
@@ -485,32 +493,32 @@ export default function EvaluatorEvaluationPage() {
                         const categoryTotal = categoryItems.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
                         
                         return categoryItems.map((item: any, itemIndex: number) => (
-                          <tr key={`${categoryName}-${itemIndex}`} className="border-b">
+                          <tr key={`${categoryName}-${itemIndex}`}>
                             {itemIndex === 0 && (
                               <td 
-                                className="px-4 py-3 text-center font-medium text-gray-900 border-r bg-gray-50"
+                                className="border border-gray-400 px-2 py-3 text-center font-bold bg-gray-50 align-middle"
                                 rowSpan={categoryItems.length}
                               >
                                 <div className="text-sm font-bold">{categoryName}</div>
                                 <div className="text-xs text-gray-600 mt-1">({categoryTotal}점)</div>
                               </td>
                             )}
-                            <td className="px-4 py-3 text-sm text-gray-900 border-r">
-                              {item.text}
+                            <td className="border border-gray-400 px-3 py-2 text-sm">
+                              {itemIndex + 1}. {item.text}
                             </td>
-                            <td className="px-4 py-3 text-center text-sm text-gray-900 border-r">
+                            <td className="border border-gray-400 px-2 py-2 text-center text-sm">
                               {item.type}
                             </td>
-                            <td className="px-4 py-3 text-center text-sm text-gray-900 border-r">
+                            <td className="border border-gray-400 px-2 py-2 text-center text-sm">
                               {item.points}점
                             </td>
-                            <td className="px-4 py-3 text-center border-r">
+                            <td className="border border-gray-400 px-2 py-2 text-center">
                               <Input
                                 type="number"
                                 min="0"
                                 max={item.points}
-                                placeholder="0점"
-                                className="w-20 text-center"
+                                placeholder="0"
+                                className="w-16 text-center text-sm mx-auto"
                                 defaultValue={item.score || 0}
                               />
                             </td>
@@ -519,12 +527,13 @@ export default function EvaluatorEvaluationPage() {
                       })}
                       
                       {/* 합계 행 */}
-                      <tr className="bg-gray-50 font-bold">
-                        <td className="px-4 py-3 text-center border-r">합계</td>
-                        <td className="px-4 py-3 border-r"></td>
-                        <td className="px-4 py-3 border-r"></td>
-                        <td className="px-4 py-3 text-center border-r">100점</td>
-                        <td className="px-4 py-3 text-center">0점</td>
+                      <tr className="bg-yellow-50 font-bold">
+                        <td className="border border-gray-400 px-4 py-3 text-center" colSpan={2}>합계</td>
+                        <td className="border border-gray-400 px-2 py-3 text-center"></td>
+                        <td className="border border-gray-400 px-2 py-3 text-center">100점</td>
+                        <td className="border border-gray-400 px-2 py-3 text-center">
+                          <span className="text-lg font-bold">0점</span>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
