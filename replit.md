@@ -177,6 +177,11 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ Supabase 데이터베이스 스키마 확장 (system_name, description, admin_email 등 추가)
 - ✓ 동적 시스템 이름 변경 기능 구현 - 헤더의 "종합평가시스템" 동적 교체
 - ✓ 시스템 설정 페이지에서 저장한 시스템 이름이 애플리케이션 전체 헤더에 즉시 반영
+- ✓ 평가자 필터 시스템 완전 수정 (2025.07.06)
+- ✓ React DOM removeChild 오류 해결 - Radix UI Select를 네이티브 HTML select로 교체
+- ✓ 관리자 페이지와 동일한 필터 로직 적용 (mainCategory/subCategory 직접 사용)
+- ✓ 필터 초기화 기능 추가로 관리자/평가자 인터페이스 일관성 확보
+- ✓ 평가 상태 표시 개선 - "미시작" → "평가대기"로 변경하여 사용자 경험 향상
 
 ## User Preferences
 

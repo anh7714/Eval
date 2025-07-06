@@ -98,7 +98,7 @@ export default function EvaluatorEvaluationPage() {
     } else if (result.progress > 0) {
       return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">진행중</Badge>;
     } else {
-      return <Badge variant="outline" className="bg-gray-100 text-gray-600">미시작</Badge>;
+      return <Badge variant="outline" className="bg-orange-100 text-orange-600">평가대기</Badge>;
     }
   };
 
@@ -184,7 +184,7 @@ export default function EvaluatorEvaluationPage() {
                     className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
                   >
                     <option value="all">전체 상태</option>
-                    <option value="incomplete">미완료</option>
+                    <option value="incomplete">평가대기</option>
                     <option value="completed">완료</option>
                   </select>
                 </div>
