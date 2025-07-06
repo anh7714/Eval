@@ -512,13 +512,13 @@ export default function EvaluatorEvaluationPage() {
                             <td className="border border-gray-400 px-2 py-2 text-center text-sm">
                               {item.points}점
                             </td>
-                            <td className="border border-gray-400 px-2 py-2 text-center">
+                            <td className="border border-gray-400 px-2 py-2 text-center bg-blue-50">
                               <Input
                                 type="number"
                                 min="0"
                                 max={item.points}
                                 placeholder="0"
-                                className="w-16 text-center text-sm mx-auto"
+                                className="w-16 text-center text-sm mx-auto bg-blue-50 focus:bg-white"
                                 defaultValue={item.score || 0}
                               />
                             </td>
@@ -531,7 +531,7 @@ export default function EvaluatorEvaluationPage() {
                         <td className="border border-gray-400 px-4 py-3 text-center" colSpan={2}>합계</td>
                         <td className="border border-gray-400 px-2 py-3 text-center"></td>
                         <td className="border border-gray-400 px-2 py-3 text-center">100점</td>
-                        <td className="border border-gray-400 px-2 py-3 text-center">
+                        <td className="border border-gray-400 px-2 py-3 text-center bg-blue-50">
                           <span className="text-lg font-bold">0점</span>
                         </td>
                       </tr>
