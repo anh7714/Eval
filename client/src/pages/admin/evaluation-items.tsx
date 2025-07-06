@@ -39,12 +39,7 @@ export default function EvaluationItemManagement() {
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   const [batchPrintMode, setBatchPrintMode] = useState(false);
 
-  // 평가위원 정보 (수동 입력용)
-  const [evaluator, setEvaluator] = useState({
-    name: '평가위원명',
-    position: '직책',
-    department: '소속기관'
-  });
+
 
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
@@ -578,7 +573,7 @@ export default function EvaluationItemManagement() {
     // 평가위원 정보와 컬럼 설정도 포함해서 저장
     const templateWithAll = {
       ...currentTemplate,
-      evaluator: evaluator,
+
       columnConfig: columnConfig
     };
 
@@ -600,7 +595,7 @@ export default function EvaluationItemManagement() {
       const XLSX = await import('https://unpkg.com/xlsx@0.18.5/xlsx.mjs');
 
       // 평가위원 정보 결정
-      const evaluatorInfo = selectedEvaluatorInfo || evaluator;
+      const evaluatorInfo = selectedEvaluatorInfo || { name: "평가위원", department: "기관명", position: "위원" };
       const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
 
       // 제목 및 정보 결정
@@ -849,7 +844,7 @@ export default function EvaluationItemManagement() {
   const saveAsCSVFallback = () => {
     try {
       // 평가위원 정보 결정
-      const evaluatorInfo = selectedEvaluatorInfo || evaluator;
+      const evaluatorInfo = selectedEvaluatorInfo || { name: "평가위원", department: "기관명", position: "위원" };
       const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
 
       // 제목 및 정보 결정
@@ -985,9 +980,7 @@ export default function EvaluationItemManagement() {
           }
 
           // 평가위원 정보가 있으면 같이 불러오기
-          if (template.evaluator) {
-            setEvaluator(template.evaluator);
-          }
+
 
           // 컬럼 설정이 있으면 같이 불러오기
           if (template.columnConfig) {
@@ -1023,7 +1016,7 @@ export default function EvaluationItemManagement() {
   // 🎯 일반 인쇄 기능 (통합 함수 사용)
   const printTemplate = () => {
     // 평가위원 정보 결정 (선택된 평가위원 우선, 없으면 수동 입력)
-    const evaluatorInfo = selectedEvaluatorInfo || evaluator;
+    const evaluatorInfo = selectedEvaluatorInfo || { name: "평가위원", department: "기관명", position: "위원" };
 
     // 평가대상 정보 결정
     const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
@@ -1659,44 +1652,7 @@ export default function EvaluationItemManagement() {
 
 
 
-                  {/* 평가위원 정보 편집 (편집 모드에서만 표시) */}
-                  {isEditing && (
-                    <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <h3 className="text-sm font-bold mb-3 text-yellow-800">수동 평가위원 정보 입력</h3>
-                      <div className="text-xs text-yellow-700 mb-3">
-                        위에서 평가위원을 선택하지 않은 경우 수동으로 입력할 수 있습니다.
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium mb-1">이름</label>
-                          <Input
-                            value={evaluator.name}
-                            onChange={(e) => setEvaluator(prev => ({ ...prev, name: e.target.value }))}
-                            className="text-sm"
-                            placeholder="평가위원 이름"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium mb-1">직책</label>
-                          <Input
-                            value={evaluator.position}
-                            onChange={(e) => setEvaluator(prev => ({ ...prev, position: e.target.value }))}
-                            className="text-sm"
-                            placeholder="직책"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium mb-1">소속기관</label>
-                          <Input
-                            value={evaluator.department}
-                            onChange={(e) => setEvaluator(prev => ({ ...prev, department: e.target.value }))}
-                            className="text-sm"
-                            placeholder="소속기관"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
 
                   {/* 컬럼 관리 (편집 모드에서만 표시) */}
                   {isEditing && (
