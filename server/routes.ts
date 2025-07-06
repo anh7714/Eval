@@ -126,6 +126,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ user: req.session.user });
   });
 
+  app.get("/api/admin/profile", requireAuth, (req, res) => {
+    res.json(req.session.user);
+  });
+
   // ===== EVALUATOR AUTH ROUTES =====
   app.post("/api/evaluator/login", async (req, res) => {
     try {

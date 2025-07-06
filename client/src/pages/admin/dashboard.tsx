@@ -25,6 +25,10 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/statistics"],
   });
 
+  const { data: adminProfile } = useQuery({
+    queryKey: ["/api/admin/profile"],
+  });
+
   // 통계 데이터 로깅
   React.useEffect(() => {
     if (stats) {
@@ -122,7 +126,7 @@ export default function AdminDashboard() {
             관리자 대시보드
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">
-            관리자님! 환영합니다.
+            {adminProfile?.name || "관리자"}님! 환영합니다.
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             평가 시스템의 전체 현황을 확인하고 관리합니다.
