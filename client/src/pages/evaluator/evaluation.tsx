@@ -51,28 +51,26 @@ export default function EvaluatorEvaluationPage() {
     if (!candidates || !Array.isArray(candidates)) return [];
     
     return (candidates as any[]).filter((candidate: any) => {
-      // category 필드에서 mainCategory와 subCategory 추출
-      const categoryParts = candidate.category ? candidate.category.split(' > ') : [];
-      const mainCategory = categoryParts[0] || '';
-      const subCategory = categoryParts[1] || '';
-      
-      const mainCategoryMatch = selectedMainCategory === "all" || mainCategory === selectedMainCategory;
-      const subCategoryMatch = selectedSubCategory === "all" || subCategory === selectedSubCategory;
+      const matchesMainCategory = selectedMainCategory === "all" || 
+        candidate.mainCategory === selectedMainCategory;
+        
+      const matchesSubCategory = selectedSubCategory === "all" || 
+        candidate.subCategory === selectedSubCategory;
+        
       // 임시로 모든 상태를 "미시작"으로 설정
       const statusMatch = selectedStatus === "all" || selectedStatus === "incomplete";
       
-      return mainCategoryMatch && subCategoryMatch && statusMatch && candidate.isActive;
+      return matchesMainCategory && matchesSubCategory && statusMatch && candidate.isActive;
     }).map((candidate: any, index: number) => {
-      const categoryParts = candidate.category ? candidate.category.split(' > ') : [];
       return {
         candidate: {
           id: candidate.id,
           name: candidate.name,
           department: candidate.department || '미분류',
           position: candidate.position || '미설정',
-          category: categoryParts[0] || '미분류',
-          mainCategory: categoryParts[0] || '미분류',
-          subCategory: categoryParts[1] || '미분류'
+          category: candidate.mainCategory || '미분류',
+          mainCategory: candidate.mainCategory || '미분류',
+          subCategory: candidate.subCategory || '미분류'
         },
         rank: index + 1,
         isCompleted: false, // 임시로 모두 미완료로 설정
@@ -153,17 +151,9 @@ export default function EvaluatorEvaluationPage() {
                     className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
                   >
                     <option value="all">전체 구분</option>
-                    {candidates && Array.isArray(candidates) && 
-                      Array.from(new Set((candidates as any[])
-                        .filter(c => c && c.category)
-                        .map((c: any) => c.category.split(' > ')[0])
-                        .filter(Boolean)
-                      )).map((category: string) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))
-                    }
+                    {Array.from(new Set(candidates.map((c: any) => c.mainCategory).filter(Boolean))).map((category: any) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -174,17 +164,9 @@ export default function EvaluatorEvaluationPage() {
                     className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
                   >
                     <option value="all">전체 세부구분</option>
-                    {candidates && Array.isArray(candidates) && 
-                      Array.from(new Set((candidates as any[])
-                        .filter(c => c && c.category && c.category.includes(' > '))
-                        .map((c: any) => c.category.split(' > ')[1])
-                        .filter(Boolean)
-                      )).map((category: string) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))
-                    }
+                    {Array.from(new Set(candidates.map((c: any) => c.subCategory).filter(Boolean))).map((category: any) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex items-center space-x-2">
