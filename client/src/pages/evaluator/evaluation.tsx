@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Select 컴포넌트 제거 - 네이티브 select 사용
 import { CheckCircle, Clock, User, ArrowRight, Eye, Edit3 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -32,6 +32,13 @@ export default function EvaluatorEvaluationPage() {
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  // 필터 초기화 함수
+  const resetFilters = () => {
+    setSelectedMainCategory("all");
+    setSelectedSubCategory("all");
+    setSelectedStatus("all");
+  };
 
   const { data: progress } = useQuery({
     queryKey: ["/api/evaluator/progress"],
@@ -171,18 +178,22 @@ export default function EvaluatorEvaluationPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-medium">상태:</label>
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="상태 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">전체</SelectItem>
-                      <SelectItem value="completed">완료</SelectItem>
-                      <SelectItem value="in-progress">진행중</SelectItem>
-                      <SelectItem value="incomplete">미완료</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    value={selectedStatus} 
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    <option value="all">전체 상태</option>
+                    <option value="incomplete">미완료</option>
+                    <option value="completed">완료</option>
+                  </select>
                 </div>
+                <button 
+                  onClick={resetFilters}
+                  className="px-4 py-2 border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  필터 초기화
+                </button>
               </div>
             </CardTitle>
           </CardHeader>
