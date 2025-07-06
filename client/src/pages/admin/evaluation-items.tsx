@@ -1115,6 +1115,16 @@ export default function EvaluationItemManagement() {
 
       // 2. 각 카테고리에 평가항목들 저장 - 순차적으로 처리
       console.log('📝 평가항목 저장 시작...');
+      console.log('📋 템플릿 데이터 구조 확인:', {
+        sectionsCount: templateData.sections.length,
+        sections: templateData.sections.map((section, index) => ({
+          index,
+          sectionName: section.sectionName,
+          itemsCount: section.items?.length || 0,
+          items: section.items?.slice(0, 2) // 처음 2개 항목만 표시
+        }))
+      });
+      
       const savedItems = [];
       
       for (let sectionIndex = 0; sectionIndex < templateData.sections.length; sectionIndex++) {
@@ -1127,6 +1137,12 @@ export default function EvaluationItemManagement() {
           const item = section.items[itemIndex];
           
           try {
+            // 필드 유효성 검사
+            if (!item.text) {
+              console.error(`❌ 평가항목 텍스트가 없습니다 [섹션${sectionIndex}-항목${itemIndex}]:`, item);
+              continue;
+            }
+            
             const itemData = {
               categoryId: categoryId,
               itemCode: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`, // 고유한 itemCode 생성
@@ -1138,7 +1154,11 @@ export default function EvaluationItemManagement() {
               isActive: true
             };
 
-            console.log(`💾 평가항목 저장 요청 [섹션${sectionIndex}-항목${itemIndex}]:`, itemData);
+            console.log(`💾 평가항목 저장 요청 [섹션${sectionIndex}-항목${itemIndex}]:`, {
+              categoryId: categoryId,
+              itemData: itemData,
+              originalItem: item
+            });
 
             const response = await fetch('/api/admin/evaluation-items', {
               method: 'POST',
