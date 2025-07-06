@@ -447,7 +447,23 @@ export class SupabaseStorage {
   }
 
   async createCategory(category: InsertEvaluationCategory): Promise<EvaluationCategory> {
-    throw new Error("Not implemented");
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_categories')
+        .insert([this.mapToSupabaseEvaluationCategory(category)])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase createCategory error:', error);
+        throw new Error(`Failed to create category: ${error.message}`);
+      }
+
+      return this.mapEvaluationCategory(data);
+    } catch (error) {
+      console.error('createCategory error:', error);
+      throw error;
+    }
   }
 
   async updateCategory(id: number, category: Partial<InsertEvaluationCategory>): Promise<EvaluationCategory> {
@@ -471,7 +487,23 @@ export class SupabaseStorage {
   }
 
   async createEvaluationItem(item: InsertEvaluationItem): Promise<EvaluationItem> {
-    throw new Error("Not implemented");
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_items')
+        .insert([this.mapToSupabaseEvaluationItem(item)])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase createEvaluationItem error:', error);
+        throw new Error(`Failed to create evaluation item: ${error.message}`);
+      }
+
+      return this.mapEvaluationItem(data);
+    } catch (error) {
+      console.error('createEvaluationItem error:', error);
+      throw error;
+    }
   }
 
   async createManyEvaluationItems(items: InsertEvaluationItem[]): Promise<EvaluationItem[]> {
@@ -887,6 +919,56 @@ export class SupabaseStorage {
 
   async getEvaluatorProgressList(): Promise<any[]> {
     return [];
+  }
+
+  // Private mapper methods for evaluation categories
+  private mapEvaluationCategory(data: any): EvaluationCategory {
+    return {
+      id: data.id,
+      categoryCode: data.category_code,
+      categoryName: data.category_name,
+      description: data.description,
+      sortOrder: data.sort_order,
+      isActive: data.is_active
+    };
+  }
+
+  private mapToSupabaseEvaluationCategory(category: Partial<InsertEvaluationCategory>): any {
+    return {
+      category_code: category.categoryCode,
+      category_name: category.categoryName,
+      description: category.description,
+      sort_order: category.sortOrder,
+      is_active: category.isActive
+    };
+  }
+
+  // Private mapper methods for evaluation items
+  private mapEvaluationItem(data: any): EvaluationItem {
+    return {
+      id: data.id,
+      categoryId: data.category_id,
+      itemCode: data.item_code,
+      itemName: data.item_name,
+      description: data.description,
+      maxScore: data.max_score,
+      weight: data.weight,
+      sortOrder: data.sort_order,
+      isActive: data.is_active
+    };
+  }
+
+  private mapToSupabaseEvaluationItem(item: Partial<InsertEvaluationItem>): any {
+    return {
+      category_id: item.categoryId,
+      item_code: item.itemCode,
+      item_name: item.itemName,
+      description: item.description,
+      max_score: item.maxScore,
+      weight: item.weight,
+      sort_order: item.sortOrder,
+      is_active: item.isActive
+    };
   }
 }
 
