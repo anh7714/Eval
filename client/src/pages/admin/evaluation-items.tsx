@@ -349,6 +349,81 @@ export default function EvaluationItemManagement() {
     }));
   };
 
+  // 추가 함수들
+  const addSection = () => {
+    const newSectionId = String.fromCharCode(65 + currentTemplate.sections.length); // A, B, C...
+    const newSection = {
+      id: newSectionId,
+      title: '새 섹션',
+      totalPoints: 10,
+      items: [
+        { id: 1, text: '새 항목', type: '정성', points: 10, score: 0 }
+      ]
+    };
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: [...prev.sections, newSection]
+    }));
+  };
+
+  const saveTemplate = () => {
+    const dataStr = JSON.stringify(currentTemplate, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'evaluation_template.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "성공", description: "템플릿이 JSON 파일로 저장되었습니다." });
+  };
+
+  const saveAsExcel = async () => {
+    try {
+      const evaluationData = currentTemplate.sections.flatMap(section => 
+        section.items.map(item => ({
+          '구분': section.title,
+          '세부항목': item.text,
+          '유형': item.type,
+          '배점': item.points,
+          '평가점수': item.score || 0
+        }))
+      );
+
+      // XLSX 라이브러리 동적 로드
+      const XLSX = await import('https://unpkg.com/xlsx@0.18.5/xlsx.mjs');
+      
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(evaluationData);
+      XLSX.utils.book_append_sheet(wb, ws, '평가항목');
+
+      const fileName = `평가표_템플릿_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      toast({ title: "성공", description: "Excel 파일이 성공적으로 저장되었습니다." });
+    } catch (error) {
+      console.error('Excel 저장 오류:', error);
+      toast({ title: "오류", description: "Excel 저장 중 오류가 발생했습니다.", variant: "destructive" });
+    }
+  };
+
+  const resetScores = () => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => ({ ...item, score: 0 }))
+      }))
+    }));
+    toast({ title: "성공", description: "모든 점수가 초기화되었습니다." });
+  };
+
+  const printTemplate = () => {
+    window.print();
+  };
+
   // 파일 업로드/다운로드 함수들
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -590,23 +665,82 @@ export default function EvaluationItemManagement() {
                     <CardTitle>평가표 템플릿</CardTitle>
                     <CardDescription>평가표를 디자인하고 관리합니다.</CardDescription>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button onClick={() => setIsEditing(!isEditing)} variant="outline">
-                      <Edit3 className="h-4 w-4 mr-2" />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setIsEditing(!isEditing)}
+                      variant={isEditing ? "default" : "outline"}
+                      size="sm"
+                    >
+                      {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit3 className="h-4 w-4 mr-2" />}
                       {isEditing ? "편집 완료" : "편집"}
+                    </Button>
+                    <Button onClick={saveTemplate} variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      JSON 저장
+                    </Button>
+                    <Button onClick={saveAsExcel} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200">
+                      <Download className="h-4 w-4 mr-2" />
+                      Excel 저장
+                    </Button>
+                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
+                      <Upload className="h-4 w-4 mr-2" />
+                      불러오기
+                    </Button>
+                    <Button onClick={resetScores} variant="outline" size="sm">
+                      <X className="h-4 w-4 mr-2" />
+                      점수 초기화
+                    </Button>
+                    <Button onClick={printTemplate} variant="outline" size="sm">
+                      <Printer className="h-4 w-4 mr-2" />
+                      인쇄
                     </Button>
                     <Button 
                       onClick={() => saveTemplateMutation.mutate(currentTemplate)} 
                       disabled={saveTemplateMutation.isPending}
                       className="bg-green-600 hover:bg-green-700"
+                      size="sm"
                     >
-                      <Save className="h-4 w-4 mr-2" />
+                      <Upload className="h-4 w-4 mr-2" />
                       {saveTemplateMutation.isPending ? "저장 중..." : "심사표 저장"}
                     </Button>
+                    {isEditing && (
+                      <>
+                        <Button onClick={addSection} size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          섹션 추가하기
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".json"
+                  className="hidden"
+                />
+                
+                {/* 평가표 제목 (편집 가능) */}
+                <div className="mb-6">
+                  <div className="border border-gray-400 bg-white">
+                    <div className="px-4 py-2 text-center border-b border-gray-400">
+                      {isEditing ? (
+                        <Input
+                          value={currentTemplate.title}
+                          onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
+                          className="text-center text-lg font-bold border-none shadow-none focus:ring-0"
+                        />
+                      ) : (
+                        <h2 className="text-lg font-bold">{currentTemplate.title}</h2>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 평가표 데이터 테이블 */}
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-400 text-sm">
                     <thead>
