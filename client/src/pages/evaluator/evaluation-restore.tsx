@@ -58,8 +58,31 @@ export default function EvaluatorEvaluationPage() {
   };
 
   // 평가 모달 열기 함수
-  const openEvaluationModal = (candidate: any) => {
+  const openEvaluationModal = async (candidate: any) => {
     setSelectedCandidate(candidate);
+    
+    // 기존 평가 데이터 불러오기
+    try {
+      const response = await fetch(`/api/evaluator/evaluation/${candidate.id}`);
+      if (response.ok) {
+        const existingData = await response.json();
+        console.log('📖 기존 평가 데이터:', existingData);
+        
+        // 기존 점수가 있으면 설정
+        if (existingData.scores && Object.keys(existingData.scores).length > 0) {
+          setEvaluationScores(existingData.scores);
+          console.log('✅ 기존 점수 복원:', existingData.scores);
+        } else {
+          setEvaluationScores({});
+        }
+      } else {
+        console.log('📝 새로운 평가 시작');
+        setEvaluationScores({});
+      }
+    } catch (error) {
+      console.error('❌ 기존 평가 데이터 로드 오류:', error);
+      setEvaluationScores({});
+    }
     
     // 심사표 템플릿 생성
     const template = createEvaluationTemplate(candidate, categories, evaluationItems, systemConfig);

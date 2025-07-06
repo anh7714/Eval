@@ -888,6 +888,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 기존 평가 데이터 조회 API
+  app.get("/api/evaluator/evaluation/:candidateId", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const evaluatorId = req.session.evaluator.id;
+      const candidateId = parseInt(req.params.candidateId);
+      
+      console.log('📖 기존 평가 데이터 조회:', { evaluatorId, candidateId });
+      
+      const evaluationData = await storage.getEvaluationStatus(evaluatorId, candidateId);
+      res.json(evaluationData);
+    } catch (error) {
+      console.error('❌ 기존 평가 데이터 조회 오류:', error);
+      res.status(500).json({ message: "기존 평가 데이터 조회 중 오류가 발생했습니다." });
+    }
+  });
+
   app.get("/api/evaluator/progress", requireEvaluatorAuth, async (req, res) => {
     try {
       const evaluatorId = req.session.evaluator.id;

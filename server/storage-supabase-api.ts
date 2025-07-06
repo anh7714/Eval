@@ -1162,13 +1162,14 @@ export class SupabaseStorage {
     }
     
     if (!data) {
-      return { isCompleted: false, hasTemporarySave: false, totalScore: 0 };
+      return { isCompleted: false, hasTemporarySave: false, totalScore: 0, scores: {} };
     }
     
     return {
       isCompleted: data.is_completed || false,
       hasTemporarySave: !data.is_completed && Object.keys(data.scores || {}).length > 0,
-      totalScore: data.total_score || 0
+      totalScore: data.total_score || 0,
+      scores: data.scores || {}
     };
   }
 }
