@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3 } from "lucide-react";
+import { Plus, Trash2, Edit3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function EvaluationItemManagement() {
@@ -15,7 +14,7 @@ export default function EvaluationItemManagement() {
   const [isEditing, setIsEditing] = useState(false);
 
   // 컬럼 설정 관리
-  const [columnConfig, setColumnConfig] = useState([
+  const [columnConfig] = useState([
     { id: 'section', label: '구분', type: 'section', visible: true, required: true, width: 'w-32' },
     { id: 'item', label: '세부 항목', type: 'text', visible: true, required: true, width: 'flex-1' },
     { id: 'type', label: '유형', type: 'select', visible: true, required: false, width: 'w-16', options: ['정량', '정성'] },
