@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 // Select 컴포넌트 제거 - 네이티브 select 사용
-import { CheckCircle, Clock, User, ArrowRight, Eye, Edit3 } from "lucide-react";
+import { CheckCircle, Clock, User, ArrowRight, Eye, Edit3, X } from "lucide-react";
 import { Link } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface CandidateResult {
   candidate: {
@@ -34,6 +36,11 @@ export default function EvaluatorEvaluationPage() {
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  
+  // 평가 모달 상태
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+  const [evaluationTemplate, setEvaluationTemplate] = useState<any>(null);
 
   const queryClient = useQueryClient();
 
@@ -42,6 +49,41 @@ export default function EvaluatorEvaluationPage() {
     setSelectedMainCategory("all");
     setSelectedSubCategory("all");
     setSelectedStatus("all");
+  };
+
+  // 평가 모달 열기 함수
+  const openEvaluationModal = (candidate: any) => {
+    setSelectedCandidate(candidate);
+    
+    // 심사표 템플릿 생성
+    const template = createEvaluationTemplate(candidate, categories, evaluationItems, systemConfig);
+    setEvaluationTemplate(template);
+    setIsEvaluationModalOpen(true);
+  };
+
+  // 심사표 템플릿 생성 함수
+  const createEvaluationTemplate = (candidate: any, categories: any[], items: any[], config: any) => {
+    const evaluationTitle = config.evaluationTitle || config.systemName || "종합평가시스템";
+    const candidateName = candidate.name || "평가대상";
+    const candidateCategory = candidate.category || candidate.mainCategory || "기타";
+    
+    // 카테고리별로 평가항목 정리
+    const categoryGroups = categories.reduce((groups: any, category: any) => {
+      if (category.type === 'evaluation') {
+        groups[category.name] = {
+          name: category.name,
+          items: items.filter((item: any) => item.category === category.name)
+        };
+      }
+      return groups;
+    }, {});
+
+    return {
+      title: `${candidateName} 심사표`,
+      subtitle: `구분 · ${candidateCategory} · ${evaluationTitle}`,
+      candidate: candidate,
+      categories: categoryGroups
+    };
   };
 
   // Supabase 실시간 연결 및 폴링 백업 시스템
@@ -140,6 +182,19 @@ export default function EvaluatorEvaluationPage() {
     refetchOnWindowFocus: true,
     refetchInterval: 5000, // 5초마다 자동 갱신
     staleTime: 2000,
+  });
+
+  // 평가 항목 데이터 가져오기
+  const { data: evaluationItems = [] } = useQuery({
+    queryKey: ["/api/admin/evaluation-items"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000,
+    staleTime: 2000,
+  });
+
+  // 시스템 설정 가져오기
+  const { data: systemConfig = {} } = useQuery({
+    queryKey: ["/api/system/config"],
   });
 
   // 평가위원에게 할당된 후보자 목록을 가져오기
@@ -345,12 +400,15 @@ export default function EvaluatorEvaluationPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Link href={`/evaluator/evaluate/${result.candidate.id}`}>
-                            <Button size="sm" variant="outline" className="flex items-center space-x-1">
-                              <Edit3 className="h-3 w-3" />
-                              <span>{result.isCompleted ? "수정" : "평가"}</span>
-                            </Button>
-                          </Link>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex items-center space-x-1"
+                            onClick={() => openEvaluationModal(result.candidate)}
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>{result.isCompleted ? "수정" : "평가"}</span>
+                          </Button>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button size="sm" variant="ghost" className="flex items-center space-x-1">
@@ -375,6 +433,127 @@ export default function EvaluatorEvaluationPage() {
           </CardContent>
         </Card>
 
+        {/* 평가 모달 */}
+        <Dialog open={isEvaluationModalOpen} onOpenChange={setIsEvaluationModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {evaluationTemplate && (
+              <div className="space-y-6">
+                {/* 모달 헤더 */}
+                <div className="flex justify-between items-start border-b pb-4">
+                  <div>
+                    <DialogTitle className="text-xl font-bold text-center">
+                      {evaluationTemplate.title}
+                    </DialogTitle>
+                    <p className="text-sm text-gray-600 mt-1 text-center">
+                      {evaluationTemplate.subtitle}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEvaluationModalOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* 심사표 테이블 */}
+                <div className="bg-white border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-r">
+                          구분 (100점)
+                        </th>
+                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 border-r">
+                          세부 항목
+                        </th>
+                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 border-r">
+                          유형
+                        </th>
+                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 border-r">
+                          배점
+                        </th>
+                        <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">
+                          평가점수
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(evaluationTemplate.categories).map(([categoryName, category]: [string, any]) => {
+                        const categoryItems = category.items || [];
+                        const categoryTotal = categoryItems.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
+                        
+                        return categoryItems.map((item: any, itemIndex: number) => (
+                          <tr key={`${categoryName}-${itemIndex}`} className="border-b">
+                            {itemIndex === 0 && (
+                              <td 
+                                className="px-4 py-3 text-center font-medium text-gray-900 border-r bg-gray-50"
+                                rowSpan={categoryItems.length}
+                              >
+                                <div className="text-sm font-bold">{categoryName}</div>
+                                <div className="text-xs text-gray-600 mt-1">({categoryTotal}점)</div>
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-sm text-gray-900 border-r">
+                              {item.text}
+                            </td>
+                            <td className="px-4 py-3 text-center text-sm text-gray-900 border-r">
+                              {item.type}
+                            </td>
+                            <td className="px-4 py-3 text-center text-sm text-gray-900 border-r">
+                              {item.points}점
+                            </td>
+                            <td className="px-4 py-3 text-center border-r">
+                              <Input
+                                type="number"
+                                min="0"
+                                max={item.points}
+                                placeholder="0점"
+                                className="w-20 text-center"
+                                defaultValue={item.score || 0}
+                              />
+                            </td>
+                          </tr>
+                        ));
+                      })}
+                      
+                      {/* 합계 행 */}
+                      <tr className="bg-gray-50 font-bold">
+                        <td className="px-4 py-3 text-center border-r">합계</td>
+                        <td className="px-4 py-3 border-r"></td>
+                        <td className="px-4 py-3 border-r"></td>
+                        <td className="px-4 py-3 text-center border-r">100점</td>
+                        <td className="px-4 py-3 text-center">0점</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 모달 하단 버튼 */}
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEvaluationModalOpen(false)}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-gray-500 text-white hover:bg-gray-600"
+                  >
+                    임시 저장
+                  </Button>
+                  <Button
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    평가 완료
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
       </div>
     </div>
