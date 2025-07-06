@@ -182,6 +182,11 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 관리자 페이지와 동일한 필터 로직 적용 (mainCategory/subCategory 직접 사용)
 - ✓ 필터 초기화 기능 추가로 관리자/평가자 인터페이스 일관성 확보
 - ✓ 평가 상태 표시 개선 - "미시작" → "평가대기"로 변경하여 사용자 경험 향상
+- ✓ 평가 템플릿 내보내기 기능 구현 (2025.07.06)
+- ✓ 평가위원/평가대상 선택 섹션 제거하여 인터페이스 단순화
+- ✓ 심사표 템플릿 편집 후 평가항목으로 내보내기 기능 완성
+- ✓ 템플릿 섹션을 카테고리로, 각 항목을 평가항목으로 자동 변환
+- ✓ 내보내기 완료 후 평가항목 탭으로 자동 이동하는 UX 개선
 
 ## User Preferences
 

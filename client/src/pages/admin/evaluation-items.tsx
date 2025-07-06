@@ -1226,6 +1226,74 @@ export default function EvaluationItemManagement() {
     createItemMutation.mutate(newItem);
   };
 
+  // 평가항목으로 내보내기 기능
+  const exportToEvaluationItems = async () => {
+    try {
+      // 먼저 기존 카테고리들을 생성
+      const createdCategories: any[] = [];
+      
+      for (const section of currentTemplate.sections) {
+        // 카테고리 생성
+        const categoryResponse = await fetch('/api/admin/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryCode: section.id,
+            categoryName: section.title,
+            description: `${section.title} 관련 평가 항목들`,
+            isActive: true
+          })
+        });
+        
+        if (categoryResponse.ok) {
+          const category = await categoryResponse.json();
+          createdCategories.push(category);
+          
+          // 각 카테고리에 대한 평가 항목들 생성
+          for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
+            const item = section.items[itemIndex];
+            
+            const itemResponse = await fetch('/api/admin/evaluation-items', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                categoryId: category.id.toString(),
+                itemCode: `${section.id}${itemIndex + 1}`,
+                itemName: item.text,
+                description: `${section.title} - ${item.text}`,
+                maxScore: item.points.toString(),
+                weight: "1.0"
+              })
+            });
+            
+            if (!itemResponse.ok) {
+              console.error(`Failed to create item: ${item.text}`);
+            }
+          }
+        }
+      }
+      
+      // 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluation-items"] });
+      
+      toast({ 
+        title: "성공", 
+        description: `템플릿이 평가항목으로 성공적으로 내보내졌습니다. ${createdCategories.length}개 카테고리와 ${currentTemplate.sections.reduce((sum, section) => sum + section.items.length, 0)}개 항목이 생성되었습니다.` 
+      });
+      
+      // 평가 항목 탭으로 자동 이동
+      setTimeout(() => {
+        const itemsTab = document.querySelector('[data-value="items"]') as HTMLElement;
+        if (itemsTab) itemsTab.click();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({ title: "오류", description: "평가항목 내보내기에 실패했습니다.", variant: "destructive" });
+    }
+  };
+
   if (categoriesLoading || itemsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1561,6 +1629,10 @@ export default function EvaluationItemManagement() {
                         <Printer className="h-4 w-4 mr-2" />
                         인쇄
                       </Button>
+                      <Button onClick={exportToEvaluationItems} variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Upload className="h-4 w-4 mr-2" />
+                        평가항목으로 내보내기
+                      </Button>
                       {isEditing && (
                         <>
                           <Button onClick={addSection} size="sm">
@@ -1585,109 +1657,7 @@ export default function EvaluationItemManagement() {
                     className="hidden"
                   />
 
-                  {/* 평가위원 및 평가대상 선택 */}
-                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                    <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
-                    <div className="grid grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택</label>
-                        <select
-                          value={selectedEvaluator || ''}
-                          onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
-                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">평가위원을 선택하세요</option>
-                          {(evaluators as any[]).map((evaluator: any) => (
-                            <option key={evaluator.id} value={evaluator.id}>
-                              {evaluator.name} ({evaluator.department})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택</label>
-                        <select
-                          value={selectedCandidate || ''}
-                          onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
-                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">평가대상을 선택하세요</option>
-                          {(candidates as any[]).map((candidate: any) => (
-                            <option key={candidate.id} value={candidate.id}>
-                              {candidate.name} ({candidate.department})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
 
-                    {/* 🚀 개선된 인쇄 옵션 (추후 확장 대비) */}
-                    <div className="mt-4 space-y-3">
-                      {/* 전체 배치 인쇄 */}
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200">
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-blue-800">전체 배치 인쇄</div>
-                          <div className="text-xs text-gray-600">모든 평가위원 × 모든 평가대상 ({candidates.length}명 × {evaluators.length}명 = {candidates.length * evaluators.length}페이지)</div>
-                        </div>
-                        <Button 
-                          onClick={printAllCombinations}
-                          variant="default"
-                          size="sm"
-                          disabled={candidates.length === 0 || evaluators.length === 0}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Printer className="h-4 w-4 mr-2" />
-                          전체 인쇄
-                        </Button>
-                      </div>
-
-                      {/* 🚀 추후 확장용: 개별 선택 인쇄 옵션들 */}
-                      {(candidates.length > 0 && evaluators.length > 0) && (
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* 평가위원별 인쇄 */}
-                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="font-medium text-sm text-gray-700 mb-2">평가위원별 일괄 인쇄</div>
-                            <div className="text-xs text-gray-500 mb-2">특정 평가위원의 모든 평가표</div>
-                            <select 
-                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
-                              onChange={(e) => e.target.value && printByEvaluator(parseInt(e.target.value))}
-                              defaultValue=""
-                            >
-                              <option value="">평가위원 선택</option>
-                              {evaluators.map((evaluator: any) => (
-                                <option key={evaluator.id} value={evaluator.id}>
-                                  {evaluator.name} ({candidates.length}페이지)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* 평가대상별 인쇄 */}
-                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="font-medium text-sm text-gray-700 mb-2">평가대상별 일괄 인쇄</div>
-                            <div className="text-xs text-gray-500 mb-2">특정 평가대상의 모든 평가표</div>
-                            <select 
-                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
-                              onChange={(e) => e.target.value && printByCandidate(parseInt(e.target.value))}
-                              defaultValue=""
-                            >
-                              <option value="">평가대상 선택</option>
-                              {candidates.map((candidate: any) => (
-                                <option key={candidate.id} value={candidate.id}>
-                                  {candidate.name} ({evaluators.length}페이지)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 인쇄 팁 */}
-                      <div className="text-xs text-gray-600 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
-                        <span className="text-orange-600 font-medium">💡 인쇄 팁:</span> 브라우저 인쇄 설정에서 '머리글 및 바닥글' 옵션을 해제하면 더 깨끗한 출력이 가능합니다
-                      </div>
-                    </div>
-                  </div>
 
                   {/* 평가위원 정보 편집 (편집 모드에서만 표시) */}
                   {isEditing && (
