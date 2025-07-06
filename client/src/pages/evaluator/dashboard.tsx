@@ -44,13 +44,15 @@ export default function EvaluatorDashboard() {
     );
   }
 
-  const progressPercentage = progress?.completed && progress?.total 
-    ? Math.round((progress.completed / progress.total) * 100)
-    : 0;
-
+  // 실제 후보자 수 기반으로 통계 계산
+  const actualTotalCount = candidates?.length || 0;
   const completedCount = progress?.completed || 0;
-  const totalCount = progress?.total || 0;
-  const remainingCount = totalCount - completedCount;
+  const totalCount = progress?.total || actualTotalCount;
+  const remainingCount = actualTotalCount - completedCount;
+  
+  const progressPercentage = actualTotalCount > 0 
+    ? Math.round((completedCount / actualTotalCount) * 100)
+    : 0;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -84,11 +86,11 @@ export default function EvaluatorDashboard() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">완료된 평가</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">총 평가대상</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {completedCount}
+              <div className="text-2xl font-bold text-gray-700">
+                {actualTotalCount}
               </div>
               <p className="text-sm text-gray-500">건</p>
             </CardContent>
@@ -108,11 +110,11 @@ export default function EvaluatorDashboard() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">총 평가 대상</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">완료된 평가</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-700">
-                {totalCount}
+              <div className="text-2xl font-bold text-green-600">
+                {completedCount}
               </div>
               <p className="text-sm text-gray-500">건</p>
             </CardContent>

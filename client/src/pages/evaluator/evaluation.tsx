@@ -247,47 +247,7 @@ export default function EvaluatorEvaluationPage() {
           </CardContent>
         </Card>
 
-        {/* 통계 요약 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">전체 평가대상</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{filteredResults.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">평가 완료</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {filteredResults.filter((r: any) => r.isCompleted).length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">진행 중</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
-                {filteredResults.filter((r: any) => !r.isCompleted && r.progress > 0).length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">미시작</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-600">
-                {filteredResults.filter((r: any) => !r.isCompleted && r.progress === 0).length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+
       </div>
     </div>
   );
