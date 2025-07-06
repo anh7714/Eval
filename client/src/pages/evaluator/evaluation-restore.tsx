@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 // Select 컴포넌트 제거 - 네이티브 select 사용
 import { CheckCircle, Clock, User, ArrowRight, Eye, Edit3, X } from "lucide-react";
 import { Link } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 interface CandidateResult {
@@ -18,6 +19,8 @@ interface CandidateResult {
     department: string;
     position: string;
     category: string;
+    mainCategory: string;
+    subCategory: string;
   };
   totalScore: number;
   maxPossibleScore: number;
@@ -50,16 +53,125 @@ export default function EvaluatorEvaluationPage() {
     setSelectedStatus("all");
   };
 
-  // 평가대상 데이터 가져오기
-  const { data: candidates = [] } = useQuery({
-    queryKey: ["/api/evaluator/candidates"],
-    refetchOnWindowFocus: true,
-    refetchInterval: 3000, // 3초마다 자동 갱신
-    staleTime: 1000,
-  });
+  // 평가 모달 열기 함수
+  const openEvaluationModal = (candidate: any) => {
+    setSelectedCandidate(candidate);
+    
+    // 심사표 템플릿 생성
+    const template = createEvaluationTemplate(candidate, categories, evaluationItems, systemConfig);
+    setEvaluationTemplate(template);
+    setIsEvaluationModalOpen(true);
+  };
 
-  // 진행 상황 데이터 가져오기
-  const { data: progressData = {} } = useQuery({
+  // 심사표 템플릿 생성 함수
+  const createEvaluationTemplate = (candidate: any, categories: any[], items: any[], config: any) => {
+    const evaluationTitle = config.evaluationTitle || config.systemName || "종합평가시스템";
+    const candidateName = candidate.name || "평가대상";
+    const candidateCategory = candidate.category || candidate.mainCategory || "기타";
+    
+    // 카테고리별로 평가항목 정리
+    const categoryGroups = categories.reduce((groups: any, category: any) => {
+      if (category.type === 'evaluation') {
+        groups[category.name] = {
+          name: category.name,
+          items: items.filter((item: any) => item.category === category.name)
+        };
+      }
+      return groups;
+    }, {});
+
+    return {
+      title: `${candidateName} 심사표`,
+      subtitle: `구분 · ${candidateCategory} · ${evaluationTitle}`,
+      candidate: candidate,
+      categories: categoryGroups
+    };
+  };
+
+  // Supabase 실시간 연결 및 폴링 백업 시스템
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout;
+    let supabase: any;
+
+    const initializeRealtime = async () => {
+      try {
+        // Supabase 클라이언트 초기화
+        supabase = createClient(
+          'https://bqgbppdppkhsqkekqrui.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxZ2JwcGRwcGtoc3FrZWtxcnVpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTU3MjUxNiwiZXhwIjoyMDM1MTQ4NTE2fQ.RNYUJsHqQO_ZbmjPKQGqCcF1lKfGrLqOFWHs_R8yg8Q'
+        );
+
+        // 실시간 구독 설정
+        const candidatesChannel = supabase
+          .channel('evaluator-candidates-changes')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'candidates'
+          }, (payload: any) => {
+            console.log('🔄 평가자 - 평가대상 데이터 변경 감지:', payload);
+            queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+          })
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'evaluation_submissions'
+          }, (payload: any) => {
+            console.log('🔄 평가자 - 평가 제출 데이터 변경 감지:', payload);
+            queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+          })
+          .subscribe((status: string) => {
+            console.log('📡 평가자 실시간 연결 상태:', status);
+            setIsRealtimeConnected(status === 'SUBSCRIBED');
+          });
+
+        // 폴링 백업 시스템 시작
+        const startPolling = () => {
+          if (!pollingInterval) {
+            pollingInterval = setInterval(() => {
+              if (!isRealtimeConnected) {
+                console.log('🔄 평가자 페이지 폴링으로 데이터 동기화');
+                queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+              }
+            }, 2000); // 2초마다 빠른 폴링
+          }
+        };
+
+        startPolling();
+
+        // 창 포커스 시 데이터 새로고침
+        const handleFocus = () => {
+          console.log('🔄 평가자 페이지 포커스 - 데이터 새로고침');
+          queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+        };
+
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+          if (candidatesChannel) {
+            candidatesChannel.unsubscribe();
+          }
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+          }
+          window.removeEventListener('focus', handleFocus);
+        };
+      } catch (error) {
+        console.error('❌ 평가자 실시간 연결 오류:', error);
+        setIsRealtimeConnected(false);
+      }
+    };
+
+    const cleanup = initializeRealtime();
+    return () => {
+      cleanup.then(cleanupFn => cleanupFn && cleanupFn());
+    };
+  }, [queryClient, isRealtimeConnected]);
+
+  const { data: progress } = useQuery({
     queryKey: ["/api/evaluator/progress"],
     refetchOnWindowFocus: true,
     refetchInterval: 3000, // 3초마다 자동 갱신
@@ -81,390 +193,394 @@ export default function EvaluatorEvaluationPage() {
     staleTime: 2000,
   });
 
-  // 필터링 로직
-  const getFilteredCandidates = () => {
-    if (!Array.isArray(candidates)) return [];
+  // 시스템 설정 가져오기
+  const { data: systemConfig = {} } = useQuery({
+    queryKey: ["/api/system/config"],
+  });
+
+  // 평가위원에게 할당된 후보자 목록을 가져오기
+  const { data: candidates = [], isLoading: candidatesLoading } = useQuery({
+    queryKey: ["/api/evaluator/candidates"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000, // 3초마다 자동 갱신
+    staleTime: 1000,
+  });
+
+  // 필터링된 결과 계산
+  const filteredResults = React.useMemo(() => {
+    if (!candidates || !Array.isArray(candidates)) return [];
     
-    return candidates.filter((candidate: any) => {
-      // 주요 카테고리 필터
-      if (selectedMainCategory !== "all" && candidate.category !== selectedMainCategory) {
-        return false;
-      }
+    return (candidates as any[]).filter((candidate: any) => {
+      const matchesMainCategory = selectedMainCategory === "all" || 
+        candidate.mainCategory === selectedMainCategory;
+        
+      const matchesSubCategory = selectedSubCategory === "all" || 
+        candidate.subCategory === selectedSubCategory;
+        
+      // 임시로 모든 상태를 "미시작"으로 설정
+      const statusMatch = selectedStatus === "all" || selectedStatus === "incomplete";
       
-      // 하위 카테고리 필터  
-      if (selectedSubCategory !== "all" && candidate.category !== selectedSubCategory) {
-        return false;
-      }
-      
-      return true;
+      return matchesMainCategory && matchesSubCategory && statusMatch && candidate.isActive;
+    }).map((candidate: any, index: number) => {
+      return {
+        candidate: {
+          id: candidate.id,
+          name: candidate.name,
+          department: candidate.department || '미분류',
+          position: candidate.position || '미설정',
+          category: candidate.mainCategory || '미분류',
+          mainCategory: candidate.mainCategory || '미분류',
+          subCategory: candidate.subCategory || '미분류'
+        },
+        rank: index + 1,
+        isCompleted: false, // 임시로 모두 미완료로 설정
+        progress: 0, // 임시로 모두 0%로 설정
+        totalScore: 0,
+        maxPossibleScore: 100,
+        percentage: 0,
+        evaluatorCount: 1,
+        completedEvaluations: 0,
+        averageScore: 0
+      };
     });
-  };
+  }, [candidates, selectedMainCategory, selectedSubCategory, selectedStatus]);
 
-  // 고유한 카테고리 값들 추출
-  const getUniqueValues = (field: string) => {
-    if (!Array.isArray(candidates)) return [];
-    return [...new Set(candidates.map((candidate: any) => candidate[field]).filter(Boolean))];
-  };
-
-  const uniqueMainCategories = getUniqueValues('category');
-  const uniqueSubCategories = getUniqueValues('category');
-
-  const filteredCandidates = getFilteredCandidates();
-
-  // 평가 시작 함수
-  const startEvaluation = (candidate: any) => {
-    console.log('평가 시작:', candidate);
-    setSelectedCandidate(candidate);
-    
-    // 템플릿 데이터 생성 (실제 평가 항목 기반)
-    const template = {
-      title: `${candidate.name} 심사표`,
-      subtitle: "구분 · 재활약 · 돌봄SOS 서비스 재공기관 선정 심사"
-    };
-    
-    setEvaluationTemplate(template);
-    setIsEvaluationModalOpen(true);
-  };
-
-  // 평가 상태 표시 함수
-  const getEvaluationStatus = (candidate: any) => {
-    // 실제 평가 상태 로직 구현 필요
-    return "평가대기";
-  };
-
-  // 상태별 색상 반환
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "완료": return "bg-green-100 text-green-800";
-      case "진행중": return "bg-blue-100 text-blue-800";
-      case "평가대기": return "bg-gray-100 text-gray-800";
-      default: return "bg-gray-100 text-gray-800";
+  const getStatusBadge = (result: CandidateResult) => {
+    if (result.isCompleted) {
+      return <Badge variant="default" className="bg-green-100 text-green-800">완료</Badge>;
+    } else if (result.progress > 0) {
+      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">진행중</Badge>;
+    } else {
+      return <Badge variant="outline" className="bg-orange-100 text-orange-600">평가대기</Badge>;
     }
   };
 
-  return (
-    <div className="flex-1 space-y-4 p-8 pt-6 bg-gray-50 min-h-screen">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">평가 진행</h2>
-        <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="gap-1">
-            <User className="h-3 w-3" />
-            평가위원
-          </Badge>
+  const getProgressBar = (result: CandidateResult) => {
+    const progressValue = result.progress || 0;
+    let colorClass = "bg-gray-200";
+    
+    if (progressValue === 100) {
+      colorClass = "bg-green-500";
+    } else if (progressValue > 0) {
+      colorClass = "bg-yellow-500";
+    }
+    
+    return (
+      <div className="w-full">
+        <div className="flex items-center justify-between text-sm mb-1">
+          <span>{progressValue}%</span>
+        </div>
+        <Progress value={progressValue} className={`h-2 ${colorClass}`} />
+      </div>
+    );
+  };
+
+  if (candidatesLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-500">평가 데이터를 불러오는 중...</p>
         </div>
       </div>
+    );
+  }
 
-      {/* 실시간 연결 상태 */}
-      <div className="flex items-center space-x-2 text-sm">
-        <div className={`h-2 w-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-        <span className="text-gray-600">
-          {isRealtimeConnected ? '실시간 연결됨' : '연결 중...'}
-        </span>
-      </div>
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* 페이지 헤더 */}
+        <div className="text-left">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">평가하기</h1>
+          <p className="text-lg text-gray-600 mt-2">
+            평가대상별 상세 점수와 평가 진행 상황을 확인하고 평가를 수행하세요.
+          </p>
+        </div>
 
-      {/* 통계 카드 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* 필터 섹션 */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">전체 평가대상</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>평가 관리</span>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium">구분:</label>
+                  <select 
+                    value={selectedMainCategory} 
+                    onChange={(e) => setSelectedMainCategory(e.target.value)}
+                    className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    <option value="all">전체 구분</option>
+                    {Array.from(new Set((candidates as any[]).map((c: any) => c.mainCategory).filter(Boolean))).map((category: any) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium">세부구분:</label>
+                  <select 
+                    value={selectedSubCategory} 
+                    onChange={(e) => setSelectedSubCategory(e.target.value)}
+                    className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    <option value="all">전체 세부구분</option>
+                    {Array.from(new Set((candidates as any[]).map((c: any) => c.subCategory).filter(Boolean))).map((category: any) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium">상태:</label>
+                  <select 
+                    value={selectedStatus} 
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    <option value="all">전체 상태</option>
+                    <option value="incomplete">평가대기</option>
+                    <option value="completed">완료</option>
+                  </select>
+                </div>
+                <button 
+                  onClick={resetFilters}
+                  className="px-4 py-2 border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md rounded-md bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  필터 초기화
+                </button>
+              </div>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Array.isArray(candidates) ? candidates.length : 0}명</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">완료된 평가</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(progressData as any)?.completed || 0}명</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">전체 진행률</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Math.round(((progressData as any)?.completed || 0) / Math.max(((progressData as any)?.total || 1), 1) * 100)}%</div>
-            <Progress 
-              value={((progressData as any)?.completed || 0) / Math.max(((progressData as any)?.total || 1), 1) * 100} 
-              className="mt-2" 
-            />
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">나의 평가</CardTitle>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0명</div>
-            <p className="text-xs text-muted-foreground">평가 완료</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 필터 섹션 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>평가대상 목록</CardTitle>
-          <CardDescription>평가를 진행할 대상을 선택하세요</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">카테고리</label>
-              <select
-                value={selectedMainCategory}
-                onChange={(e) => setSelectedMainCategory(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-w-[150px]"
-              >
-                <option value="all">전체</option>
-                {uniqueMainCategories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">상태</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-w-[150px]"
-              >
-                <option value="all">전체</option>
-                <option value="평가대기">평가대기</option>
-                <option value="진행중">진행중</option>
-                <option value="완료">완료</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col justify-end">
-              <Button 
-                variant="outline" 
-                onClick={resetFilters}
-                className="px-4 py-2"
-              >
-                필터 초기화
-              </Button>
-            </div>
-          </div>
-
-          {/* 평가대상 테이블 */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>기관명(성명)</TableHead>
-                  <TableHead>소속(부서)</TableHead>
-                  <TableHead>직책(직급)</TableHead>
-                  <TableHead>카테고리</TableHead>
-                  <TableHead>평가상태</TableHead>
-                  <TableHead className="text-right">작업</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCandidates.length === 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                      평가대상이 없습니다.
-                    </TableCell>
+                    <TableHead className="text-center">순서</TableHead>
+                    <TableHead className="text-center">구분</TableHead>
+                    <TableHead className="text-center">세부구분</TableHead>
+                    <TableHead>기관명(성명)</TableHead>
+                    <TableHead className="text-center">진행상태</TableHead>
+                    <TableHead className="text-center">진행상황</TableHead>
+                    <TableHead className="text-center">상태</TableHead>
+                    <TableHead className="text-center">평가</TableHead>
+                    <TableHead className="text-center">결과확인</TableHead>
                   </TableRow>
-                ) : (
-                  filteredCandidates.map((candidate: any) => {
-                    const status = getEvaluationStatus(candidate);
-                    return (
-                      <TableRow key={candidate.id}>
-                        <TableCell className="font-medium">{candidate.name}</TableCell>
-                        <TableCell>{candidate.department}</TableCell>
-                        <TableCell>{candidate.position}</TableCell>
-                        <TableCell>{candidate.category}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(status)}>
-                            {status}
-                          </Badge>
+                </TableHeader>
+                <TableBody>
+                  {filteredResults.length > 0 ? (
+                    filteredResults.map((result: CandidateResult, index: number) => (
+                      <TableRow key={result.candidate.id}>
+                        <TableCell className="text-center font-medium">
+                          {result.rank || index + 1}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => startEvaluation(candidate)}
-                              className="gap-1"
-                            >
-                              <Edit3 className="h-3 w-3" />
-                              평가
-                            </Button>
+                        <TableCell className="text-center">
+                          <Badge variant="outline">{result.candidate.mainCategory || '미분류'}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-sm text-gray-600">{result.candidate.subCategory || '미분류'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{result.candidate.name}</div>
+                            <div className="text-sm text-gray-600">{result.candidate.department}</div>
                           </div>
                         </TableCell>
+                        <TableCell className="text-center">
+                          {getStatusBadge(result)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="w-24 mx-auto">
+                            {getProgressBar(result)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {result.isCompleted ? (
+                            <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                          ) : (
+                            <Clock className="h-5 w-5 text-yellow-500 mx-auto" />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex items-center space-x-1"
+                            onClick={() => openEvaluationModal(result.candidate)}
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>{result.isCompleted ? "수정" : "평가"}</span>
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button size="sm" variant="ghost" className="flex items-center space-x-1">
+                            <Eye className="h-3 w-3" />
+                            <span>결과확인</span>
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 평가 모달 - 새로운 디자인 */}
-      {selectedCandidate && isEvaluationModalOpen && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden border border-gray-300">
-            {/* 모달 헤더 */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <div className="bg-white bg-opacity-20 rounded-lg p-2">
-                  <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">
-                    {selectedCandidate.name} 심사표
-                  </h2>
-                  <p className="text-blue-100 text-sm">평가 진행 중</p>
-                </div>
-              </div>
-              <Button
-                onClick={() => setIsEvaluationModalOpen(false)}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-12">
+                        <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">평가 대상이 없습니다.</p>
+                        <p className="text-sm text-gray-400 mt-2">관리자가 평가대상을 등록하면 여기에 표시됩니다.</p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* 모달 컨텐츠 */}
-            <div className="p-6 bg-gray-50 overflow-y-auto max-h-[calc(95vh-80px)]">
-              {Array.isArray(categories) && categories.length > 0 && Array.isArray(evaluationItems) && evaluationItems.length > 0 && (
-                <div className="space-y-4">
-                  {/* 심사표 테이블 */}
-                  <div className="bg-white border border-gray-400 rounded-lg overflow-hidden shadow-sm">
-                    {/* 테이블 제목과 구분 정보 */}
-                    <div className="border-b-2 border-black p-4 text-center bg-white">
-                      <h2 className="text-xl font-bold mb-2">{selectedCandidate.name} 심사표</h2>
-                      <div className="text-right text-sm text-gray-600">
-                        구분 · 재활약 · 돌봄SOS 서비스 재공기관 선정 심사
-                      </div>
+        {/* 평가 모달 */}
+        <Dialog open={isEvaluationModalOpen} onOpenChange={setIsEvaluationModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {evaluationTemplate && (
+              <div className="space-y-6">
+                {/* 모달 헤더 */}
+                <div className="flex justify-between items-start border-b pb-4">
+                  <div>
+                    <DialogTitle className="text-xl font-bold text-center">
+                      {evaluationTemplate.title}
+                    </DialogTitle>
+                    <p className="text-sm text-gray-600 mt-1 text-center">
+                      {evaluationTemplate.subtitle}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEvaluationModalOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* 심사표 테이블 - 관리자 화면과 동일한 스타일 */}
+                <div className="bg-white border border-gray-400 rounded-lg overflow-hidden">
+                  {/* 테이블 제목과 구분 정보 */}
+                  <div className="border-b-2 border-black p-4 text-center">
+                    <h2 className="text-xl font-bold mb-2">{evaluationTemplate.title}</h2>
+                    <div className="text-right text-sm text-gray-600">
+                      {evaluationTemplate.subtitle}
                     </div>
+                  </div>
 
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                            구분 (100점)
-                          </th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                            세부 항목
-                          </th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                            유형
-                          </th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                            배점
-                          </th>
-                          <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                            평가점수
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          // 카테고리별로 평가 항목을 그룹화
-                          const categoryGroups: { [key: string]: any[] } = {};
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
+                          구분 (100점)
+                        </th>
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
+                          세부 항목
+                        </th>
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
+                          유형
+                        </th>
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
+                          배점
+                        </th>
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
+                          평가점수
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        // 카테고리별로 평가 항목을 그룹화
+                        const categoryGroups: { [key: string]: any[] } = {};
+                        
+                        (evaluationItems as any[]).forEach((item: any) => {
+                          const category = (categories as any[]).find((cat: any) => cat.id === item.categoryId);
+                          const categoryName = category?.name || '기타';
                           
-                          (evaluationItems as any[]).forEach((item: any) => {
-                            const category = (categories as any[]).find((cat: any) => cat.id === item.categoryId);
-                            const categoryName = category?.name || '기타';
-                            
-                            if (!categoryGroups[categoryName]) {
-                              categoryGroups[categoryName] = [];
-                            }
-                            categoryGroups[categoryName].push(item);
-                          });
+                          if (!categoryGroups[categoryName]) {
+                            categoryGroups[categoryName] = [];
+                          }
+                          categoryGroups[categoryName].push(item);
+                        });
 
-                          const totalPoints = (evaluationItems as any[]).reduce((sum: number, item: any) => sum + (item.points || 0), 0);
+                        const totalPoints = (evaluationItems as any[]).reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
 
-                          return Object.entries(categoryGroups).map(([categoryName, items]) => {
-                            const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.points || 0), 0);
-                            
-                            return items.map((item: any, itemIndex: number) => (
-                              <tr key={`${categoryName}-${itemIndex}`}>
-                                {itemIndex === 0 && (
-                                  <td 
-                                    className="border border-gray-400 px-2 py-3 text-center font-bold bg-gray-50 align-middle"
-                                    rowSpan={items.length}
-                                  >
-                                    <div className="text-sm font-bold">{categoryName}</div>
-                                    <div className="text-xs text-gray-600 mt-1">({categoryTotal}점)</div>
-                                  </td>
-                                )}
-                                <td className="border border-gray-400 px-3 py-2 text-sm">
-                                  {itemIndex + 1}. {item.itemName || item.text}
+                        return Object.entries(categoryGroups).map(([categoryName, items]) => {
+                          const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
+                          
+                          return items.map((item: any, itemIndex: number) => (
+                            <tr key={`${categoryName}-${itemIndex}`}>
+                              {itemIndex === 0 && (
+                                <td 
+                                  className="border border-gray-400 px-2 py-3 text-center font-bold bg-gray-50 align-middle"
+                                  rowSpan={items.length}
+                                >
+                                  <div className="text-sm font-bold">{categoryName}</div>
+                                  <div className="text-xs text-gray-600 mt-1">({categoryTotal}점)</div>
                                 </td>
-                                <td className="border border-gray-400 px-2 py-2 text-center text-sm">
-                                  정성
-                                </td>
-                                <td className="border border-gray-400 px-2 py-2 text-center text-sm">
-                                  {item.points || item.maxScore}점
-                                </td>
-                                <td className="border border-gray-400 px-2 py-2 text-center bg-blue-50">
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max={item.points || item.maxScore}
-                                    placeholder="0"
-                                    className="w-16 text-center text-sm mx-auto bg-blue-50 focus:bg-white"
-                                    defaultValue={item.score || 0}
-                                  />
-                                </td>
-                              </tr>
-                            ));
-                          }).flat().concat([
-                            // 합계 행
-                            <tr key="total" className="bg-yellow-50 font-bold">
-                              <td className="border border-gray-400 px-4 py-3 text-center" colSpan={2}>합계</td>
-                              <td className="border border-gray-400 px-2 py-3 text-center"></td>
-                              <td className="border border-gray-400 px-2 py-3 text-center">{totalPoints}점</td>
-                              <td className="border border-gray-400 px-2 py-3 text-center bg-blue-50">
-                                <span className="text-lg font-bold">0점</span>
+                              )}
+                              <td className="border border-gray-400 px-3 py-2 text-sm">
+                                {itemIndex + 1}. {item.itemName}
+                              </td>
+                              <td className="border border-gray-400 px-2 py-2 text-center text-sm">
+                                정성
+                              </td>
+                              <td className="border border-gray-400 px-2 py-2 text-center text-sm">
+                                {item.maxScore}점
+                              </td>
+                              <td className="border border-gray-400 px-2 py-2 text-center bg-blue-50">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={item.maxScore}
+                                  placeholder="0"
+                                  className="w-16 text-center text-sm mx-auto bg-blue-50 focus:bg-white"
+                                  defaultValue={0}
+                                />
                               </td>
                             </tr>
-                          ]);
-                        })()}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* 하단 버튼들 */}
-                  <div className="flex justify-end space-x-4 pt-6">
-                    <Button
-                      variant="outline"
-                      className="px-6"
-                    >
-                      임시 저장
-                    </Button>
-                    <Button
-                      className="bg-blue-600 text-white hover:bg-blue-700 px-6"
-                    >
-                      평가 완료
-                    </Button>
-                  </div>
+                          ));
+                        }).flat().concat([
+                          // 합계 행
+                          <tr key="total" className="bg-yellow-50 font-bold">
+                            <td className="border border-gray-400 px-4 py-3 text-center" colSpan={2}>합계</td>
+                            <td className="border border-gray-400 px-2 py-3 text-center"></td>
+                            <td className="border border-gray-400 px-2 py-3 text-center">{totalPoints}점</td>
+                            <td className="border border-gray-400 px-2 py-3 text-center bg-blue-50">
+                              <span className="text-lg font-bold">0점</span>
+                            </td>
+                          </tr>
+                        ]);
+                      })()}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
+                {/* 모달 하단 버튼 */}
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEvaluationModalOpen(false)}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-gray-500 text-white hover:bg-gray-600"
+                  >
+                    임시 저장
+                  </Button>
+                  <Button
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    평가 완료
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
