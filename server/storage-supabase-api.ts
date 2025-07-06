@@ -726,61 +726,71 @@ export class SupabaseStorage {
   }
 
   async getSystemStatistics(): Promise<{
+    totalEvaluators: number;
+    activeEvaluators: number;
     totalCandidates: number;
-    completed: number;
-    inProgress: number;
-    notStarted: number;
+    totalEvaluationItems: number;
+    totalCategories: number;
     completionRate: number;
   }> {
-    // 1. 전체 후보자 수
-    const { data: candidates, error: candidatesError } = await supabase
-      .from('candidates')
-      .select('id');
-    if (candidatesError) throw candidatesError;
-    const totalCandidates = candidates.length;
+    try {
+      // 1. 평가자 통계
+      const { data: allEvaluators, error: evaluatorsError } = await supabase
+        .from('evaluators')
+        .select('id, is_active');
+      if (evaluatorsError) throw evaluatorsError;
+      
+      const totalEvaluators = allEvaluators.length;
+      const activeEvaluators = allEvaluators.filter(e => e.is_active).length;
 
-    // 2. 전체 평가위원 수
-    const { data: evaluators, error: evaluatorsError } = await supabase
-      .from('evaluators')
-      .select('id')
-      .eq('is_active', true);
-    if (evaluatorsError) throw evaluatorsError;
-    const totalEvaluators = evaluators.length;
+      // 2. 활성 평가대상 수
+      const { data: activeCandidates, error: candidatesError } = await supabase
+        .from('candidates')
+        .select('id')
+        .eq('is_active', true);
+      if (candidatesError) throw candidatesError;
+      const totalCandidates = activeCandidates.length;
 
-    // 3. 후보자별 평가 제출 현황
-    // 평가 제출 테이블: evaluation_submissions (evaluatorId, candidateId)
-    const { data: submissions, error: submissionsError } = await supabase
-      .from('evaluation_submissions')
-      .select('candidateId, evaluatorId');
-    if (submissionsError) throw submissionsError;
+      // 3. 평가항목 수 (구현되지 않았으므로 0으로 설정)
+      const totalEvaluationItems = 0;
 
-    // 후보자별 제출된 평가위원 수 집계
-    const candidateSubmissionMap: Record<number, Set<number>> = {};
-    submissions.forEach((s: any) => {
-      if (!candidateSubmissionMap[s.candidateId]) candidateSubmissionMap[s.candidateId] = new Set();
-      candidateSubmissionMap[s.candidateId].add(s.evaluatorId);
-    });
+      // 4. 카테고리 수 (구현되지 않았으므로 0으로 설정)
+      const totalCategories = 0;
 
-    let completed = 0;
-    let notStarted = 0;
-    let inProgress = 0;
+      // 5. 완료율 계산
+      let completionRate = 0;
+      if (activeEvaluators > 0 && totalCandidates > 0) {
+        // 평가 제출 테이블에서 완료된 평가 수 계산
+        const { data: submissions, error: submissionsError } = await supabase
+          .from('evaluation_submissions')
+          .select('id');
+        
+        if (!submissionsError && submissions) {
+          const totalPossibleEvaluations = activeEvaluators * totalCandidates;
+          completionRate = Math.round((submissions.length / totalPossibleEvaluations) * 100);
+        }
+      }
 
-    candidates.forEach((c: any) => {
-      const submitted = candidateSubmissionMap[c.id]?.size || 0;
-      if (submitted === 0) notStarted++;
-      else if (submitted === totalEvaluators && totalEvaluators > 0) completed++;
-      else inProgress++;
-    });
-
-    const completionRate = totalCandidates > 0 ? Math.round((completed / totalCandidates) * 100) : 0;
-
-    return {
-      totalCandidates,
-      completed,
-      inProgress,
-      notStarted,
-      completionRate
-    };
+      return {
+        totalEvaluators,
+        activeEvaluators,
+        totalCandidates,
+        totalEvaluationItems,
+        totalCategories,
+        completionRate
+      };
+    } catch (error) {
+      console.error('Error in getSystemStatistics:', error);
+      // 오류 시 기본값 반환
+      return {
+        totalEvaluators: 0,
+        activeEvaluators: 0,
+        totalCandidates: 0,
+        totalEvaluationItems: 0,
+        totalCategories: 0,
+        completionRate: 0
+      };
+    }
   }
 
   async getEvaluatorProgressList(): Promise<any[]> {
