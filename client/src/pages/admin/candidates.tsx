@@ -27,7 +27,8 @@ export default function CandidateManagement() {
   // 테이블 관련 상태
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [mainCategoryFilter, setMainCategoryFilter] = useState("all");
+  const [subCategoryFilter, setSubCategoryFilter] = useState("all");
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -335,24 +336,27 @@ export default function CandidateManagement() {
     .filter((candidate: any) => {
       const matchesSearch = 
         candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        candidate.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         candidate.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        candidate.category?.toLowerCase().includes(searchTerm.toLowerCase());
+        candidate.mainCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        candidate.subCategory?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === "all" || 
         (statusFilter === "active" && candidate.isActive) ||
         (statusFilter === "inactive" && !candidate.isActive);
       
-      const matchesCategory = categoryFilter === "all" || 
-        candidate.category?.includes(categoryFilter);
+      const matchesMainCategory = mainCategoryFilter === "all" || 
+        candidate.mainCategory === mainCategoryFilter;
+        
+      const matchesSubCategory = subCategoryFilter === "all" || 
+        candidate.subCategory === subCategoryFilter;
       
-      return matchesSearch && matchesStatus && matchesCategory;
+      return matchesSearch && matchesStatus && matchesMainCategory && matchesSubCategory;
     })
     .sort((a: any, b: any) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
       
-      if (sortField === "name" || sortField === "department" || sortField === "position" || sortField === "category") {
+      if (sortField === "name" || sortField === "department" || sortField === "position" || sortField === "mainCategory" || sortField === "subCategory") {
         aValue = aValue || "";
         bValue = bValue || "";
         return sortDirection === "asc" 
@@ -390,7 +394,8 @@ export default function CandidateManagement() {
   const resetFilters = () => {
     setSearchTerm("");
     setStatusFilter("all");
-    setCategoryFilter("all");
+    setMainCategoryFilter("all");
+    setSubCategoryFilter("all");
     setCurrentPage(1);
   };
 
@@ -885,7 +890,7 @@ export default function CandidateManagement() {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="이름, 부서, 직책, 구분으로 검색..."
+                    placeholder="기관명(이름), 직책(직급), 구분으로 검색..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -904,14 +909,27 @@ export default function CandidateManagement() {
                   </SelectContent>
                 </Select>
 
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={mainCategoryFilter} onValueChange={setMainCategoryFilter}>
                   <SelectTrigger className="w-[140px]">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="구분" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">전체 구분</SelectItem>
-                    {Array.from(new Set(candidates.map((c: any) => c.category).filter(Boolean))).map((category: any) => (
+                    {Array.from(new Set(candidates.map((c: any) => c.mainCategory).filter(Boolean))).map((category: any) => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={subCategoryFilter} onValueChange={setSubCategoryFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="세부구분" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 세부구분</SelectItem>
+                    {Array.from(new Set(candidates.map((c: any) => c.subCategory).filter(Boolean))).map((category: any) => (
                       <SelectItem key={category} value={category}>{category}</SelectItem>
                     ))}
                   </SelectContent>
@@ -983,10 +1001,28 @@ export default function CandidateManagement() {
                     </TableHead>
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("mainCategory")}
+                    >
+                      <div className="flex items-center gap-2">
+                        구분
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("subCategory")}
+                    >
+                      <div className="flex items-center gap-2">
+                        세부구분
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
                       onClick={() => handleSort("name")}
                     >
                       <div className="flex items-center gap-2">
-                        이름
+                        기관명(성명)
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </TableHead>
@@ -995,7 +1031,7 @@ export default function CandidateManagement() {
                       onClick={() => handleSort("department")}
                     >
                       <div className="flex items-center gap-2">
-                        소속/부서
+                        소속(부서)
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </TableHead>
@@ -1004,16 +1040,7 @@ export default function CandidateManagement() {
                       onClick={() => handleSort("position")}
                     >
                       <div className="flex items-center gap-2">
-                        직책/직급
-                        <ArrowUpDown className="h-4 w-4" />
-                      </div>
-                    </TableHead>
-                    <TableHead 
-                      className="cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleSort("category")}
-                    >
-                      <div className="flex items-center gap-2">
-                        구분
+                        직책(직급)
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </TableHead>
@@ -1046,6 +1073,8 @@ export default function CandidateManagement() {
                             onChange={() => handleSelect(candidate.id)}
                           />
                         </TableCell>
+                        <TableCell>{candidate.mainCategory || "정보 없음"}</TableCell>
+                        <TableCell>{candidate.subCategory || "정보 없음"}</TableCell>
                         <TableCell className="font-medium">
                           <div>
                             <div className="font-semibold flex items-center gap-2">
@@ -1063,7 +1092,6 @@ export default function CandidateManagement() {
                         </TableCell>
                         <TableCell>{candidate.department || "정보 없음"}</TableCell>
                         <TableCell>{candidate.position || "정보 없음"}</TableCell>
-                        <TableCell>{candidate.category || "정보 없음"}</TableCell>
                         <TableCell>
                           <Badge 
                             variant={candidate.isActive ? "default" : "secondary"}
