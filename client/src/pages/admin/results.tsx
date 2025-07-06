@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, BarChart3, Users, Trophy, Clipboard, Search, Filter, ArrowUpDown, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { Download, BarChart3, Users, Trophy, Clipboard, Search, Filter, ArrowUpDown, TrendingUp, AlertCircle, CheckCircle, Upload, Save, X, Printer, Edit3, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ResultsManagement() {
@@ -23,6 +23,57 @@ export default function ResultsManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // 평가 템플릿 관련 상태
+  const [columnConfig, setColumnConfig] = useState([
+    { id: 'section', title: '구분', type: 'section', visible: true, required: true, width: 'w-32' },
+    { id: 'item', title: '세부 항목', type: 'text', visible: true, required: true, width: 'flex-1' },
+    { id: 'type', title: '유형', type: 'select', visible: true, required: false, width: 'w-16', options: ['정량', '정성'] },
+    { id: 'points', title: '배점', type: 'number', visible: true, required: true, width: 'w-16' },
+    { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
+  ]);
+
+  const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
+  const [batchPrintMode, setBatchPrintMode] = useState(false);
+
+  const [evaluator, setEvaluator] = useState({
+    name: '평가위원명',
+    position: '직책',
+    department: '소속기관'
+  });
+
+  const [currentTemplate, setCurrentTemplate] = useState({
+    title: "제공기관 선정 심의회 평가표",
+    totalScore: 100,
+    sections: [
+      {
+        id: 'A',
+        title: '기관수행능력',
+        totalPoints: 35,
+        items: [
+          { id: 1, text: '통계SOS 사업 운영 체계화 2단 완료', type: '정성', points: 20, score: 0 },
+          { id: 2, text: '심의 및 승인 목적 확인', type: '정량', points: 5, score: 0 },
+          { id: 3, text: '기관 운영 기간', type: '정성', points: 5, score: 0 },
+          { id: 4, text: '조직구성', type: '정량', points: 5, score: 0 }
+        ]
+      },
+      {
+        id: 'B',
+        title: '인력운영',
+        totalPoints: 20,
+        items: [
+          { id: 1, text: '사업 운영 총괄자 및 담당자의 전문성', type: '정성', points: 5, score: 0 },
+          { id: 2, text: '통계SOS 사업 운영 체계화부 담당자', type: '정량', points: 5, score: 0 },
+          { id: 3, text: 'SOS서비스 수행 인력의 확보', type: '정량', points: 10, score: 0 }
+        ]
+      }
+    ]
+  });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { data: results = [], isLoading: resultsLoading } = useQuery({
     queryKey: ["/api/admin/results"],
   });
@@ -30,6 +81,414 @@ export default function ResultsManagement() {
   const { data: progress = [], isLoading: progressLoading } = useQuery({
     queryKey: ["/api/admin/evaluator-progress"],
   });
+
+  // 평가위원 목록 가져오기
+  const { data: evaluators = [] } = useQuery({
+    queryKey: ["/api/admin/evaluators"],
+  });
+
+  // 평가대상 목록 가져오기
+  const { data: candidates = [] } = useQuery({
+    queryKey: ["/api/admin/candidates"],
+  });
+
+  // 선택된 평가대상의 정보
+  const selectedCandidateInfo = selectedCandidate 
+    ? (candidates as any[]).find((c: any) => c.id === selectedCandidate)
+    : null;
+
+  // 평가 템플릿 헬퍼 함수들
+  const calculateSectionScore = (section: any) => {
+    return section.items.reduce((sum: any, item: any) => sum + item.points, 0);
+  };
+
+  const calculateTotalScore = () => {
+    return currentTemplate.sections.reduce((total: any, section: any) => 
+      total + section.items.reduce((sum: any, item: any) => sum + item.score, 0), 0
+    );
+  };
+
+  const getDynamicTitle = () => {
+    if (!selectedCandidateInfo) return currentTemplate.title;
+    
+    const baseTitle = currentTemplate.title.replace("제공기관 선정 심의회", "");
+    return `${selectedCandidateInfo.name} ${baseTitle}`.trim();
+  };
+
+  // 템플릿 편집 함수들
+  const updateSection = (sectionId: string, field: string, value: any) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => 
+        section.id === sectionId ? { ...section, [field]: value } : section
+      )
+    }));
+  };
+
+  const updateItem = (sectionId: string, itemId: number, field: string, value: any) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => 
+        section.id === sectionId 
+          ? {
+              ...section,
+              items: section.items.map(item => 
+                item.id === itemId ? { ...item, [field]: value } : item
+              )
+            }
+          : section
+      )
+    }));
+  };
+
+  const updateScore = (sectionId: string, itemId: number, score: number) => {
+    updateItem(sectionId, itemId, 'score', score);
+  };
+
+  const addSection = () => {
+    const newId = String.fromCharCode(65 + currentTemplate.sections.length); // A, B, C...
+    const newSection = {
+      id: newId,
+      title: '새 구분',
+      totalPoints: 10,
+      items: [
+        { id: 1, text: '새 항목', type: '정성', points: 10, score: 0 }
+      ]
+    };
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: [...prev.sections, newSection]
+    }));
+  };
+
+  const deleteSection = (sectionId: string) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.filter(section => section.id !== sectionId)
+    }));
+  };
+
+  const addItem = (sectionId: string) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => 
+        section.id === sectionId 
+          ? {
+              ...section,
+              items: [...section.items, {
+                id: section.items.length + 1,
+                text: '새 항목',
+                type: '정성',
+                points: 5,
+                score: 0
+              }]
+            }
+          : section
+      )
+    }));
+  };
+
+  const deleteItem = (sectionId: string, itemId: number) => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => 
+        section.id === sectionId 
+          ? {
+              ...section,
+              items: section.items.filter(item => item.id !== itemId)
+            }
+          : section
+      )
+    }));
+  };
+
+  const addColumn = () => {
+    const newColumn = {
+      id: `custom_${Date.now()}`,
+      title: '새 컬럼',
+      type: 'text',
+      visible: true,
+      required: false,
+      width: 'w-16'
+    };
+    setColumnConfig(prev => [...prev, newColumn]);
+  };
+
+  const updateColumnConfig = (columnId: string, field: string, value: any) => {
+    setColumnConfig(prev => 
+      prev.map(col => col.id === columnId ? { ...col, [field]: value } : col)
+    );
+  };
+
+  const deleteColumn = (columnId: string) => {
+    setColumnConfig(prev => prev.filter(col => col.id !== columnId));
+  };
+
+  const resetScores = () => {
+    setCurrentTemplate(prev => ({
+      ...prev,
+      sections: prev.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => ({ ...item, score: 0 }))
+      }))
+    }));
+  };
+
+  const saveTemplate = () => {
+    const dataStr = JSON.stringify(currentTemplate, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'evaluation-template.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const saveAsExcel = () => {
+    // Excel 저장 기능 구현
+    toast({ title: "알림", description: "Excel 저장 기능이 곧 추가됩니다." });
+  };
+
+  const loadTemplate = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const template = JSON.parse(e.target?.result as string);
+        setCurrentTemplate(template);
+        toast({ title: "성공", description: "템플릿이 로드되었습니다." });
+      } catch (error) {
+        toast({ title: "오류", description: "템플릿 파일을 읽을 수 없습니다.", variant: "destructive" });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const printTemplate = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = document.getElementById('template-print-area')?.innerHTML || '';
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>평가표 인쇄</title>
+          <style>
+            @media print {
+              @page { 
+                size: A4; 
+                margin: 25mm 15mm 15mm 15mm; 
+              }
+              body { 
+                font-family: 'Malgun Gothic', sans-serif; 
+                font-size: 12px; 
+                line-height: 1.4; 
+                margin: 0; 
+                padding: 0; 
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-bottom: 10px; 
+              }
+              th, td { 
+                border: 1px solid #333; 
+                padding: 8px; 
+                text-align: center; 
+                vertical-align: middle; 
+                word-break: keep-all; 
+              }
+              .title { 
+                font-size: 18px; 
+                font-weight: bold; 
+                text-align: center; 
+              }
+              .type-cell, .points-cell, .score-cell { 
+                text-align: center; 
+                vertical-align: middle; 
+              }
+              .bg-blue-50 { 
+                background-color: #eff6ff !important; 
+              }
+              .bg-gray-100 { 
+                background-color: #f3f4f6 !important; 
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const printAllCombinations = () => {
+    if ((candidates as any[]).length === 0 || (evaluators as any[]).length === 0) {
+      toast({ title: "오류", description: "평가위원과 평가대상이 모두 필요합니다.", variant: "destructive" });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let allContent = '';
+    
+    (candidates as any[]).forEach((candidate: any, candidateIndex: number) => {
+      (evaluators as any[]).forEach((evaluator: any, evaluatorIndex: number) => {
+        const pageBreak = (candidateIndex > 0 || evaluatorIndex > 0) ? '<div style="page-break-before: always;"></div>' : '';
+        
+        allContent += `
+          ${pageBreak}
+          <div class="evaluation-form">
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #333; margin-bottom: 0;">
+              <tbody>
+                <tr>
+                  <td colspan="2" style="border: 1px solid #333; padding: 8px; text-align: right; font-size: 12px;">
+                    구분 : ${candidate.category || candidate.department}
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="border: 1px solid #333; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
+                    ${candidate.name} ${currentTemplate.title.replace("제공기관 선정 심의회", "")}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #333;">
+              <thead>
+                <tr style="background-color: #f3f4f6;">
+                  <th style="border: 1px solid #333; padding: 12px; text-align: center; font-weight: bold;">
+                    구분 (${currentTemplate.sections.reduce((sum: any, section: any) => sum + section.items.reduce((itemSum: any, item: any) => itemSum + item.points, 0), 0)}점)
+                  </th>
+                  <th style="border: 1px solid #333; padding: 12px; text-align: center; font-weight: bold;">세부 항목</th>
+                  ${columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => 
+                    `<th style="border: 1px solid #333; padding: 8px; text-align: center; font-weight: bold; width: 60px;">${column.title}</th>`
+                  ).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${currentTemplate.sections.flatMap((section: any) => 
+                  section.items.map((item: any, itemIndex: number) => `
+                    <tr>
+                      ${itemIndex === 0 ? `
+                        <td rowspan="${section.items.length}" style="border: 1px solid #333; padding: 12px; font-weight: bold; background-color: #eff6ff; text-align: center; vertical-align: middle;">
+                          <div style="font-weight: bold; font-size: 12px;">${section.id}. ${section.title}</div>
+                          <div style="font-size: 10px; color: #666; margin-top: 4px; text-align: center;">
+                            (${calculateSectionScore(section)}점)
+                          </div>
+                        </td>
+                      ` : ''}
+                      <td style="border: 1px solid #333; padding: 8px; font-size: 12px;">
+                        ${itemIndex + 1}. ${item.text}
+                      </td>
+                      ${columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => `
+                        <td style="border: 1px solid #333; padding: 8px; text-align: center; vertical-align: middle; font-size: 11px;">
+                          ${column.id === 'points' ? `${item[column.id]}점` : 
+                            column.id === 'score' ? '' : 
+                            item[column.id] || ''}
+                        </td>
+                      `).join('')}
+                    </tr>
+                  `)
+                ).join('')}
+                <tr style="background-color: #f3f4f6; font-weight: bold;">
+                  <td style="border: 1px solid #333; padding: 12px; text-align: center;">합계</td>
+                  <td style="border: 1px solid #333; padding: 12px;"></td>
+                  ${columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => `
+                    <td style="border: 1px solid #333; padding: 8px; text-align: center; vertical-align: middle;">
+                      ${column.id === 'points' ? 
+                        `${currentTemplate.sections.reduce((sum: any, section: any) => sum + section.items.reduce((itemSum: any, item: any) => itemSum + item.points, 0), 0)}점` : 
+                        column.id === 'score' ? '점' : ''}
+                    </td>
+                  `).join('')}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+      });
+    });
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>전체 평가표 인쇄</title>
+          <style>
+            @media print {
+              @page { 
+                size: A4; 
+                margin: 25mm 15mm 15mm 15mm; 
+              }
+              body { 
+                font-family: 'Malgun Gothic', sans-serif; 
+                margin: 0; 
+                padding: 0; 
+              }
+              .evaluation-form {
+                page-break-after: always;
+              }
+              .evaluation-form:last-child {
+                page-break-after: avoid;
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+              }
+              th, td { 
+                border: 1px solid #333; 
+                text-align: center; 
+                vertical-align: middle; 
+                word-break: keep-all; 
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${allContent}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
+  const printByEvaluator = (evaluatorId: number) => {
+    const evaluator = (evaluators as any[]).find((e: any) => e.id === evaluatorId);
+    if (!evaluator) return;
+    
+    toast({ title: "알림", description: `${evaluator.name} 평가위원의 모든 평가표를 인쇄합니다.` });
+    // 구현 예정
+  };
+
+  const printByCandidate = (candidateId: number) => {
+    const candidate = (candidates as any[]).find((c: any) => c.id === candidateId);
+    if (!candidate) return;
+    
+    toast({ title: "알림", description: `${candidate.name} 평가대상의 모든 평가표를 인쇄합니다.` });
+    // 구현 예정
+  };
 
   // 필터링 및 정렬 로직
   const filterAndSortResults = (data: any[]) => {
@@ -503,33 +962,454 @@ export default function ResultsManagement() {
           </TabsContent>
 
           <TabsContent value="templates">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Clipboard className="h-5 w-5" />
-                  <span>평가표 템플릿 관리</span>
-                </CardTitle>
-                <CardDescription>
-                  평가표 템플릿을 설정하고 관리할 수 있습니다.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Clipboard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">평가표 템플릿</h3>
-                  <p className="text-gray-600 mb-4">
-                    평가 항목 관리 페이지에서 평가표 템플릿을 설정할 수 있습니다.
-                  </p>
-                  <Button 
-                    onClick={() => window.location.href = '/admin/evaluation-items'}
-                    className="inline-flex items-center"
-                  >
-                    <Clipboard className="h-4 w-4 mr-2" />
-                    평가 항목 관리로 이동
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>평가표 템플릿</CardTitle>
+                      <CardDescription>평가표를 디자인하고 관리합니다.</CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setIsEditing(!isEditing)}
+                        variant={isEditing ? "default" : "outline"}
+                        size="sm"
+                      >
+                        {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit3 className="h-4 w-4 mr-2" />}
+                        {isEditing ? "편집 완료" : "편집"}
+                      </Button>
+                      <Button onClick={saveTemplate} variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        JSON 저장
+                      </Button>
+                      <Button onClick={saveAsExcel} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200">
+                        <Download className="h-4 w-4 mr-2" />
+                        Excel 저장
+                      </Button>
+                      <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
+                        <Upload className="h-4 w-4 mr-2" />
+                        불러오기
+                      </Button>
+                      <Button onClick={resetScores} variant="outline" size="sm">
+                        <X className="h-4 w-4 mr-2" />
+                        점수 초기화
+                      </Button>
+                      <Button onClick={printTemplate} variant="outline" size="sm">
+                        <Printer className="h-4 w-4 mr-2" />
+                        인쇄
+                      </Button>
+                      {isEditing && (
+                        <>
+                          <Button onClick={addSection} size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            영역 추가
+                          </Button>
+                          <Button onClick={addColumn} size="sm" variant="secondary">
+                            <Plus className="h-4 w-4 mr-2" />
+                            컬럼 추가
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={loadTemplate}
+                    accept=".json"
+                    className="hidden"
+                  />
+
+                  {/* 평가위원 및 평가대상 선택 */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택</label>
+                        <select
+                          value={selectedEvaluator || ''}
+                          onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">평가위원을 선택하세요</option>
+                          {(evaluators as any[]).map((evaluator: any) => (
+                            <option key={evaluator.id} value={evaluator.id}>
+                              {evaluator.name} ({evaluator.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택</label>
+                        <select
+                          value={selectedCandidate || ''}
+                          onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
+                          className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">평가대상을 선택하세요</option>
+                          {(candidates as any[]).map((candidate: any) => (
+                            <option key={candidate.id} value={candidate.id}>
+                              {candidate.name} ({candidate.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* 개선된 인쇄 옵션 */}
+                    <div className="mt-4 space-y-3">
+                      {/* 전체 배치 인쇄 */}
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-blue-800">전체 배치 인쇄</div>
+                          <div className="text-xs text-gray-600">모든 평가위원 × 모든 평가대상 ({(candidates as any[]).length}명 × {(evaluators as any[]).length}명 = {(candidates as any[]).length * (evaluators as any[]).length}페이지)</div>
+                        </div>
+                        <Button 
+                          onClick={printAllCombinations}
+                          variant="default"
+                          size="sm"
+                          disabled={(candidates as any[]).length === 0 || (evaluators as any[]).length === 0}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          전체 인쇄
+                        </Button>
+                      </div>
+
+                      {/* 추후 확장용: 개별 선택 인쇄 옵션들 */}
+                      {((candidates as any[]).length > 0 && (evaluators as any[]).length > 0) && (
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* 평가위원별 인쇄 */}
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="font-medium text-sm text-gray-700 mb-2">평가위원별 일괄 인쇄</div>
+                            <div className="text-xs text-gray-500 mb-2">특정 평가위원의 모든 평가표</div>
+                            <select 
+                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
+                              onChange={(e) => e.target.value && printByEvaluator(parseInt(e.target.value))}
+                              defaultValue=""
+                            >
+                              <option value="">평가위원 선택</option>
+                              {(evaluators as any[]).map((evaluator: any) => (
+                                <option key={evaluator.id} value={evaluator.id}>
+                                  {evaluator.name} ({(candidates as any[]).length}페이지)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* 평가대상별 인쇄 */}
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="font-medium text-sm text-gray-700 mb-2">평가대상별 일괄 인쇄</div>
+                            <div className="text-xs text-gray-500 mb-2">특정 평가대상의 모든 평가표</div>
+                            <select 
+                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
+                              onChange={(e) => e.target.value && printByCandidate(parseInt(e.target.value))}
+                              defaultValue=""
+                            >
+                              <option value="">평가대상 선택</option>
+                              {(candidates as any[]).map((candidate: any) => (
+                                <option key={candidate.id} value={candidate.id}>
+                                  {candidate.name} ({(evaluators as any[]).length}페이지)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 인쇄 팁 */}
+                      <div className="text-xs text-gray-600 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
+                        <span className="text-orange-600 font-medium">💡 인쇄 팁:</span> 브라우저 인쇄 설정에서 '머리글 및 바닥글' 옵션을 해제하면 더 깨끗한 출력이 가능합니다
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 평가위원 정보 편집 (편집 모드에서만 표시) */}
+                  {isEditing && (
+                    <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <h3 className="text-sm font-bold mb-3 text-yellow-800">수동 평가위원 정보 입력</h3>
+                      <div className="text-xs text-yellow-700 mb-3">
+                        위에서 평가위원을 선택하지 않은 경우 수동으로 입력할 수 있습니다.
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium mb-1">이름</label>
+                          <Input
+                            value={evaluator.name}
+                            onChange={(e) => setEvaluator(prev => ({ ...prev, name: e.target.value }))}
+                            className="text-sm"
+                            placeholder="평가위원 이름"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">직책</label>
+                          <Input
+                            value={evaluator.position}
+                            onChange={(e) => setEvaluator(prev => ({ ...prev, position: e.target.value }))}
+                            className="text-sm"
+                            placeholder="직책"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">소속기관</label>
+                          <Input
+                            value={evaluator.department}
+                            onChange={(e) => setEvaluator(prev => ({ ...prev, department: e.target.value }))}
+                            className="text-sm"
+                            placeholder="소속기관"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 컬럼 관리 (편집 모드에서만 표시) */}
+                  {isEditing && (
+                    <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                      <h3 className="text-sm font-bold mb-3 text-amber-800">컬럼 설정</h3>
+                      <div className="mb-4 p-3 bg-amber-100 rounded-md border-l-4 border-amber-400">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-xs text-amber-800">
+                              <strong>제목박스의 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.</strong>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {columnConfig.map((column) => (
+                          <div key={column.id} className="flex items-center gap-2 text-xs bg-white p-2 rounded border">
+                            <Input
+                              value={column.title}
+                              onChange={(e) => updateColumnConfig(column.id, 'title', e.target.value)}
+                              className="w-32 text-xs"
+                              disabled={column.required}
+                            />
+                            <select
+                              value={column.type}
+                              onChange={(e) => updateColumnConfig(column.id, 'type', e.target.value)}
+                              className="text-xs border rounded px-2 py-1 bg-white"
+                              disabled={column.required}
+                            >
+                              <option value="text">텍스트</option>
+                              <option value="number">숫자</option>
+                              <option value="select">선택</option>
+                            </select>
+                            <label className="flex items-center gap-1">
+                              <input
+                                type="checkbox"
+                                checked={column.visible}
+                                onChange={(e) => updateColumnConfig(column.id, 'visible', e.target.checked)}
+                                className="rounded"
+                              />
+                              <span className="text-xs">표시</span>
+                            </label>
+                            <div className="text-xs text-gray-500">
+                              {column.required ? '필수' : '선택'}
+                            </div>
+                            {!column.required && (
+                              <Button
+                                onClick={() => deleteColumn(column.id)}
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0 hover:bg-red-50 hover:border-red-200"
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 인쇄용 영역 */}
+                  <div id="template-print-area">
+                    {/* 제목과 구분 정보 표 */}
+                    <div className="overflow-x-auto mb-0">
+                      <table className="w-full border-collapse border border-gray-400 text-sm">
+                        <tbody>
+                          <tr>
+                            <td colSpan={2} className="border-t border-l border-r border-gray-400 p-2 text-sm text-right">
+                              {selectedCandidateInfo && (
+                                <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
+                              )}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td colSpan={2} className="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">
+                              {selectedCandidateInfo ? getDynamicTitle() : currentTemplate.title}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* 평가표 데이터 테이블 */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-400 text-sm">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점)</th>
+                            <th className="border border-gray-400 px-4 py-3 text-center font-bold">세부 항목</th>
+                            {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                              <th key={column.id} className="border border-gray-400 px-2 py-3 text-center font-bold w-16">
+                                {column.title}
+                              </th>
+                            ))}
+                            {isEditing && <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">관리</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentTemplate.sections.flatMap((section) => 
+                            section.items.map((item, itemIndex) => (
+                                <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
+                                  {itemIndex === 0 && (
+                                    <td 
+                                      className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-top text-center"
+                                      rowSpan={section.items.length}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="w-full">
+                                          {isEditing ? (
+                                            <Input
+                                              value={section.title}
+                                              onChange={(e) => updateSection(section.id, 'title', e.target.value)}
+                                              className="font-bold text-sm bg-transparent border-b border-gray-300"
+                                            />
+                                          ) : (
+                                            <span className="font-bold text-sm">{section.id}. {section.title}</span>
+                                          )}
+                                          <div className="text-xs text-gray-600 mt-1 text-center">
+                                            ({calculateSectionScore(section)}점)
+                                          </div>
+                                        </div>
+                                        {isEditing && (
+                                          <div className="flex flex-col gap-1 ml-2">
+                                            <Button
+                                              onClick={() => addItem(section.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 w-6 p-0"
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              onClick={() => deleteSection(section.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 w-6 p-0"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                  )}
+
+                                  <td className="border border-gray-400 px-4 py-2">
+                                    {isEditing ? (
+                                      <Input
+                                        value={item.text}
+                                        onChange={(e) => updateItem(section.id, item.id, 'text', e.target.value)}
+                                        className="text-sm"
+                                      />
+                                    ) : (
+                                      <span className="text-sm">{itemIndex + 1}. {item.text}</span>
+                                    )}
+                                  </td>
+
+                                  {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                                    <td key={column.id} className={`border border-gray-400 px-2 py-2 text-center ${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : ''}`}>
+                                      {column.id === 'score' ? (
+                                        <div className="flex justify-center items-center">
+                                          <Input
+                                            type="number"
+                                            value={item.score}
+                                            onChange={(e) => updateScore(section.id, item.id, parseInt(e.target.value) || 0)}
+                                            max={item.points}
+                                            min={0}
+                                            className="text-xs text-center w-16 mx-auto"
+                                          />
+                                        </div>
+                                      ) : isEditing ? (
+                                        column.id === 'type' ? (
+                                          <div className="flex justify-center items-center">
+                                            <select
+                                              value={item.type}
+                                              onChange={(e) => updateItem(section.id, item.id, 'type', e.target.value)}
+                                              className="text-xs border rounded px-1 py-1 text-center mx-auto"
+                                            >
+                                              <option value="정량">정량</option>
+                                              <option value="정성">정성</option>
+                                            </select>
+                                          </div>
+                                        ) : (
+                                          <div className="flex justify-center items-center">
+                                            <Input
+                                              type={column.type === 'number' ? 'number' : 'text'}
+                                              value={item[column.id] || (column.type === 'number' ? 0 : '')}
+                                              onChange={(e) => updateItem(section.id, item.id, column.id, column.type === 'number' ? (parseInt(e.target.value) || 0) : e.target.value)}
+                                              className="text-xs text-center w-12 mx-auto"
+                                            />
+                                          </div>
+                                        )
+                                      ) : (
+                                        <span className="text-xs">
+                                          {column.id === 'points' ? `${item[column.id]}점` : 
+                                           column.id === 'score' ? item[column.id] :
+                                           item[column.id]}
+                                        </span>
+                                      )}
+                                    </td>
+                                  ))}
+
+                                  {isEditing && (
+                                    <td className="border border-gray-400 px-2 py-2 text-center">
+                                      <Button
+                                        onClick={() => deleteItem(section.id, item.id)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </td>
+                                  )}
+                                </tr>
+                              ))
+                          )}
+                          {/* 합계 행 */}
+                          <tr className="bg-gray-100 font-bold">
+                            <td className="border border-gray-400 px-4 py-3 text-center">합계</td>
+                            <td className="border border-gray-400 px-4 py-3"></td>
+                            {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
+                              <td key={column.id} className="border border-gray-400 px-2 py-3 text-center">
+                                {column.id === 'points' ? (
+                                  `${currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점`
+                                ) : column.id === 'score' ? (
+                                  <span className="text-lg font-bold">{calculateTotalScore()}점</span>
+                                ) : ''}
+                              </td>
+                            ))}
+                            {isEditing && <td className="border border-gray-400 px-2 py-3"></td>}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
