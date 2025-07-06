@@ -456,8 +456,6 @@ export default function EvaluatorEvaluationPage() {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-
-                {/* 심사표 테이블 - 관리자 화면과 동일한 스타일 */}
                 <div className="bg-white border border-gray-400 rounded-lg overflow-hidden">
                   {/* 테이블 제목과 구분 정보 */}
                   <div className="border-b-2 border-black p-4 text-center">
