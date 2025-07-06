@@ -626,9 +626,63 @@ export default function EvaluationItemManagement() {
           // 템플릿 뷰 (심사표 형태로 표시)
           <Card>
             <CardHeader>
-              <CardTitle className="text-center text-2xl font-bold">
-                {currentTemplate.title}
-              </CardTitle>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <CardTitle className="text-center text-2xl font-bold">
+                    {currentTemplate.title}
+                  </CardTitle>
+                </div>
+                <div className="flex flex-col gap-3 min-w-[300px]">
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedEvaluator || ''}
+                      onChange={(e) => setSelectedEvaluator(e.target.value ? Number(e.target.value) : null)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1"
+                    >
+                      <option value="">평가위원 선택</option>
+                      {evaluators.map((evaluator: any) => (
+                        <option key={evaluator.id} value={evaluator.id}>
+                          {evaluator.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={selectedCandidate || ''}
+                      onChange={(e) => setSelectedCandidate(e.target.value ? Number(e.target.value) : null)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1"
+                    >
+                      <option value="">평가대상 선택</option>
+                      {candidates.map((candidate: any) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={printEvaluationSheet}
+                      disabled={!selectedEvaluator || !selectedCandidate}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 text-xs flex-1"
+                    >
+                      <Printer className="w-3 h-3" />
+                      개별 인쇄
+                    </Button>
+                    <Button
+                      onClick={printAllCombinations}
+                      disabled={candidates.length === 0 || evaluators.length === 0}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 text-xs flex-1"
+                    >
+                      <Printer className="w-3 h-3" />
+                      배치 인쇄
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -994,4 +1048,337 @@ export default function EvaluationItemManagement() {
       </div>
     </div>
   );
+
+  // 알림 함수
+  function showNotification(message: string, type: 'success' | 'error' | 'info' = 'success') {
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+    document.body.appendChild(notification);
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 3000);
+  }
+
+  // 🎯 통합된 평가표 HTML 생성 함수 (일반/배치/개별 인쇄 모두 공통 사용)
+  function generateEvaluationHTML(evaluatorInfo: any, candidateInfo: any, templateData = currentTemplate) {
+    const today = new Date().toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    // 동적 컬럼 생성
+    const visibleColumns = columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id));
+
+    // 제목 및 카테고리 정보 결정
+    const candidateTitle = candidateInfo ? `${candidateInfo.name} 심사표` : templateData.title;
+    const categoryInfo = candidateInfo ? (candidateInfo.category || candidateInfo.department || '') : '';
+
+    // 평가위원 정보 결정
+    const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
+
+    // 총 배점 계산
+    const totalPoints = templateData.sections.reduce((sum, section) => 
+      sum + section.items.reduce((itemSum, item) => itemSum + (item.points || 0), 0), 0
+    );
+
+    // 총 점수 계산
+    const totalScore = templateData.sections.reduce((sum, section) => 
+      sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0
+    );
+
+    return `
+      <!-- 제목과 구분 정보 표 -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
+        <tr>
+          <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
+            <span>구분 : ${categoryInfo}</span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
+            ${candidateTitle}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 평가 항목 표 -->
+      <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">구분 (${totalPoints}점)</th>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">세부 항목</th>
+            ${visibleColumns.map(column => `
+              <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">
+                ${column.title}
+              </th>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${templateData.sections.map(section => {
+            return section.items.map((item, itemIndex) => {
+              return `
+                <tr>
+                  ${itemIndex === 0 ? `
+                    <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top; font-size: 12px;">
+                      ${section.id}. ${section.title}<br>
+                      <span style="font-size: 10px; color: #666;">(${section.items.reduce((sum, sectionItem) => sum + (sectionItem.points || 0), 0)}점)</span>
+                    </td>
+                  ` : ''}
+                  <td style="border: 1px solid #666; padding: 8px; font-size: 12px;">
+                    ${itemIndex + 1}. ${item.text}
+                  </td>
+                  ${visibleColumns.map(column => `
+                    <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px; vertical-align: middle;" class="${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : 'custom-cell'}">
+                      ${column.id === 'points' ? `${item[column.id] || 0}점` : 
+                       column.id === 'score' ? `${item[column.id] || 0}점` :
+                       column.id === 'type' ? (item[column.id] || '') :
+                       (item[column.id] || '')}
+                    </td>
+                  `).join('')}
+                </tr>
+              `;
+            }).join('');
+          }).join('')}
+          <!-- 합계 행 -->
+          <tr style="background-color: #e8e8e8; font-weight: bold;">
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle; font-size: 13px;">합계</td>
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+            ${visibleColumns.map(column => `
+              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px; vertical-align: middle;">
+                ${column.id === 'points' ? `${totalPoints}점` : 
+                  column.id === 'score' ? `${totalScore}점` : 
+                  ''}
+              </td>
+            `).join('')}
+          </tr>
+        </tbody>
+      </table>
+      <div class="evaluation-date">
+        평가일: ${today}
+      </div>
+      <div class="evaluator-info">
+        평가위원 : ${evaluatorInfo.name}${positionText} (서명)
+      </div>
+    `;
+  }
+
+  // 🎯 통합 인쇄 스타일 (모든 인쇄 함수에서 공통 사용)
+  function getPrintStyle() {
+    return `
+      <style>
+        @media print {
+          @page {
+            margin: 0 !important;
+            size: A4 !important;
+          }
+          body {
+            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .evaluation-page {
+            padding: 95px 50px 50px 50px !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            min-height: 100vh !important;
+            box-sizing: border-box !important;
+          }
+          .evaluation-page:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          .title {
+            text-align: center !important;
+            font-size: 24px !important;
+            font-weight: bold !important;
+            margin-bottom: 15px !important;
+            color: black !important;
+          }
+          .evaluator-info {
+            text-align: right !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+            padding: 0 10px;
+            text-decoration: underline !important;
+          }
+          .evaluation-date {
+            text-align: center !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+          }
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+            margin-bottom: 30px !important;
+            font-size: 13px !important;
+            border: 2px solid #666 !important;
+          }
+          th, td {
+            border: 1px solid #666 !important;
+            padding: 12px 10px !important;
+            vertical-align: middle !important;
+          }
+          th {
+            background-color: #e8e8e8 !important;
+            text-align: center !important;
+            font-weight: bold !important;
+          }
+          .evaluation-page table:nth-of-type(1),
+          .evaluation-page table:nth-of-type(2) {
+            border-left: none !important;
+            border-right: none !important;
+          }
+          .evaluation-page table:nth-of-type(1) td:first-child,
+          .evaluation-page table:nth-of-type(1) th:first-child,
+          .evaluation-page table:nth-of-type(2) td:first-child,
+          .evaluation-page table:nth-of-type(2) th:first-child {
+            border-left: none !important;
+          }
+          .evaluation-page table:nth-of-type(1) td:last-child,
+          .evaluation-page table:nth-of-type(1) th:last-child,
+          .evaluation-page table:nth-of-type(2) td:last-child,
+          .evaluation-page table:nth-of-type(2) th:last-child {
+            border-right: none !important;
+          }
+          .type-cell,
+          .points-cell,
+          .score-cell,
+          .custom-cell {
+            text-align: center !important;
+          }
+          .section-cell {
+            background-color: #f8f9fa !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            vertical-align: top !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          input, select {
+            border: none !important;
+            background: transparent !important;
+            font-size: inherit !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+        }
+      </style>
+    `;
+  }
+
+  // 🎯 개별 인쇄 기능 (통합 함수 사용)
+  function printEvaluationSheet() {
+    if (!selectedEvaluator || !selectedCandidate) {
+      showNotification('평가위원과 평가대상을 선택해주세요.', 'error');
+      return;
+    }
+
+    const evaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
+    const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
+
+    if (!evaluatorInfo || !candidateInfo) {
+      showNotification('선택한 평가위원 또는 평가대상 정보를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    // 통합 HTML 생성 함수 사용
+    const evaluationContent = generateEvaluationHTML(evaluatorInfo, candidateInfo);
+
+    // 제목 결정
+    const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : currentTemplate.title;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>평가표 출력 - ${dynamicTitle}</title>
+          <meta charset="UTF-8">
+          ${getPrintStyle()}
+        </head>
+        <body>
+          <div class="evaluation-page">
+            ${evaluationContent}
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.print();
+    showNotification('인쇄 미리보기가 열렸습니다!', 'info');
+  }
+
+  // 🎯 배치 인쇄 기능 (통합 함수 사용)
+  function printAllCombinations() {
+    if (candidates.length === 0 || evaluators.length === 0) {
+      showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
+      return;
+    }
+
+    let allPrintContent = '';
+    const totalPages = candidates.length * evaluators.length;
+
+    candidates.forEach((candidate: any, candidateIndex: number) => {
+      evaluators.forEach((evaluator: any, evaluatorIndex: number) => {
+        // 🎯 일반 인쇄와 완전히 동일한 로직 사용
+        const evaluationContent = generateEvaluationHTML(evaluator, candidate);
+        allPrintContent += `
+          <div class="evaluation-page">
+            ${evaluationContent}
+          </div>
+        `;
+      });
+    });
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>전체 평가표 배치 인쇄 (${totalPages}페이지)</title>
+          <meta charset="UTF-8">
+          ${getPrintStyle()}
+        </head>
+        <body>
+          ${allPrintContent}
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    showNotification(`총 ${totalPages}개의 평가표가 생성되었습니다!`, 'info');
+  }
 }
