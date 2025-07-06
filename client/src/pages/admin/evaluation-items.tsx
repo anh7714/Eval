@@ -1093,10 +1093,10 @@ export default function EvaluationItemManagement() {
       console.log('📋 템플릿 데이터:', templateData);
 
       // 1. 카테고리들을 먼저 저장
-      const savedCategories = [];
+      const savedCategories: any[] = [];
       
       for (let sectionIndex = 0; sectionIndex < templateData.sections.length; sectionIndex++) {
-        const section = templateData.sections[sectionIndex];
+        const section: any = templateData.sections[sectionIndex];
         const categoryData = {
           type: section.sectionName,
           name: section.sectionName,
@@ -1128,17 +1128,17 @@ export default function EvaluationItemManagement() {
 
       // 2. 각 카테고리에 평가항목들 저장
       console.log('📝 평가항목 저장 시작...');
-      const evaluationItems = [];
+      const evaluationItems: any[] = [];
       
       for (let sectionIndex = 0; sectionIndex < templateData.sections.length; sectionIndex++) {
-        const section = templateData.sections[sectionIndex];
+        const section: any = templateData.sections[sectionIndex];
         const categoryId = savedCategories[sectionIndex].id;
         
         console.log(`📝 섹션 ${sectionIndex} 처리 중: ${section.items?.length || 0}개 항목`);
         
         if (section.items && section.items.length > 0) {
           for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
-            const item = section.items[itemIndex];
+            const item: any = section.items[itemIndex];
             
             if (!item.text) {
               console.warn(`⚠️ 평가항목 텍스트가 없어 건너뜀 [섹션${sectionIndex}-항목${itemIndex}]`);
@@ -1200,6 +1200,7 @@ export default function EvaluationItemManagement() {
       setViewMode('template');
     },
     onError: (error: any) => {
+      console.error('❌ 심사표 저장 전체 오류:', error);
       toast({
         title: "저장 실패",
         description: error.message || "심사표 저장 중 오류가 발생했습니다.",
