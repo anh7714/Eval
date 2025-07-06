@@ -153,11 +153,18 @@ export default function EvaluatorEvaluationPage() {
                     </SelectTrigger>
                     <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
                       <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 구분</SelectItem>
-                      {candidates && Array.isArray(candidates) && Array.from(new Set((candidates as any[]).map((c: any) => c.category ? c.category.split(' > ')[0] : null).filter(Boolean))).map((category: any) => (
-                        <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
-                          {category}
-                        </SelectItem>
-                      ))}
+                      {candidates && Array.isArray(candidates) && 
+                        Array.from(new Set((candidates as any[])
+                          .filter(c => c && c.category)
+                          .map((c: any) => c.category.split(' > ')[0])
+                          .filter(Boolean)
+                        ))
+                        .map((category: string) => (
+                          <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
+                            {category}
+                          </SelectItem>
+                        ))
+                      }
                     </SelectContent>
                   </Select>
                 </div>
@@ -169,11 +176,18 @@ export default function EvaluatorEvaluationPage() {
                     </SelectTrigger>
                     <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
                       <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 세부구분</SelectItem>
-                      {candidates && Array.isArray(candidates) && Array.from(new Set((candidates as any[]).map((c: any) => c.category ? c.category.split(' > ')[1] : null).filter(Boolean))).map((category: any) => (
-                        <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
-                          {category}
-                        </SelectItem>
-                      ))}
+                      {candidates && Array.isArray(candidates) && 
+                        Array.from(new Set((candidates as any[])
+                          .filter(c => c && c.category && c.category.includes(' > '))
+                          .map((c: any) => c.category.split(' > ')[1])
+                          .filter(Boolean)
+                        ))
+                        .map((category: string) => (
+                          <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
+                            {category}
+                          </SelectItem>
+                        ))
+                      }
                     </SelectContent>
                   </Select>
                 </div>
@@ -218,10 +232,10 @@ export default function EvaluatorEvaluationPage() {
                           {result.rank || index + 1}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline">{result.candidate.mainCategory}</Badge>
+                          <Badge variant="outline">{result.candidate.mainCategory || '미분류'}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="text-sm text-gray-600">{result.candidate.subCategory}</span>
+                          <span className="text-sm text-gray-600">{result.candidate.subCategory || '미분류'}</span>
                         </TableCell>
                         <TableCell>
                           <div>
