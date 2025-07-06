@@ -136,10 +136,12 @@ export default function CandidateManagement() {
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // 고속 실시간 동기화
+  // 실시간 구독 최적화 - 성능 개선
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     const channel = supabase
-      .channel('candidates-realtime-fast')
+      .channel('candidates-optimized')
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -147,28 +149,19 @@ export default function CandidateManagement() {
           table: 'candidates' 
         }, 
         (payload) => {
-          console.log('⚡ 실시간 변경:', payload.eventType, payload.new?.id);
+          console.log('📡 데이터 변경 감지:', payload.eventType);
           
-          // 즉시 캐시 업데이트 (debounce 제거)
-          if (payload.eventType === 'UPDATE' && payload.new && (payload.new as any).id) {
-            queryClient.setQueryData(['candidates'], (old: any[]) =>
-              old?.map(candidate =>
-                candidate.id === (payload.new as any).id ? { ...candidate, ...payload.new } : candidate
-              ) || []
-            );
-          } else {
-            // INSERT/DELETE의 경우만 전체 새로고침
+          // debounce: 1초 내 여러 변경사항을 하나로 처리
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ['candidates'] });
-          }
+          }, 1000);
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('⚡ 고속 실시간 구독 활성화');
-        }
-      });
+      .subscribe();
 
     return () => {
+      clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
@@ -185,20 +178,15 @@ export default function CandidateManagement() {
       return response.json();
     },
     onMutate: async ({ id, isActive }) => {
-      // 즉시 UI 반영 (더 빠른 낙관적 업데이트)
+      // 💡 낙관적 업데이트: 즉시 UI 반영
       setPendingOperations(prev => new Set(Array.from(prev).concat([id])));
-      
-      // 이전 캐시 백업
-      const previousCandidates = queryClient.getQueryData(['candidates']);
       
       // 캐시에서 즉시 업데이트
       queryClient.setQueryData(['candidates'], (old: any[]) =>
         old?.map(candidate =>
-          candidate.id === id ? { ...candidate, isActive, updatedAt: new Date() } : candidate
+          candidate.id === id ? { ...candidate, isActive } : candidate
         ) || []
       );
-
-      return { previousCandidates, id };
     },
     onSuccess: (data, { id, isActive }) => {
       // 성공 시 서버 데이터로 캐시 업데이트 (불필요한 알림 제거)
