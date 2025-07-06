@@ -506,14 +506,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/categories", requireAuth, async (req, res) => {
     try {
+      console.log("Creating category with data:", req.body);
       const validatedData = insertEvaluationCategorySchema.parse(req.body);
+      console.log("Validated data:", validatedData);
       const category = await storage.createCategory(validatedData);
       res.json(category);
     } catch (error) {
+      console.error("Category creation error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create category" });
+      res.status(500).json({ message: "Failed to create category", error: error.message });
     }
   });
 
