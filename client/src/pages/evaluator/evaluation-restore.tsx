@@ -124,6 +124,7 @@ export default function EvaluatorEvaluationPage() {
       toast({
         title: "임시 저장 완료",
         description: "평가 내용이 임시 저장되었습니다.",
+        variant: "success" as any,
       });
     },
     onError: () => {
@@ -151,6 +152,7 @@ export default function EvaluatorEvaluationPage() {
       toast({
         title: "평가 완료",
         description: "평가가 성공적으로 완료되었습니다.",
+        variant: "success" as any,
       });
       setIsEvaluationModalOpen(false);
       setShowConfirmDialog(false);
@@ -743,34 +745,37 @@ export default function EvaluatorEvaluationPage() {
         {/* 평가 완료 확인 다이얼로그 */}
         {showConfirmDialog && (
           <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-gray-900">
-                  평가 완료 확인
+            <DialogContent className="sm:max-w-[480px] bg-white/95 backdrop-blur-sm border-2 border-slate-300 shadow-2xl">
+              <DialogHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-6 -mx-6 -mt-6 mb-6 rounded-t-lg">
+                <DialogTitle className="text-xl font-bold text-center">
+                  🔒 평가 완료 확인
                 </DialogTitle>
               </DialogHeader>
-              <div className="py-4">
-                <p className="text-gray-700 mb-4">
-                  평가를 완료하시겠습니까?
-                </p>
-                <p className="text-red-600 font-medium text-sm">
-                  '평가 완료'를 누르면 더 이상 수정할 수 없습니다. 제출하시겠습니까?
-                </p>
+              <div className="py-4 px-2">
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-4">
+                  <p className="text-slate-800 font-medium text-lg mb-3 text-center">
+                    평가를 완료하시겠습니까?
+                  </p>
+                  <p className="text-red-700 font-bold text-sm text-center bg-red-50 p-3 rounded border-2 border-red-200">
+                    ⚠️ '평가 완료'를 누르면 더 이상 수정할 수 없습니다.<br/>
+                    제출하시겠습니까?
+                  </p>
+                </div>
               </div>
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-center space-x-4 pb-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowConfirmDialog(false)}
-                  className="px-4 py-2"
+                  className="px-6 py-3 font-medium border-2 border-slate-400 text-slate-700 hover:bg-slate-100 shadow-md"
                 >
                   취소
                 </Button>
                 <Button
                   onClick={confirmCompleteEvaluation}
                   disabled={completeEvaluationMutation.isPending}
-                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 font-bold shadow-lg border-2 border-blue-600"
                 >
-                  {completeEvaluationMutation.isPending ? "완료 중..." : "평가 완료"}
+                  {completeEvaluationMutation.isPending ? "완료 처리 중..." : "평가 완료"}
                 </Button>
               </div>
             </DialogContent>
