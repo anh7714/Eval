@@ -1120,7 +1120,7 @@ export default function EvaluationItemManagement() {
           try {
             const itemData = {
               categoryId: categoryId,
-              itemCode: `ITEM_${Date.now()}_${item.id}`, // 고유한 itemCode 생성
+              itemCode: `ITEM_${Date.now()}_${sectionIndex}_${item.id}`, // 고유한 itemCode 생성
               itemName: item.text,
               description: item.text,
               maxScore: item.points || 0,
@@ -1133,7 +1133,10 @@ export default function EvaluationItemManagement() {
 
             const response = await fetch('/api/admin/evaluation-items', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include', // 세션 쿠키 포함
               body: JSON.stringify(itemData)
             });
 
