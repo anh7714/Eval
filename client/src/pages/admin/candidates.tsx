@@ -118,10 +118,10 @@ export default function CandidateManagement() {
   const { data: candidates = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["candidates"],
     queryFn: fetchCandidates,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 30 * 1000, // 30초
+    gcTime: 5 * 60 * 1000, // 5분
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: "always",
     retry: 1,
   });
 
@@ -148,6 +148,18 @@ export default function CandidateManagement() {
           candidate.id === id ? { ...candidate, isActive } : candidate
         ) || []
       );
+    },
+    onSuccess: (data, { id, isActive }) => {
+      // 💡 성공 시 서버 데이터로 캐시 업데이트
+      queryClient.setQueryData(['candidates'], (old: any[]) =>
+        old?.map(candidate =>
+          candidate.id === id ? { ...candidate, ...data } : candidate
+        ) || []
+      );
+      toast({ 
+        title: "성공", 
+        description: `평가대상이 ${isActive ? '활성화' : '비활성화'}되었습니다.` 
+      });
     },
     onError: (error, { id, isActive }) => {
       // 💡 실패 시 롤백
@@ -230,11 +242,18 @@ export default function CandidateManagement() {
         return newSet;
       });
       
+      // 💡 부분 실패 시 캐시 무효화
+      if (data.failCount > 0) {
+        queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      }
+      
       if (data.failCount === 0) {
         toast({ 
           title: "완료", 
           description: `${data.successCount}명 ${isActive ? '활성화' : '비활성화'} 완료` 
         });
+        // 성공 시 선택 초기화
+        setSelectedIds([]);
       } else {
         toast({ 
           title: "부분 완료", 
