@@ -1111,8 +1111,10 @@ export default function EvaluationItemManagement() {
       });
 
       const savedCategories = await Promise.all(categoryPromises);
+      console.log('✅ 저장된 카테고리들:', savedCategories);
 
       // 2. 각 카테고리에 평가항목들 저장
+      console.log('📝 평가항목 저장 시작...');
       const itemPromises = templateData.sections.flatMap((section: any, sectionIndex: number) => {
         const categoryId = savedCategories[sectionIndex].id;
         
