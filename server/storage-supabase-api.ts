@@ -732,6 +732,8 @@ export class SupabaseStorage {
     totalEvaluationItems: number;
     totalCategories: number;
     completionRate: number;
+    inProgress: number;
+    completed: number;
   }> {
     try {
       // 1. 평가자 통계
@@ -757,19 +759,52 @@ export class SupabaseStorage {
       // 4. 카테고리 수 (구현되지 않았으므로 0으로 설정)
       const totalCategories = 0;
 
-      // 5. 완료율 계산
+      // 5. 평가 진행 상태 분석
+      let inProgress = 0;
+      let completed = 0;
       let completionRate = 0;
-      if (activeEvaluators > 0 && totalCandidates > 0) {
-        // 평가 제출 테이블에서 완료된 평가 수 계산
-        const { data: submissions, error: submissionsError } = await supabase
+
+      if (totalCandidates > 0) {
+        // 완료된 평가대상 수 (evaluation_submissions에서 unique candidate_id 조회)
+        const { data: completedSubmissions, error: completedError } = await supabase
           .from('evaluation_submissions')
-          .select('id');
+          .select('candidate_id')
+          .not('candidate_id', 'is', null);
         
-        if (!submissionsError && submissions) {
-          const totalPossibleEvaluations = activeEvaluators * totalCandidates;
-          completionRate = Math.round((submissions.length / totalPossibleEvaluations) * 100);
+        if (!completedError && completedSubmissions) {
+          const uniqueCompletedCandidates = new Set(completedSubmissions.map(s => s.candidate_id));
+          completed = uniqueCompletedCandidates.size;
         }
+
+        // 진행 중인 평가대상 수 (evaluations에 데이터가 있지만 submissions에 없는 경우)
+        const { data: evaluationsData, error: evaluationsError } = await supabase
+          .from('evaluations')
+          .select('candidate_id')
+          .not('score', 'is', null);
+
+        if (!evaluationsError && evaluationsData) {
+          const uniqueEvaluatedCandidates = new Set(evaluationsData.map(e => e.candidate_id));
+          const uniqueCompletedCandidates = new Set(completedSubmissions?.map(s => s.candidate_id) || []);
+          
+          // 평가는 시작했지만 완료되지 않은 평가대상
+          inProgress = uniqueEvaluatedCandidates.size - uniqueCompletedCandidates.size;
+          inProgress = Math.max(0, inProgress);
+        }
+
+        // 완료율 계산
+        completionRate = Math.round((completed / totalCandidates) * 100);
       }
+
+      console.log('📊 서버 통계 데이터:', {
+        totalEvaluators,
+        activeEvaluators,
+        totalCandidates,
+        totalEvaluationItems,
+        totalCategories,
+        completionRate,
+        inProgress,
+        completed
+      });
 
       return {
         totalEvaluators,
@@ -777,7 +812,9 @@ export class SupabaseStorage {
         totalCandidates,
         totalEvaluationItems,
         totalCategories,
-        completionRate
+        completionRate,
+        inProgress,
+        completed
       };
     } catch (error) {
       console.error('Error in getSystemStatistics:', error);
@@ -788,7 +825,9 @@ export class SupabaseStorage {
         totalCandidates: 0,
         totalEvaluationItems: 0,
         totalCategories: 0,
-        completionRate: 0
+        completionRate: 0,
+        inProgress: 0,
+        completed: 0
       };
     }
   }

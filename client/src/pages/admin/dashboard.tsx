@@ -141,7 +141,7 @@ export default function AdminDashboard() {
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">완료율</p>
               <Badge variant="secondary" className="text-xs">
-                0/{(stats as any)?.totalCandidates || 0} 완료
+                {(stats as any)?.completed || 0}/{(stats as any)?.totalCandidates || 0} 완료
               </Badge>
             </CardContent>
           </Card>
@@ -152,11 +152,11 @@ export default function AdminDashboard() {
                 <Users className="w-7 h-7 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-                {(stats as any)?.activeEvaluators || 0}
+                {(stats as any)?.inProgress || 0}
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">진행중</p>
               <Badge variant="secondary" className="text-xs">
-                활성 평가자 수
+                임시저장 중
               </Badge>
             </CardContent>
           </Card>
@@ -188,11 +188,11 @@ export default function AdminDashboard() {
                 <UserCheck className="w-7 h-7 text-green-600 dark:text-green-400" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-                {(stats as any)?.totalEvaluators || 0}
+                {(stats as any)?.completed || 0}
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">완료</p>
               <Badge variant="secondary" className="text-xs">
-                총 평가자 수
+                평가 완료
               </Badge>
             </CardContent>
           </Card>
