@@ -1113,13 +1113,19 @@ export default function EvaluationItemManagement() {
       const savedCategories = await Promise.all(categoryPromises);
       console.log('✅ 저장된 카테고리들:', savedCategories);
 
-      // 2. 각 카테고리에 평가항목들 저장
+      // 2. 각 카테고리에 평가항목들 저장 - 순차적으로 처리
       console.log('📝 평가항목 저장 시작...');
-      const itemPromises = templateData.sections.flatMap((section: any, sectionIndex: number) => {
+      const savedItems = [];
+      
+      for (let sectionIndex = 0; sectionIndex < templateData.sections.length; sectionIndex++) {
+        const section = templateData.sections[sectionIndex];
         const categoryId = savedCategories[sectionIndex].id;
         
         console.log(`📝 섹션 ${sectionIndex} 처리 중: ${section.items.length}개 항목`);
-        return section.items.map(async (item: any, itemIndex: number) => {
+        
+        for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
+          const item = section.items[itemIndex];
+          
           try {
             const itemData = {
               categoryId: categoryId,
@@ -1164,7 +1170,7 @@ export default function EvaluationItemManagement() {
             try {
               const savedItem = JSON.parse(responseText);
               console.log(`✅ 평가항목 저장 성공 [섹션${sectionIndex}-항목${itemIndex}]:`, savedItem);
-              return savedItem;
+              savedItems.push(savedItem);
             } catch (parseError) {
               console.error(`❌ JSON 파싱 실패 [섹션${sectionIndex}-항목${itemIndex}]:`, {
                 parseError: parseError,
@@ -1176,10 +1182,11 @@ export default function EvaluationItemManagement() {
             console.error(`❌ 평가항목 저장 오류 [섹션${sectionIndex}-항목${itemIndex}]:`, error);
             throw error;
           }
-        });
-      });
-
-      const savedItems = await Promise.all(itemPromises);
+          
+          // 각 항목 사이에 약간의 지연을 두어 서버 부하 방지
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
       return { categories: savedCategories, itemCount: savedItems.length };
     },
     onSuccess: (data) => {
