@@ -1118,20 +1118,21 @@ export default function EvaluationItemManagement() {
       const itemPromises = templateData.sections.flatMap((section: any, sectionIndex: number) => {
         const categoryId = savedCategories[sectionIndex].id;
         
-        return section.items.map(async (item: any) => {
+        console.log(`📝 섹션 ${sectionIndex} 처리 중: ${section.items.length}개 항목`);
+        return section.items.map(async (item: any, itemIndex: number) => {
           try {
             const itemData = {
               categoryId: categoryId,
-              itemCode: `ITEM_${Date.now()}_${sectionIndex}_${item.id}`, // 고유한 itemCode 생성
+              itemCode: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`, // 고유한 itemCode 생성
               itemName: item.text,
               description: item.text,
               maxScore: item.points || 0,
               weight: "1.00", // decimal 타입으로 문자열 전송
-              sortOrder: item.id,
+              sortOrder: itemIndex,
               isActive: true
             };
 
-            console.log('Saving item:', itemData);
+            console.log(`💾 평가항목 저장 요청 [섹션${sectionIndex}-항목${itemIndex}]:`, itemData);
 
             const response = await fetch('/api/admin/evaluation-items', {
               method: 'POST',
@@ -1144,12 +1145,18 @@ export default function EvaluationItemManagement() {
 
             if (!response.ok) {
               const errorText = await response.text();
-              console.error('Item save failed:', errorText);
-              throw new Error(`평가항목 저장 실패: ${errorText}`);
+              console.error(`❌ 평가항목 저장 실패 [섹션${sectionIndex}-항목${itemIndex}]:`, {
+                status: response.status,
+                statusText: response.statusText,
+                errorText: errorText
+              });
+              throw new Error(`평가항목 저장 실패 [${response.status}]: ${errorText}`);
             }
-            return response.json();
+            const savedItem = await response.json();
+            console.log(`✅ 평가항목 저장 성공 [섹션${sectionIndex}-항목${itemIndex}]:`, savedItem);
+            return savedItem;
           } catch (error) {
-            console.error('Error saving item:', error);
+            console.error(`❌ 평가항목 저장 오류 [섹션${sectionIndex}-항목${itemIndex}]:`, error);
             throw error;
           }
         });
