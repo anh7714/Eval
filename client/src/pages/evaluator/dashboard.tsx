@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,13 @@ export default function EvaluatorDashboard() {
   const { data: evaluator } = useQuery({
     queryKey: ["/api/evaluator/profile"],
   });
+
+  // 평가위원 프로필 데이터 로깅
+  React.useEffect(() => {
+    if (evaluator) {
+      console.log('👤 평가위원 프로필 데이터:', evaluator);
+    }
+  }, [evaluator]);
 
   const { data: results = [], isLoading: resultsLoading } = useQuery({
     queryKey: ["/api/results"],

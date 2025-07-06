@@ -157,6 +157,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ evaluator: req.session.evaluator });
   });
 
+  app.get("/api/evaluator/profile", requireEvaluatorAuth, (req, res) => {
+    res.json(req.session.evaluator);
+  });
+
   // ===== ADMIN SYSTEM CONFIG ROUTES =====
   app.get("/api/admin/system-config", requireAuth, async (req, res) => {
     try {

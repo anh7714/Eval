@@ -29,6 +29,13 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/profile"],
   });
 
+  // 관리자 프로필 데이터 로깅
+  React.useEffect(() => {
+    if (adminProfile) {
+      console.log('👤 관리자 프로필 데이터:', adminProfile);
+    }
+  }, [adminProfile]);
+
   // 통계 데이터 로깅
   React.useEffect(() => {
     if (stats) {

@@ -168,6 +168,11 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 관리자 대시보드와 평가위원 대시보드 좌측 정렬 레이아웃으로 변경
 - ✓ 환영 메시지를 제목 바로 아래에 배치하여 다른 관리 화면과 일관성 확보
 - ✓ 배경색과 텍스트 색상을 다른 페이지와 통일된 디자인으로 수정
+- ✓ 동적 사용자 이름 표시 기능 구현 (2025.07.06)
+- ✓ 관리자 프로필 API 엔드포인트 추가 (/api/admin/profile)
+- ✓ 평가위원 프로필 API 엔드포인트 추가 (/api/evaluator/profile)
+- ✓ 실제 로그인한 사용자 이름을 동적으로 표시하는 환영 메시지 완성
+- ✓ 관리자: "[실제이름]님! 환영합니다.", 평가위원: "[실제이름] 위원님! 환영합니다."
 
 ## User Preferences
 
