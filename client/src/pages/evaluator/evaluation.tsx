@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createClient } from '@supabase/supabase-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,9 @@ export default function EvaluatorEvaluationPage() {
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+
+  const queryClient = useQueryClient();
 
   // 필터 초기화 함수
   const resetFilters = () => {
@@ -40,17 +44,110 @@ export default function EvaluatorEvaluationPage() {
     setSelectedStatus("all");
   };
 
+  // Supabase 실시간 연결 및 폴링 백업 시스템
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout;
+    let supabase: any;
+
+    const initializeRealtime = async () => {
+      try {
+        // Supabase 클라이언트 초기화
+        supabase = createClient(
+          'https://bqgbppdppkhsqkekqrui.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxZ2JwcGRwcGtoc3FrZWtxcnVpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTU3MjUxNiwiZXhwIjoyMDM1MTQ4NTE2fQ.RNYUJsHqQO_ZbmjPKQGqCcF1lKfGrLqOFWHs_R8yg8Q'
+        );
+
+        // 실시간 구독 설정
+        const candidatesChannel = supabase
+          .channel('evaluator-candidates-changes')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'candidates'
+          }, (payload: any) => {
+            console.log('🔄 평가자 - 평가대상 데이터 변경 감지:', payload);
+            queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+          })
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'evaluation_submissions'
+          }, (payload: any) => {
+            console.log('🔄 평가자 - 평가 제출 데이터 변경 감지:', payload);
+            queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+          })
+          .subscribe((status: string) => {
+            console.log('📡 평가자 실시간 연결 상태:', status);
+            setIsRealtimeConnected(status === 'SUBSCRIBED');
+          });
+
+        // 폴링 백업 시스템 시작
+        const startPolling = () => {
+          if (!pollingInterval) {
+            pollingInterval = setInterval(() => {
+              if (!isRealtimeConnected) {
+                console.log('🔄 평가자 페이지 폴링으로 데이터 동기화');
+                queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+              }
+            }, 2000); // 2초마다 빠른 폴링
+          }
+        };
+
+        startPolling();
+
+        // 창 포커스 시 데이터 새로고침
+        const handleFocus = () => {
+          console.log('🔄 평가자 페이지 포커스 - 데이터 새로고침');
+          queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+        };
+
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+          if (candidatesChannel) {
+            candidatesChannel.unsubscribe();
+          }
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+          }
+          window.removeEventListener('focus', handleFocus);
+        };
+      } catch (error) {
+        console.error('❌ 평가자 실시간 연결 오류:', error);
+        setIsRealtimeConnected(false);
+      }
+    };
+
+    const cleanup = initializeRealtime();
+
+    return () => {
+      cleanup.then(cleanupFn => cleanupFn && cleanupFn());
+    };
+  }, [queryClient, isRealtimeConnected]);
+
   const { data: progress } = useQuery({
     queryKey: ["/api/evaluator/progress"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000, // 3초마다 자동 갱신
+    staleTime: 1000,
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ["/api/admin/categories"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000, // 5초마다 자동 갱신
+    staleTime: 2000,
   });
 
   // 평가위원에게 할당된 후보자 목록을 가져오기
   const { data: candidates = [], isLoading: candidatesLoading } = useQuery({
     queryKey: ["/api/evaluator/candidates"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000, // 3초마다 자동 갱신
+    staleTime: 1000,
   });
 
   // 필터링된 결과 계산
