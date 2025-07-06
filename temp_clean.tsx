@@ -1438,7 +1438,10 @@ export default function EvaluationItemManagement() {
           </Card>
         ) : (
           // 기존 관리 모드
-          <div className="space-y-6">
+          <Tabs defaultValue="template" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="template">평가표 템플릿</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="categories">
             <div className="space-y-6">
