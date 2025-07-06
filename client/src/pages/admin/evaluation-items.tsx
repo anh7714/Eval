@@ -1143,18 +1143,35 @@ export default function EvaluationItemManagement() {
               body: JSON.stringify(itemData)
             });
 
+            // 응답 상태와 내용을 먼저 확인
+            const responseText = await response.text();
+            console.log(`📊 응답 상태 [섹션${sectionIndex}-항목${itemIndex}]:`, {
+              status: response.status,
+              statusText: response.statusText,
+              responseText: responseText.substring(0, 200) // 처음 200자만 출력
+            });
+
             if (!response.ok) {
-              const errorText = await response.text();
               console.error(`❌ 평가항목 저장 실패 [섹션${sectionIndex}-항목${itemIndex}]:`, {
                 status: response.status,
                 statusText: response.statusText,
-                errorText: errorText
+                errorText: responseText
               });
-              throw new Error(`평가항목 저장 실패 [${response.status}]: ${errorText}`);
+              throw new Error(`평가항목 저장 실패 [${response.status}]: ${responseText}`);
             }
-            const savedItem = await response.json();
-            console.log(`✅ 평가항목 저장 성공 [섹션${sectionIndex}-항목${itemIndex}]:`, savedItem);
-            return savedItem;
+            
+            // JSON 파싱 시도
+            try {
+              const savedItem = JSON.parse(responseText);
+              console.log(`✅ 평가항목 저장 성공 [섹션${sectionIndex}-항목${itemIndex}]:`, savedItem);
+              return savedItem;
+            } catch (parseError) {
+              console.error(`❌ JSON 파싱 실패 [섹션${sectionIndex}-항목${itemIndex}]:`, {
+                parseError: parseError,
+                responseText: responseText
+              });
+              throw new Error(`JSON 파싱 실패: ${responseText}`);
+            }
           } catch (error) {
             console.error(`❌ 평가항목 저장 오류 [섹션${sectionIndex}-항목${itemIndex}]:`, error);
             throw error;
