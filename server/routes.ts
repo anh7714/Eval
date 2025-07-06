@@ -694,6 +694,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 평가위원 전용 후보자 조회 API
+  app.get("/api/evaluator/candidates", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const candidates = await storage.getActiveCandidates();
+      res.json(candidates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch candidates" });
+    }
+  });
+
   app.get("/api/evaluations/progress", requireEvaluatorAuth, async (req, res) => {
     try {
       const evaluatorId = req.session.evaluator.id;

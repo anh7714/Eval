@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CheckCircle, Clock, User, FileText, ClipboardList, ArrowRight, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import EvaluationList from "./evaluation-list";
 
 interface CandidateResult {
   candidate: {
@@ -102,13 +103,13 @@ export default function EvaluatorDashboard() {
           </div>
         </div>
 
-        <Tabs defaultValue="evaluation" className="space-y-6">
+        <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList className="grid grid-cols-2 w-full mb-6">
+            <TabsTrigger value="dashboard">평가 대시보드</TabsTrigger>
             <TabsTrigger value="evaluation">평가하기</TabsTrigger>
-            <TabsTrigger value="details">상세결과</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="evaluation">
+          <TabsContent value="dashboard">
             {/* Progress Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card>
@@ -240,90 +241,8 @@ export default function EvaluatorDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="details">
-            {/* Category Filter */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>상세 평가 결과</span>
-                  <div className="flex items-center space-x-2">
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="text-sm border rounded px-3 py-1"
-                    >
-                      <option value="all">전체 카테고리</option>
-                      {categories.map((category: any) => (
-                        <option key={category.id} value={category.categoryName}>
-                          {category.categoryName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </CardTitle>
-                <CardDescription>
-                  평가대상별 상세 점수와 순위를 확인할 수 있습니다.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>순위</TableHead>
-                        <TableHead>기관명(성명)</TableHead>
-                        <TableHead>소속(부서)</TableHead>
-                        <TableHead>직책(직급)</TableHead>
-                        <TableHead>카테고리</TableHead>
-                        <TableHead className="text-right">총점</TableHead>
-                        <TableHead className="text-right">백분율</TableHead>
-                        <TableHead className="text-center">평가자수</TableHead>
-                        <TableHead className="text-center">완료평가</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredResults.length > 0 ? (
-                        filteredResults.map((result: CandidateResult, index: number) => (
-                          <TableRow key={result.candidate.id}>
-                            <TableCell className="font-medium">{result.rank || index + 1}</TableCell>
-                            <TableCell>{result.candidate.name}</TableCell>
-                            <TableCell>{result.candidate.department}</TableCell>
-                            <TableCell>{result.candidate.position}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{result.candidate.category}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {result.totalScore.toFixed(1)} / {result.maxPossibleScore.toFixed(1)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Badge 
-                                variant={
-                                  result.percentage >= 90 ? "default" : 
-                                  result.percentage >= 80 ? "secondary" : 
-                                  result.percentage >= 70 ? "outline" : "destructive"
-                                }
-                              >
-                                {result.percentage.toFixed(1)}%
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">{result.evaluatorCount}</TableCell>
-                            <TableCell className="text-center">{result.completedEvaluations}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                            <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                            평가 결과가 없습니다.
-                            <p className="text-sm mt-1">평가를 완료하면 여기에 결과가 표시됩니다.</p>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="evaluation">
+            <EvaluationList />
           </TabsContent>
         </Tabs>
       </div>
