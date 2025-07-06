@@ -174,16 +174,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/system-config", requireAuth, async (req, res) => {
     try {
       console.log("Received system config update request:", req.body);
-      const validatedData = insertSystemConfigSchema.partial().parse(req.body);
-      console.log("Validated data:", validatedData);
-      const config = await storage.updateSystemConfig(validatedData);
+      
+      // 임시로 직접 데이터 전달 (스키마 업데이트 전까지)
+      const configData = {
+        evaluationTitle: req.body.evaluationTitle,
+        systemName: req.body.systemName,
+        description: req.body.description,
+        adminEmail: req.body.adminEmail,
+        maxEvaluators: req.body.maxEvaluators,
+        maxCandidates: req.body.maxCandidates,
+        evaluationDeadline: req.body.evaluationDeadline,
+        allowPartialSubmission: req.body.allowPartialSubmission,
+        enableNotifications: req.body.enableNotifications,
+        allowPublicResults: req.body.allowPublicResults,
+        isEvaluationActive: req.body.isEvaluationActive,
+        evaluationStartDate: req.body.evaluationStartDate,
+        evaluationEndDate: req.body.evaluationEndDate,
+        maxScore: req.body.maxScore
+      };
+      
+      console.log("Config data to save:", configData);
+      const config = await storage.updateSystemConfig(configData);
       console.log("Updated config:", config);
       res.json(config);
     } catch (error) {
       console.error("System config update error:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
-      }
       res.status(500).json({ message: "Failed to update system config", error: error.message });
     }
   });

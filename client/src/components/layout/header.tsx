@@ -32,7 +32,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <Link href="/">
               <Button variant="ghost" className="text-xl font-bold text-blue-900 hover:text-blue-700">
-                {config?.evaluationTitle || "종합평가시스템"}
+                {config?.systemName || config?.evaluationTitle || "종합평가시스템"}
               </Button>
             </Link>
             

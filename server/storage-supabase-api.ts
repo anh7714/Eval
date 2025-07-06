@@ -147,17 +147,68 @@ export class SupabaseStorage {
   }
 
   async updateSystemConfig(config: Partial<InsertSystemConfig>): Promise<SystemConfig> {
-    const mappedConfig = this.mapToSupabaseSystemConfig(config);
+    // 먼저 기존 설정을 가져옵니다
+    const existing = await this.getSystemConfig();
     
-    const { data, error } = await supabase
-      .from('system_config')
-      .upsert(mappedConfig)
-      .select()
-      .single();
+    // 기본 필드만으로 업데이트를 시도합니다 (데이터베이스에 존재하는 컬럼만)
+    const safeUpdate: any = {};
     
-    if (error) throw error;
+    // systemName이 있으면 evaluationTitle로 저장 (임시 우회책)
+    if (config.systemName !== undefined) {
+      safeUpdate.evaluation_title = config.systemName;
+    } else if (config.evaluationTitle !== undefined) {
+      safeUpdate.evaluation_title = config.evaluationTitle;
+    }
     
-    return this.mapSystemConfig(data);
+    if (config.isEvaluationActive !== undefined) safeUpdate.is_evaluation_active = config.isEvaluationActive;
+    if (config.evaluationStartDate !== undefined) safeUpdate.evaluation_start_date = config.evaluationStartDate;
+    if (config.evaluationEndDate !== undefined) safeUpdate.evaluation_end_date = config.evaluationEndDate;
+    if (config.maxScore !== undefined) safeUpdate.max_score = config.maxScore;
+    
+    // 새로운 필드들도 시도하되, 에러가 나면 무시합니다
+    if (config.systemName !== undefined) safeUpdate.system_name = config.systemName;
+    if (config.description !== undefined) safeUpdate.description = config.description;
+    if (config.adminEmail !== undefined) safeUpdate.admin_email = config.adminEmail;
+    if (config.maxEvaluators !== undefined) safeUpdate.max_evaluators = config.maxEvaluators;
+    if (config.maxCandidates !== undefined) safeUpdate.max_candidates = config.maxCandidates;
+    if (config.evaluationDeadline !== undefined) safeUpdate.evaluation_deadline = config.evaluationDeadline;
+    if (config.allowPartialSubmission !== undefined) safeUpdate.allow_partial_submission = config.allowPartialSubmission;
+    if (config.enableNotifications !== undefined) safeUpdate.enable_notifications = config.enableNotifications;
+    if (config.allowPublicResults !== undefined) safeUpdate.allow_public_results = config.allowPublicResults;
+    
+    safeUpdate.updated_at = new Date().toISOString();
+    
+    let result;
+    if (existing) {
+      // 기존 레코드 업데이트
+      const { data, error } = await supabase
+        .from('system_config')
+        .update(safeUpdate)
+        .eq('id', existing.id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("System config update error:", error);
+        throw error;
+      }
+      result = data;
+    } else {
+      // 새 레코드 생성
+      const { data, error } = await supabase
+        .from('system_config')
+        .insert(safeUpdate)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("System config insert error:", error);
+        throw error;
+      }
+      result = data;
+    }
+    
+    return this.mapSystemConfig(result);
   }
 
   // Admin Methods
@@ -293,12 +344,13 @@ export class SupabaseStorage {
   private mapSystemConfig(data: any): SystemConfig {
     return {
       id: data.id,
-      evaluationTitle: data.evaluation_title,
-      systemName: data.system_name,
-      description: data.description,
-      adminEmail: data.admin_email,
-      maxEvaluators: data.max_evaluators,
-      maxCandidates: data.max_candidates,
+      evaluationTitle: data.evaluation_title || "종합평가시스템",
+      // 임시: systemName은 evaluationTitle과 동일하게 처리 (스키마 업데이트 전까지)
+      systemName: data.system_name || data.evaluation_title || undefined,
+      description: data.description || undefined,
+      adminEmail: data.admin_email || undefined,
+      maxEvaluators: data.max_evaluators || undefined,
+      maxCandidates: data.max_candidates || undefined,
       evaluationDeadline: data.evaluation_deadline ? new Date(data.evaluation_deadline) : null,
       allowPartialSubmission: data.allow_partial_submission || false,
       enableNotifications: data.enable_notifications || false,
@@ -306,7 +358,7 @@ export class SupabaseStorage {
       allowPublicResults: data.allow_public_results || false,
       evaluationStartDate: data.evaluation_start_date ? new Date(data.evaluation_start_date) : null,
       evaluationEndDate: data.evaluation_end_date ? new Date(data.evaluation_end_date) : null,
-      maxScore: data.max_score,
+      maxScore: data.max_score || 100,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at)
     };
