@@ -29,7 +29,8 @@ interface CandidateResult {
 }
 
 export default function EvaluatorEvaluationPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string>("all");
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   const { data: progress } = useQuery({
@@ -50,18 +51,21 @@ export default function EvaluatorEvaluationPage() {
     if (!candidates || !Array.isArray(candidates)) return [];
     
     return candidates.filter((candidate: any) => {
-      const categoryMatch = selectedCategory === "all" || candidate.category === selectedCategory;
+      const mainCategoryMatch = selectedMainCategory === "all" || candidate.mainCategory === selectedMainCategory;
+      const subCategoryMatch = selectedSubCategory === "all" || candidate.subCategory === selectedSubCategory;
       // 임시로 모든 상태를 "미시작"으로 설정
       const statusMatch = selectedStatus === "all" || selectedStatus === "incomplete";
       
-      return categoryMatch && statusMatch && candidate.isActive;
+      return mainCategoryMatch && subCategoryMatch && statusMatch && candidate.isActive;
     }).map((candidate: any, index: number) => ({
       candidate: {
         id: candidate.id,
         name: candidate.name,
-        department: candidate.department || candidate.category?.split(' > ')[0] || '미분류',
-        position: candidate.position || candidate.category?.split(' > ')[1] || '미설정',
-        category: candidate.category || '미분류'
+        department: candidate.department || '미분류',
+        position: candidate.position || '미설정',
+        category: candidate.mainCategory || '미분류',
+        mainCategory: candidate.mainCategory || '미분류',
+        subCategory: candidate.subCategory || '미분류'
       },
       rank: index + 1,
       isCompleted: false, // 임시로 모두 미완료로 설정
@@ -73,7 +77,7 @@ export default function EvaluatorEvaluationPage() {
       completedEvaluations: 0,
       averageScore: 0
     }));
-  }, [candidates, selectedCategory, selectedStatus]);
+  }, [candidates, selectedMainCategory, selectedSubCategory, selectedStatus]);
 
   const getStatusBadge = (result: CandidateResult) => {
     if (result.isCompleted) {
@@ -135,15 +139,31 @@ export default function EvaluatorEvaluationPage() {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-medium">구분:</label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="카테고리 선택" />
+                  <Select value={selectedMainCategory} onValueChange={setSelectedMainCategory}>
+                    <SelectTrigger className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md">
+                      <SelectValue placeholder="구분 선택" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">전체 카테고리</SelectItem>
-                      {(categories as any).map((category: any) => (
-                        <SelectItem key={category.id} value={category.categoryName}>
-                          {category.categoryName}
+                    <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+                      <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 구분</SelectItem>
+                      {Array.from(new Set((candidates as any[]).map((c: any) => c.mainCategory).filter(Boolean))).map((category: any) => (
+                        <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium">세부구분:</label>
+                  <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
+                    <SelectTrigger className="w-[140px] border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-200 shadow-sm hover:shadow-md">
+                      <SelectValue placeholder="세부구분 선택" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+                      <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 세부구분</SelectItem>
+                      {Array.from(new Set((candidates as any[]).map((c: any) => c.subCategory).filter(Boolean))).map((category: any) => (
+                        <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
+                          {category}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -171,7 +191,7 @@ export default function EvaluatorEvaluationPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-center">순위</TableHead>
+                    <TableHead className="text-center">순서</TableHead>
                     <TableHead className="text-center">구분</TableHead>
                     <TableHead className="text-center">세부구분</TableHead>
                     <TableHead>기관명(성명)</TableHead>
@@ -190,15 +210,15 @@ export default function EvaluatorEvaluationPage() {
                           {result.rank || index + 1}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline">{result.candidate.category}</Badge>
+                          <Badge variant="outline">{result.candidate.mainCategory}</Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="text-sm text-gray-600">{result.candidate.department}</span>
+                          <span className="text-sm text-gray-600">{result.candidate.subCategory}</span>
                         </TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium">{result.candidate.name}</div>
-                            <div className="text-sm text-gray-600">{result.candidate.position}</div>
+                            <div className="text-sm text-gray-600">{result.candidate.department}</div>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
