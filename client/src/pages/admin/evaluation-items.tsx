@@ -298,6 +298,28 @@ export default function EvaluationItemManagement() {
 
       console.log('✅ 기존 데이터 삭제 완료');
 
+      // 1.5. 심사표 제목을 시스템 설정에 저장
+      console.log('📝 심사표 제목 저장 중...', template.title);
+      try {
+        const titleResponse = await fetch('/api/system/config', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            evaluationTitle: template.title,
+            systemName: template.title // 시스템 이름도 함께 업데이트
+          })
+        });
+
+        if (titleResponse.ok) {
+          console.log('✅ 심사표 제목 저장 완료');
+        } else {
+          console.warn('⚠️ 심사표 제목 저장 실패, 계속 진행');
+        }
+      } catch (error) {
+        console.warn('⚠️ 심사표 제목 저장 중 오류 발생:', error);
+      }
+
       // 2. 새로운 카테고리들을 저장
       const savedCategories = [];
       for (let sectionIndex = 0; sectionIndex < template.sections.length; sectionIndex++) {
@@ -378,6 +400,7 @@ export default function EvaluationItemManagement() {
       // 데이터 다시 로드
       queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluation-items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/system/config"] }); // 시스템 설정 갱신
       
       // 편집 모드 종료하고 심사표 보기 모드로 전환
       setIsEditing(false);
