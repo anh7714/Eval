@@ -35,6 +35,11 @@ export default function EvaluationItemManagement() {
     { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
   ]);
 
+  // 평가위원 및 평가대상 선택
+  const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
+  const [batchPrintMode, setBatchPrintMode] = useState(false);
+
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
     title: "제공기관 선정 심의회 평가표",
@@ -78,6 +83,16 @@ export default function EvaluationItemManagement() {
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
     queryKey: ["/api/admin/evaluation-items"],
+  });
+
+  // 평가위원 목록 가져오기
+  const { data: evaluators = [] } = useQuery({
+    queryKey: ["/api/admin/evaluators"],
+  });
+
+  // 후보자 목록 가져오기
+  const { data: candidates = [] } = useQuery({
+    queryKey: ["/api/admin/candidates"],
   });
 
   // 템플릿 저장 뮤테이션
@@ -158,10 +173,10 @@ export default function EvaluationItemManagement() {
     },
     onSuccess: (data) => {
       const { savedCategories, savedItems } = data;
-      showNotification(
-        `심사표 저장 완료! ${savedCategories.length}개 카테고리와 ${savedItems.length}개 평가항목이 저장되었습니다.`,
-        'success'
-      );
+      toast({ 
+        title: "성공", 
+        description: `심사표 저장 완료! ${savedCategories.length}개 카테고리와 ${savedItems.length}개 평가항목이 저장되었습니다.`,
+      });
       
       // 데이터 다시 로드
       queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
@@ -173,7 +188,7 @@ export default function EvaluationItemManagement() {
     },
     onError: (error: any) => {
       console.error('❌ 심사표 저장 오류:', error);
-      showNotification(`저장 실패: ${error.message || "심사표 저장 중 오류가 발생했습니다."}`, 'error');
+      toast({ title: "오류", description: `저장 실패: ${error.message || "심사표 저장 중 오류가 발생했습니다."}`, variant: "destructive" });
     }
   });
 
@@ -183,15 +198,15 @@ export default function EvaluationItemManagement() {
       return currentTemplate; // 데이터가 없으면 기본 템플릿 반환
     }
 
-    const sections = categories.map(category => ({
+    const sections = categories.map((category: any) => ({
       id: category.categoryCode,
       title: category.categoryName,
       totalPoints: items
-        .filter(item => item.categoryId === category.id)
-        .reduce((sum, item) => sum + (item.maxScore || 0), 0),
+        .filter((item: any) => item.categoryId === category.id)
+        .reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0),
       items: items
-        .filter(item => item.categoryId === category.id)
-        .map((item, index) => ({
+        .filter((item: any) => item.categoryId === category.id)
+        .map((item: any, index: number) => ({
           id: index + 1,
           text: item.itemName,
           type: '정성', // 기본값으로 설정
@@ -202,7 +217,7 @@ export default function EvaluationItemManagement() {
 
     return {
       title: "제공기관 선정 심의회 평가표",
-      totalScore: sections.reduce((sum, section) => sum + section.totalPoints, 0),
+      totalScore: sections.reduce((sum: number, section: any) => sum + section.totalPoints, 0),
       sections
     };
   };
@@ -253,18 +268,19 @@ export default function EvaluationItemManagement() {
     return currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0);
   };
 
-  // 알림 함수
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-    const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        document.body.removeChild(notification);
-      }
-    }, 3000);
+  // 보이는 컬럼들만 필터링
+  const visibleColumns = columnConfig.filter(col => col.visible);
+
+  // 선택된 평가위원과 평가대상 정보
+  const selectedEvaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
+  const selectedCandidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
+
+  // 동적 제목 생성
+  const getDynamicTitle = () => {
+    if (selectedCandidateInfo) {
+      return `${selectedCandidateInfo.name} 심사표`;
+    }
+    return currentTemplate.title;
   };
 
   // 편집 관련 함수들
@@ -343,9 +359,9 @@ export default function EvaluationItemManagement() {
           const content = e.target?.result as string;
           const templateData = JSON.parse(content);
           setCurrentTemplate(templateData);
-          showNotification("템플릿이 성공적으로 업로드되었습니다.", 'success');
+          toast({ title: "성공", description: "템플릿이 성공적으로 업로드되었습니다." });
         } catch (error) {
-          showNotification("파일 형식이 올바르지 않습니다.", 'error');
+          toast({ title: "오류", description: "파일 형식이 올바르지 않습니다.", variant: "destructive" });
         }
       };
       reader.readAsText(file);
@@ -374,10 +390,10 @@ export default function EvaluationItemManagement() {
       const fileName = `평가표_템플릿_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
       
-      showNotification("엑셀 파일이 성공적으로 다운로드되었습니다.", 'success');
+      toast({ title: "성공", description: "엑셀 파일이 성공적으로 다운로드되었습니다." });
     } catch (error) {
       console.error('엑셀 다운로드 오류:', error);
-      showNotification("엑셀 다운로드 중 오류가 발생했습니다.", 'error');
+      toast({ title: "오류", description: "엑셀 다운로드 중 오류가 발생했습니다.", variant: "destructive" });
     }
   };
 
@@ -396,10 +412,10 @@ export default function EvaluationItemManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
       setIsAddingCategory(false);
       setNewCategory({ categoryCode: "", categoryName: "", description: "" });
-      showNotification("카테고리가 추가되었습니다.", 'success');
+      toast({ title: "성공", description: "카테고리가 추가되었습니다." });
     },
     onError: () => {
-      showNotification("카테고리 추가 중 오류가 발생했습니다.", 'error');
+      toast({ title: "오류", description: "카테고리 추가 중 오류가 발생했습니다.", variant: "destructive" });
     }
   });
 
@@ -418,10 +434,10 @@ export default function EvaluationItemManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluation-items"] });
       setIsAddingItem(false);
       setNewItem({ categoryId: "", itemCode: "", itemName: "", description: "", maxScore: "", weight: "" });
-      showNotification("평가항목이 추가되었습니다.", 'success');
+      toast({ title: "성공", description: "평가항목이 추가되었습니다." });
     },
     onError: () => {
-      showNotification("평가항목 추가 중 오류가 발생했습니다.", 'error');
+      toast({ title: "오류", description: "평가항목 추가 중 오류가 발생했습니다.", variant: "destructive" });
     }
   });
 
@@ -450,30 +466,45 @@ export default function EvaluationItemManagement() {
     });
   };
 
+  if (categoriesLoading || itemsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        {/* 헤더 */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">평가항목 관리</h1>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">평가항목 관리</h1>
+            <p className="text-lg text-gray-600">평가 카테고리와 항목을 관리할 수 있습니다.</p>
+          </div>
           <div className="flex space-x-2">
             <Button 
+              variant={viewMode === 'template' ? 'default' : 'outline'} 
+              size="sm"
               onClick={() => setViewMode('template')}
-              variant={viewMode === 'template' ? 'default' : 'outline'}
             >
               심사표 보기
             </Button>
             <Button 
+              variant={viewMode === 'management' ? 'default' : 'outline'} 
+              size="sm"
               onClick={() => setViewMode('management')}
-              variant={viewMode === 'management' ? 'default' : 'outline'}
             >
               관리 모드
             </Button>
-            <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               <Upload className="h-4 w-4 mr-2" />
               엑셀 불러오기
             </Button>
-            <Button onClick={handleExcelDownload} variant="outline">
+            <Button variant="outline" size="sm" onClick={handleExcelDownload}>
               <Download className="h-4 w-4 mr-2" />
               엑셀 다운로드
             </Button>
@@ -489,10 +520,10 @@ export default function EvaluationItemManagement() {
         />
 
         {viewMode === 'template' ? (
-          // 심사표 보기 모드 - 기존 코드 완전 그대로
-          <Card className="bg-white">
-            <CardHeader className="text-center">
-              <CardTitle className="text-xl font-bold text-gray-800">
+          // 템플릿 뷰 (심사표 형태로 표시)
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-2xl font-bold">
                 {currentTemplate.title}
               </CardTitle>
             </CardHeader>
@@ -549,10 +580,10 @@ export default function EvaluationItemManagement() {
             </CardContent>
           </Card>
         ) : (
-          // 관리 모드 - 평가표 템플릿 기능이 통합된 상태
+          // 관리 모드에 평가표 템플릿 내용을 직접 통합
           <div className="space-y-6">
-            {/* 평가표 템플릿 섹션 (관리모드에 통합) */}
-            <Card className="bg-white">
+            {/* 평가표 템플릿 섹션 (관리모드 메인화면에 통합) */}
+            <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -727,273 +758,6 @@ export default function EvaluationItemManagement() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* 기존 Tabs 구조 유지 - 단, 평가표 템플릿 탭만 제거 */}
-            <Tabs defaultValue="categories" className="space-y-6">
-              <TabsList>
-                <TabsTrigger value="categories">평가 카테고리</TabsTrigger>
-                <TabsTrigger value="items">평가 항목</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="categories">
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-semibold">평가 카테고리</h2>
-                    <Button onClick={() => setIsAddingCategory(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      카테고리 추가
-                    </Button>
-                  </div>
-
-                  {isAddingCategory && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>새 카테고리 추가</CardTitle>
-                        <CardDescription>카테고리 정보를 입력하세요.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <form onSubmit={handleCategorySubmit} className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm font-medium">카테고리 코드</label>
-                              <Input
-                                value={newCategory.categoryCode}
-                                onChange={(e) => setNewCategory({ ...newCategory, categoryCode: e.target.value })}
-                                required
-                                placeholder="예: TECH"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">카테고리 이름</label>
-                              <Input
-                                value={newCategory.categoryName}
-                                onChange={(e) => setNewCategory({ ...newCategory, categoryName: e.target.value })}
-                                required
-                                placeholder="예: 기술역량"
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <label className="text-sm font-medium">설명</label>
-                              <Input
-                                value={newCategory.description}
-                                onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                                placeholder="카테고리에 대한 설명"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button type="submit" disabled={createCategoryMutation.isPending}>
-                              {createCategoryMutation.isPending ? "추가 중..." : "추가"}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={() => setIsAddingCategory(false)}>
-                              취소
-                            </Button>
-                          </div>
-                        </form>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>카테고리 목록</CardTitle>
-                      <CardDescription>총 {categories.length}개의 카테고리가 등록되어 있습니다.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {categories.map((category: any) => (
-                          <div
-                            key={category.id}
-                            className="flex items-center justify-between p-4 border rounded-lg"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div>
-                                <h3 className="font-semibold">{category.name}</h3>
-                                <p className="text-sm text-gray-600">
-                                  {category.type} · 정렬 순서: {category.sortOrder}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant={category.isActive ? "default" : "secondary"}>
-                                {category.isActive ? "활성" : "비활성"}
-                              </Badge>
-                              <Button size="sm" variant="outline">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                        {categories.length === 0 && (
-                          <div className="text-center py-8 text-gray-500">
-                            등록된 카테고리가 없습니다.
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="items">
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-semibold">평가 항목</h2>
-                    <Button 
-                      onClick={() => setIsAddingItem(true)}
-                      disabled={categories.length === 0}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      항목 추가
-                    </Button>
-                  </div>
-
-                  {categories.length === 0 && (
-                    <Card>
-                      <CardContent className="pt-6">
-                        <p className="text-center text-gray-500">
-                          평가 항목을 추가하려면 먼저 카테고리를 생성해주세요.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {isAddingItem && categories.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>새 평가 항목 추가</CardTitle>
-                        <CardDescription>평가 항목 정보를 입력하세요.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <form onSubmit={handleItemSubmit} className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm font-medium">카테고리</label>
-                              <select
-                                className="w-full px-3 py-2 border rounded-md"
-                                value={newItem.categoryId}
-                                onChange={(e) => setNewItem({ ...newItem, categoryId: e.target.value })}
-                                required
-                              >
-                                <option value="">카테고리 선택</option>
-                                {categories.map((category: any) => (
-                                  <option key={category.id} value={category.id}>
-                                    {category.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">항목 코드</label>
-                              <Input
-                                value={newItem.itemCode}
-                                onChange={(e) => setNewItem({ ...newItem, itemCode: e.target.value })}
-                                required
-                                placeholder="예: TECH001"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">항목 이름</label>
-                              <Input
-                                value={newItem.itemName}
-                                onChange={(e) => setNewItem({ ...newItem, itemName: e.target.value })}
-                                required
-                                placeholder="예: 프로그래밍 능력"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">최대 점수</label>
-                              <Input
-                                type="number"
-                                value={newItem.maxScore}
-                                onChange={(e) => setNewItem({ ...newItem, maxScore: e.target.value })}
-                                required
-                                placeholder="예: 100"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">가중치</label>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                value={newItem.weight}
-                                onChange={(e) => setNewItem({ ...newItem, weight: e.target.value })}
-                                required
-                                placeholder="예: 1.0"
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <label className="text-sm font-medium">설명</label>
-                              <Input
-                                value={newItem.description}
-                                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                                placeholder="평가 항목에 대한 설명"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button type="submit" disabled={createItemMutation.isPending}>
-                              {createItemMutation.isPending ? "추가 중..." : "추가"}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={() => setIsAddingItem(false)}>
-                              취소
-                            </Button>
-                          </div>
-                        </form>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>평가 항목 목록</CardTitle>
-                      <CardDescription>총 {items.length}개의 평가 항목이 등록되어 있습니다.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {items.map((item: any) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between p-4 border rounded-lg"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div>
-                                <h3 className="font-semibold">{item.itemName}</h3>
-                                <p className="text-sm text-gray-600">
-                                  {item.itemCode} · {item.categoryName} · 최대 {item.maxScore}점 · 가중치 {item.weight}
-                                </p>
-                                {item.description && (
-                                  <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant={item.isActive ? "default" : "secondary"}>
-                                {item.isActive ? "활성" : "비활성"}
-                              </Badge>
-                              <Button size="sm" variant="outline">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                        {items.length === 0 && (
-                          <div className="text-center py-8 text-gray-500">
-                            등록된 평가 항목이 없습니다.
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-            </Tabs>
           </div>
         )}
       </div>
