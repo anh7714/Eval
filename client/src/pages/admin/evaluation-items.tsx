@@ -1120,10 +1120,11 @@ export default function EvaluationItemManagement() {
           try {
             const itemData = {
               categoryId: categoryId,
+              itemCode: `ITEM_${Date.now()}_${item.id}`, // 고유한 itemCode 생성
               itemName: item.text,
               description: item.text,
               maxScore: item.points || 0,
-              weight: 1.0,
+              weight: "1.00", // decimal 타입으로 문자열 전송
               sortOrder: item.id,
               isActive: true
             };

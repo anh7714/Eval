@@ -604,10 +604,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/evaluation-items", requireAuth, async (req, res) => {
     try {
+      console.log("📝 평가항목 생성 요청 데이터:", req.body);
       const validatedData = insertEvaluationItemSchema.parse(req.body);
+      console.log("✅ 유효성 검사 통과:", validatedData);
       const item = await storage.createEvaluationItem(validatedData);
+      console.log("✅ 평가항목 생성 성공:", item);
       res.json(item);
     } catch (error) {
+      console.error("❌ 평가항목 생성 실패:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
