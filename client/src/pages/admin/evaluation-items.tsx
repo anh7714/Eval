@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-// 탭 컴포넌트 제거됨
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -1437,71 +1437,24 @@ export default function EvaluationItemManagement() {
             </CardContent>
           </Card>
         ) : (
-          // 관리 모드 - 템플릿 기능 직접 표시
+          // 기존 관리 모드
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>평가표 템플릿</CardTitle>
-                    <CardDescription>평가표를 디자인하고 관리합니다.</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => setIsEditing(!isEditing)}
-                      variant={isEditing ? "default" : "outline"}
-                      size="sm"
-                    >
-                      {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit3 className="h-4 w-4 mr-2" />}
-                      {isEditing ? "편집 완료" : "편집"}
-                    </Button>
-                    <Button onClick={saveTemplate} variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      JSON 저장
-                    </Button>
-                    <Button onClick={saveAsExcel} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200">
-                      <Download className="h-4 w-4 mr-2" />
-                      Excel 저장
-                    </Button>
-                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
-                      <Upload className="h-4 w-4 mr-2" />
-                      불러오기
-                    </Button>
-                    <Button onClick={resetScores} variant="outline" size="sm">
-                      <X className="h-4 w-4 mr-2" />
-                      점수 초기화
-                    </Button>
-                    <Button onClick={printTemplate} variant="outline" size="sm">
-                      <Printer className="h-4 w-4 mr-2" />
-                      인쇄
-                    </Button>
-                    <Button onClick={exportToEvaluationItems} variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
-                      <Upload className="h-4 w-4 mr-2" />
-                      평가항목으로 내보내기
-                    </Button>
-                    {isEditing && (
-                      <>
-                        <Button onClick={addSection} size="sm">
-                          <Plus className="h-4 w-4 mr-2" />
-                          영역 추가
-                        </Button>
-                        <Button onClick={addColumn} size="sm" variant="secondary">
-                          <Plus className="h-4 w-4 mr-2" />
-                          컬럼 추가
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={loadTemplate}
-                  accept=".json"
-                  className="hidden"
-                />
+            <Tabs defaultValue="categories" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="categories">카테고리</TabsTrigger>
+                <TabsTrigger value="items">평가항목</TabsTrigger>
+                <TabsTrigger value="template">템플릿</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="categories">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-semibold">평가 카테고리</h2>
+                <Button onClick={() => setIsAddingCategory(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  카테고리 추가
+                </Button>
+              </div>
 
               {isAddingCategory && (
                 <Card>
