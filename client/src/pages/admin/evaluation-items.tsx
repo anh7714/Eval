@@ -9,6 +9,7 @@ import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3 } from "l
 import { useToast } from "@/hooks/use-toast";
 
 export default function EvaluationItemManagement() {
+  const [viewMode, setViewMode] = useState<'template' | 'management'>('template'); // 기본값을 템플릿 뷰로 설정
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [newCategory, setNewCategory] = useState({
@@ -94,6 +95,44 @@ export default function EvaluationItemManagement() {
   const { data: candidates = [] } = useQuery({
     queryKey: ["/api/admin/candidates"],
   });
+
+  // 데이터베이스 데이터를 템플릿 구조로 변환
+  const convertDataToTemplate = () => {
+    if (!categories.length || !items.length) {
+      return currentTemplate; // 데이터가 없으면 기본 템플릿 반환
+    }
+
+    const sections = categories.map(category => ({
+      id: category.categoryCode,
+      title: category.categoryName,
+      totalPoints: items
+        .filter(item => item.categoryId === category.id)
+        .reduce((sum, item) => sum + (item.maxScore || 0), 0),
+      items: items
+        .filter(item => item.categoryId === category.id)
+        .map((item, index) => ({
+          id: index + 1,
+          text: item.itemName,
+          type: '정성', // 기본값으로 설정
+          points: item.maxScore || 0,
+          score: 0
+        }))
+    }));
+
+    return {
+      title: "제공기관 선정 심의회 평가표",
+      totalScore: sections.reduce((sum, section) => sum + section.totalPoints, 0),
+      sections
+    };
+  };
+
+  // 데이터베이스 데이터가 로드되면 템플릿 업데이트
+  useEffect(() => {
+    if (categories.length > 0 && items.length > 0) {
+      const convertedTemplate = convertDataToTemplate();
+      setCurrentTemplate(convertedTemplate);
+    }
+  }, [categories, items]);
 
   // 컬럼 설정 변경 시 기존 데이터 동기화
   useEffect(() => {
@@ -1312,6 +1351,20 @@ export default function EvaluationItemManagement() {
             <p className="text-lg text-gray-600">평가 카테고리와 항목을 관리할 수 있습니다.</p>
           </div>
           <div className="flex space-x-2">
+            <Button 
+              variant={viewMode === 'template' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setViewMode('template')}
+            >
+              심사표 보기
+            </Button>
+            <Button 
+              variant={viewMode === 'management' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setViewMode('management')}
+            >
+              관리 모드
+            </Button>
             <Button variant="outline" size="sm">
               <Upload className="h-4 w-4 mr-2" />
               엑셀 업로드
@@ -1323,12 +1376,74 @@ export default function EvaluationItemManagement() {
           </div>
         </div>
 
-        <Tabs defaultValue="categories" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="categories">평가 카테고리</TabsTrigger>
-            <TabsTrigger value="items">평가 항목</TabsTrigger>
-            <TabsTrigger value="template">평가표 템플릿</TabsTrigger>
-          </TabsList>
+        {viewMode === 'template' ? (
+          // 템플릿 뷰 (심사표 형태로 표시)
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-2xl font-bold">
+                {currentTemplate.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border-2 border-gray-800">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-400 px-4 py-3 text-center font-bold w-32">구분</th>
+                      <th className="border border-gray-400 px-4 py-3 text-center font-bold flex-1">세부 항목</th>
+                      <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">유형</th>
+                      <th className="border border-gray-400 px-2 py-3 text-center font-bold w-16">배점</th>
+                      <th className="border border-gray-400 px-2 py-3 text-center font-bold w-20">평가점수</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentTemplate.sections.flatMap((section) => 
+                      section.items.map((item, itemIndex) => (
+                        <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
+                          {itemIndex === 0 && (
+                            <td 
+                              className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-middle text-center"
+                              rowSpan={section.items.length}
+                            >
+                              <div className="font-bold text-sm">{section.id}. {section.title}</div>
+                              <div className="text-xs text-gray-600 mt-1">
+                                ({calculateSectionScore(section)}점)
+                              </div>
+                            </td>
+                          )}
+                          <td className="border border-gray-400 px-4 py-2 align-middle">
+                            <span className="text-sm">{itemIndex + 1}. {item.text}</span>
+                          </td>
+                          <td className="border border-gray-400 px-2 py-2 text-center align-middle">
+                            <span className="text-xs">{item.type}</span>
+                          </td>
+                          <td className="border border-gray-400 px-2 py-2 text-center align-middle">
+                            <span className="text-xs">{item.points}점</span>
+                          </td>
+                          <td className="border border-gray-400 px-2 py-2 text-center align-middle">
+                            <span className="text-xs">{item.score || 0}점</span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                    <tr className="bg-yellow-50 font-bold">
+                      <td className="border border-gray-400 px-4 py-3 text-center" colSpan={3}>총계</td>
+                      <td className="border border-gray-400 px-2 py-3 text-center">{calculateTotalPoints()}점</td>
+                      <td className="border border-gray-400 px-2 py-3 text-center">{calculateTotalScore()}점</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          // 기존 관리 모드
+          <Tabs defaultValue="categories" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="categories">평가 카테고리</TabsTrigger>
+              <TabsTrigger value="items">평가 항목</TabsTrigger>
+              <TabsTrigger value="template">평가표 템플릿</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="categories">
             <div className="space-y-6">
@@ -1905,6 +2020,7 @@ export default function EvaluationItemManagement() {
             </div>
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </div>
   );
