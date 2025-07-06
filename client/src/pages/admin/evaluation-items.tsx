@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EvaluationItemManagement() {
   const [viewMode, setViewMode] = useState<'template' | 'management'>('template');
@@ -23,6 +26,31 @@ export default function EvaluationItemManagement() {
     weight: "",
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // 데이터베이스에서 데이터 가져오기
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['/api/admin/evaluation-categories'],
+    queryFn: () => fetch('/api/admin/evaluation-categories').then(res => res.json())
+  });
+
+  const { data: items = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ['/api/admin/evaluation-items'],
+    queryFn: () => fetch('/api/admin/evaluation-items').then(res => res.json())
+  });
+
+  const { data: evaluators = [] } = useQuery({
+    queryKey: ['/api/evaluators'],
+    queryFn: () => fetch('/api/evaluators').then(res => res.json())
+  });
+
+  const { data: candidates = [] } = useQuery({
+    queryKey: ['/api/candidates'],
+    queryFn: () => fetch('/api/candidates').then(res => res.json())
+  });
+
   // 컬럼 설정 관리
   const [columnConfig, setColumnConfig] = useState([
     { id: 'section', title: '구분', type: 'section', visible: true, required: true, width: 'w-32' },
@@ -35,13 +63,6 @@ export default function EvaluationItemManagement() {
   // 평가위원 및 평가대상 선택
   const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
-
-  // 데이터 상태 관리
-  const [categories, setCategories] = useState([]);
-  const [items, setItems] = useState([]);
-  const [evaluators, setEvaluators] = useState([]);
-  const [candidates, setCandidates] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
@@ -73,7 +94,6 @@ export default function EvaluationItemManagement() {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 데이터베이스 데이터를 템플릿 구조로 변환
   const convertDataToTemplate = () => {
@@ -1068,23 +1088,86 @@ export default function EvaluationItemManagement() {
   };
 
   // 심사표 저장 기능
-  const saveEvaluationSheet = () => {
-    try {
-      // 편집 모드 종료
+  // 심사표를 데이터베이스에 저장하는 mutation
+  const saveTemplateMutation = useMutation({
+    mutationFn: async (templateData: any) => {
+      // 1. 카테고리들을 먼저 저장
+      const categoryPromises = templateData.sections.map(async (section: any) => {
+        const categoryData = {
+          categoryName: section.title,
+          categoryCode: section.id,
+          description: `${section.title} 관련 평가 카테고리`,
+          type: 'evaluation',
+          isActive: true,
+          sortOrder: 1
+        };
+        
+        const response = await fetch('/api/admin/evaluation-categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(categoryData)
+        });
+        
+        if (!response.ok) throw new Error('카테고리 저장 실패');
+        return response.json();
+      });
+
+      const savedCategories = await Promise.all(categoryPromises);
+
+      // 2. 각 카테고리에 평가항목들 저장
+      const itemPromises = templateData.sections.flatMap((section: any, sectionIndex: number) => {
+        const categoryId = savedCategories[sectionIndex].id;
+        
+        return section.items.map(async (item: any) => {
+          const itemData = {
+            categoryId: categoryId,
+            itemName: item.text,
+            description: item.text,
+            maxScore: item.points || 0,
+            weight: 1.0,
+            sortOrder: item.id,
+            isActive: true
+          };
+
+          const response = await fetch('/api/admin/evaluation-items', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(itemData)
+          });
+
+          if (!response.ok) throw new Error('평가항목 저장 실패');
+          return response.json();
+        });
+      });
+
+      await Promise.all(itemPromises);
+      return { categories: savedCategories, itemCount: itemPromises.length };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "심사표 저장 완료",
+        description: `${data.categories.length}개 카테고리와 ${data.itemCount}개 평가항목이 저장되었습니다.`,
+      });
+      
+      // 데이터 다시 로드
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/evaluation-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/evaluation-items'] });
+      
+      // 편집 모드 종료하고 심사표 보기 모드로 전환
       setIsEditing(false);
-
-      // 심사표 보기 모드로 전환
       setViewMode('template');
-
-      showNotification('심사표가 저장되었습니다!', 'success');
-
-      // 실제 구현에서는 여기에 심사표 저장 API 호출 로직이 들어갑니다
-      console.log('Saving evaluation sheet:', currentTemplate);
-
-    } catch (error) {
-      console.error('Save error:', error);
-      showNotification('심사표 저장에 실패했습니다.', 'error');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "저장 실패",
+        description: error.message || "심사표 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     }
+  });
+
+  const saveEvaluationSheet = () => {
+    saveTemplateMutation.mutate(currentTemplate);
   };
 
   // 카테고리 추가 함수
