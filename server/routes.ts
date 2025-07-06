@@ -817,7 +817,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/evaluations/progress", requireEvaluatorAuth, async (req, res) => {
+  // 평가위원 임시저장 API
+  app.post("/api/evaluator/evaluation/save-temporary", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const evaluatorId = req.session.evaluator.id;
+      const { candidateId, scores, totalScore } = req.body;
+      
+      console.log('📝 임시저장 요청:', { evaluatorId, candidateId, scores, totalScore });
+      
+      // Supabase에 임시저장 데이터 저장
+      const result = await storage.saveTemporaryEvaluation({
+        evaluatorId,
+        candidateId,
+        scores,
+        totalScore,
+        isCompleted: false
+      });
+      
+      console.log('✅ 임시저장 성공:', result);
+      res.json({ message: "임시저장이 완료되었습니다.", result });
+    } catch (error) {
+      console.error('❌ 임시저장 오류:', error);
+      res.status(500).json({ message: "임시저장 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 평가위원 평가완료 API
+  app.post("/api/evaluator/evaluation/complete", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const evaluatorId = req.session.evaluator.id;
+      const { candidateId, scores, totalScore } = req.body;
+      
+      console.log('🎯 평가완료 요청:', { evaluatorId, candidateId, scores, totalScore });
+      
+      // Supabase에 평가완료 데이터 저장
+      const result = await storage.completeEvaluation({
+        evaluatorId,
+        candidateId,
+        scores,
+        totalScore,
+        isCompleted: true
+      });
+      
+      console.log('✅ 평가완료 성공:', result);
+      res.json({ message: "평가가 완료되었습니다.", result });
+    } catch (error) {
+      console.error('❌ 평가완료 오류:', error);
+      res.status(500).json({ message: "평가완료 중 오류가 발생했습니다." });
+    }
+  });
+
+  app.get("/api/evaluator/progress", requireEvaluatorAuth, async (req, res) => {
     try {
       const evaluatorId = req.session.evaluator.id;
       const progress = await storage.getEvaluatorProgress(evaluatorId);

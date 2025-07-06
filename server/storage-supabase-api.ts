@@ -1041,6 +1041,58 @@ export class SupabaseStorage {
       is_active: item.isActive
     };
   }
+
+  // 평가 임시저장 메서드
+  async saveTemporaryEvaluation(data: { 
+    evaluatorId: number;
+    candidateId: number;
+    scores: Record<string, number>;
+    totalScore: number;
+    isCompleted: boolean;
+  }): Promise<any> {
+    const { error } = await supabase
+      .from('evaluation_submissions')
+      .upsert({
+        evaluator_id: data.evaluatorId,
+        candidate_id: data.candidateId,
+        scores: data.scores,
+        total_score: data.totalScore,
+        is_completed: data.isCompleted,
+        submitted_at: new Date().toISOString()
+      }, {
+        onConflict: 'evaluator_id,candidate_id'
+      });
+
+    if (error) throw error;
+    
+    return { success: true, message: '임시저장이 완료되었습니다.' };
+  }
+
+  // 평가 완료 메서드
+  async completeEvaluation(data: { 
+    evaluatorId: number;
+    candidateId: number;
+    scores: Record<string, number>;
+    totalScore: number;
+    isCompleted: boolean;
+  }): Promise<any> {
+    const { error } = await supabase
+      .from('evaluation_submissions')
+      .upsert({
+        evaluator_id: data.evaluatorId,
+        candidate_id: data.candidateId,
+        scores: data.scores,
+        total_score: data.totalScore,
+        is_completed: true,
+        submitted_at: new Date().toISOString()
+      }, {
+        onConflict: 'evaluator_id,candidate_id'
+      });
+
+    if (error) throw error;
+    
+    return { success: true, message: '평가가 완료되었습니다.' };
+  }
 }
 
 // Initialize and export storage instance
