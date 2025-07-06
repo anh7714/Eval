@@ -311,8 +311,7 @@ export default function EvaluationItemManagement() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
-            evaluationTitle: template.title,
-            systemName: template.title // 시스템 이름도 함께 업데이트
+            evaluationTitle: template.title
           })
         });
 
