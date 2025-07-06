@@ -11,6 +11,13 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Plus, Edit, Trash2, Upload, Download, Settings, Users, Search, Filter, ArrowUpDown, RefreshCw, CheckCircle, AlertCircle, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseExcelFile, exportToExcel } from "@/lib/excel";
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase 클라이언트 초기화
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || 'https://bqgbppdppkhsqkekqrui.supabase.co',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxZ2JwcGRwcGtoc3FrZWtxcnVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NTYzMjQsImV4cCI6MjA1MDUzMjMyNH0.JM8yGO9hZmfNVGMdFrAGTnFvL_sJXRayNqZOSsAMhzg'
+);
 
 export default function CandidateManagement() {
   const [isAddingCandidate, setIsAddingCandidate] = useState(false);
@@ -126,6 +133,47 @@ export default function CandidateManagement() {
   });
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // 💡 Supabase 실시간 구독
+  useEffect(() => {
+    console.log('🔄 Supabase 실시간 구독 시작...');
+    
+    const channel = supabase
+      .channel('candidates-realtime')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'candidates' 
+        }, 
+        (payload) => {
+          console.log('📡 실시간 데이터 변경 감지:', payload);
+          
+          // React Query 캐시 무효화하여 최신 데이터 가져오기
+          queryClient.invalidateQueries({ queryKey: ['candidates'] });
+          
+          // 토스트 알림
+          if (payload.eventType === 'UPDATE') {
+            toast({
+              title: "실시간 업데이트",
+              description: "평가대상 정보가 업데이트되었습니다.",
+              duration: 2000,
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 구독 상태:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ 실시간 구독 활성화');
+        }
+      });
+
+    return () => {
+      console.log('🔄 Supabase 실시간 구독 정리...');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, toast]);
 
   // 💡 낙관적 업데이트를 위한 mutation
   const toggleCandidateMutation = useMutation({
