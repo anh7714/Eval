@@ -1,11 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Upload, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Download, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase 클라이언트 설정 (환경변수 검증 포함)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+let supabase: any = null;
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+}
 
 export default function EvaluatorManagement() {
   const [isAddingEvaluator, setIsAddingEvaluator] = useState(false);
@@ -20,9 +30,107 @@ export default function EvaluatorManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: evaluators = [], isLoading } = useQuery({
+  const { data: evaluators = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["/api/admin/evaluators"],
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
+
+  // 실시간 구독 + 폴링 백업 시스템
+  useEffect(() => {
+    // Supabase가 제대로 초기화되지 않은 경우 폴링만 사용
+    if (!supabase) {
+      console.log('⚠️ Supabase 클라이언트를 사용할 수 없음, 폴링만 사용');
+      const pollingInterval = setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluators"] });
+      }, 10000); // 10초마다 폴링
+      
+      return () => clearInterval(pollingInterval);
+    }
+
+    let channel: any;
+    let pollingInterval: NodeJS.Timeout;
+    let isRealtimeConnected = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const setupRealtimeSubscription = () => {
+      console.log(`🔄 평가자 실시간 구독 시도 ${retryCount + 1}/${maxRetries}`);
+      
+      channel = supabase
+        .channel(`evaluators-${Date.now()}`)
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'evaluators' 
+          }, 
+          (payload) => {
+            console.log('📡 평가자 실시간 변경:', payload.eventType);
+            
+            if (payload.eventType === 'UPDATE' && payload.new) {
+              queryClient.setQueryData(["/api/admin/evaluators"], (old: any[]) => {
+                if (!old) return [];
+                return old.map(evaluator => 
+                  evaluator.id === payload.new.id 
+                    ? { ...evaluator, ...payload.new }
+                    : evaluator
+                );
+              });
+            } else {
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluators"] });
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 평가자 구독 상태:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            isRealtimeConnected = true;
+            retryCount = 0;
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+            }
+            console.log('✅ 평가자 실시간 구독 성공');
+          } else if (status === 'CHANNEL_ERROR') {
+            isRealtimeConnected = false;
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(() => {
+                console.log('🔄 평가자 재연결 시도...');
+                supabase.removeChannel(channel);
+                setupRealtimeSubscription();
+              }, 2000 * retryCount);
+            } else {
+              console.log('⚠️ 평가자 실시간 연결 실패, 폴링으로 전환');
+              startPolling();
+            }
+          }
+        });
+    };
+
+    const startPolling = () => {
+      if (!pollingInterval) {
+        pollingInterval = setInterval(() => {
+          if (!isRealtimeConnected) {
+            console.log('🔄 평가자 폴링으로 데이터 동기화');
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluators"] });
+          }
+        }, 7000); // 7초마다 폴링
+      }
+    };
+
+    setupRealtimeSubscription();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [queryClient]);
 
   const createMutation = useMutation({
     mutationFn: async (evaluator: typeof newEvaluator) => {
@@ -157,8 +265,25 @@ export default function EvaluatorManagement() {
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">평가자 관리</h1>
             <p className="text-lg text-gray-600">평가자를 추가, 수정, 삭제할 수 있습니다.</p>
+            {/* 실시간 상태 정보 */}
+            <div className="text-xs text-gray-400 mt-2 space-x-4">
+              <span>👥 평가자: {evaluators.length}개</span>
+              <span>✅ 활성: {evaluators.filter((e: any) => e.isActive).length}개</span>
+              <span>🔄 실시간 연동 활성화</span>
+            </div>
           </div>
           <div className="flex space-x-2">
+            {/* 수동 새로고침 버튼 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="flex items-center space-x-1"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              <span>새로고침</span>
+            </Button>
             <Button variant="outline" size="sm">
               <Upload className="h-4 w-4 mr-2" />
               엑셀 업로드

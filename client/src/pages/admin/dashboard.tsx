@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserCheck, FileText, TrendingUp, Database, Download, Search, Filter, ArrowUpDown, AlertCircle, UserX, Clock } from "lucide-react";
+import { Users, UserCheck, FileText, TrendingUp, Database, Download, Search, Filter, ArrowUpDown, AlertCircle, UserX, Clock, RefreshCw } from "lucide-react";
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase 클라이언트 설정 (환경변수 검증 포함)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+let supabase: any = null;
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+}
 
 export default function AdminDashboard() {
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
@@ -21,13 +31,118 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("candidates");
   const itemsPerPage = 10;
 
-  const { data: stats, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: stats, isLoading, refetch: refetchStats, isFetching } = useQuery({
     queryKey: ["/api/admin/statistics"],
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
   const { data: adminProfile } = useQuery({
     queryKey: ["/api/admin/profile"],
   });
+
+  // 실시간 구독 + 폴링 백업 시스템
+  useEffect(() => {
+    // Supabase가 제대로 초기화되지 않은 경우 폴링만 사용
+    if (!supabase) {
+      console.log('⚠️ 대시보드: Supabase 클라이언트를 사용할 수 없음, 폴링만 사용');
+      const pollingInterval = setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/statistics"] });
+      }, 12000); // 12초마다 폴링
+      
+      return () => clearInterval(pollingInterval);
+    }
+
+    let candidateChannel: any;
+    let evaluatorChannel: any;
+    let pollingInterval: NodeJS.Timeout;
+    let isRealtimeConnected = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const setupRealtimeSubscription = () => {
+      console.log(`🔄 대시보드 실시간 구독 시도 ${retryCount + 1}/${maxRetries}`);
+      
+      // 평가대상 변경 구독
+      candidateChannel = supabase
+        .channel(`dashboard-candidates-${Date.now()}`)
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'candidates' }, 
+          () => {
+            console.log('📡 대시보드: 평가대상 데이터 변경 감지');
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/statistics"] });
+          }
+        );
+
+      // 평가자 변경 구독
+      evaluatorChannel = supabase
+        .channel(`dashboard-evaluators-${Date.now()}`)
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'evaluators' }, 
+          () => {
+            console.log('📡 대시보드: 평가자 데이터 변경 감지');
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/statistics"] });
+          }
+        );
+
+      // 두 채널 모두 구독
+      candidateChannel.subscribe((status: any) => {
+        console.log('📡 대시보드 평가대상 구독 상태:', status);
+        handleSubscriptionStatus(status);
+      });
+      
+      evaluatorChannel.subscribe((status: any) => {
+        console.log('📡 대시보드 평가자 구독 상태:', status);
+        handleSubscriptionStatus(status);
+      });
+    };
+
+    const handleSubscriptionStatus = (status: any) => {
+      if (status === 'SUBSCRIBED') {
+        isRealtimeConnected = true;
+        retryCount = 0;
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+        }
+        console.log('✅ 대시보드 실시간 구독 성공');
+      } else if (status === 'CHANNEL_ERROR') {
+        isRealtimeConnected = false;
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(() => {
+            console.log('🔄 대시보드 재연결 시도...');
+            if (candidateChannel) supabase.removeChannel(candidateChannel);
+            if (evaluatorChannel) supabase.removeChannel(evaluatorChannel);
+            setupRealtimeSubscription();
+          }, 2000 * retryCount);
+        } else {
+          console.log('⚠️ 대시보드 실시간 연결 실패, 폴링으로 전환');
+          startPolling();
+        }
+      }
+    };
+
+    const startPolling = () => {
+      if (!pollingInterval) {
+        pollingInterval = setInterval(() => {
+          if (!isRealtimeConnected) {
+            console.log('🔄 대시보드 폴링으로 데이터 동기화');
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/statistics"] });
+          }
+        }, 10000); // 10초마다 폴링
+      }
+    };
+
+    setupRealtimeSubscription();
+
+    return () => {
+      if (candidateChannel) supabase.removeChannel(candidateChannel);
+      if (evaluatorChannel) supabase.removeChannel(evaluatorChannel);
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
+  }, [queryClient]);
 
   // 관리자 프로필 데이터 로깅
   React.useEffect(() => {
@@ -129,15 +244,36 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="mb-12">
-          <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-            관리자 대시보드
-          </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">
-            {adminProfile?.name || "관리자"}님! 환영합니다.
-          </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            평가 시스템의 전체 현황을 확인하고 관리합니다.
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+                관리자 대시보드
+              </h1>
+              <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">
+                {adminProfile?.name || "관리자"}님! 환영합니다.
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                평가 시스템의 전체 현황을 확인하고 관리합니다.
+              </p>
+              {/* 실시간 상태 정보 */}
+              <div className="text-xs text-slate-400 mt-2 space-x-4">
+                <span>👥 평가대상: {(stats as any)?.totalCandidates || 0}명</span>
+                <span>👤 평가자: {(stats as any)?.totalEvaluators || 0}명</span>
+                <span>🔄 실시간 연동 활성화</span>
+              </div>
+            </div>
+            {/* 수동 새로고침 버튼 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchStats()}
+              disabled={isFetching}
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              <span>새로고침</span>
+            </Button>
+          </div>
         </div>
         
         {/* Statistics Cards */}
