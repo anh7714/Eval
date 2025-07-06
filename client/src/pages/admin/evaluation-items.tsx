@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3 } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Download, Save, X, Printer, Edit3, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase 클라이언트 설정
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 export default function EvaluationItemManagement() {
   const [viewMode, setViewMode] = useState<'template' | 'management'>('template'); // 기본값을 템플릿 뷰로 설정
@@ -76,14 +83,14 @@ export default function EvaluationItemManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // 데이터 쿼리들
-  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
+  // 데이터 쿼리들 - 실시간 연동 적용
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories, isFetching: categoriesFetching } = useQuery({
     queryKey: ["/api/admin/categories"],
     retry: 2,
     refetchOnWindowFocus: false,
   });
 
-  const { data: items = [], isLoading: itemsLoading, error: itemsError } = useQuery({
+  const { data: items = [], isLoading: itemsLoading, error: itemsError, refetch: refetchItems, isFetching: itemsFetching } = useQuery({
     queryKey: ["/api/admin/evaluation-items"],
     retry: 2,
     refetchOnWindowFocus: false,
@@ -108,6 +115,154 @@ export default function EvaluationItemManagement() {
       console.log('✅ 평가항목 조회 성공:', items);
     }
   }, [categories, items]);
+
+  // 실시간 구독 + 폴링 백업 시스템 (카테고리용)
+  useEffect(() => {
+    let categoriesChannel: any;
+    let categoriesPollingInterval: NodeJS.Timeout;
+    let isCategoriesRealtimeConnected = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const setupCategoriesSubscription = () => {
+      console.log(`🔄 카테고리 실시간 구독 시도 ${retryCount + 1}/${maxRetries}`);
+      
+      categoriesChannel = supabase
+        .channel(`categories-${Date.now()}`)
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'categories' 
+          }, 
+          (payload) => {
+            console.log('📡 카테고리 실시간 변경:', payload.eventType);
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 카테고리 구독 상태:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            isCategoriesRealtimeConnected = true;
+            retryCount = 0;
+            if (categoriesPollingInterval) {
+              clearInterval(categoriesPollingInterval);
+            }
+            console.log('✅ 카테고리 실시간 구독 성공');
+          } else if (status === 'CHANNEL_ERROR') {
+            isCategoriesRealtimeConnected = false;
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(() => {
+                console.log('🔄 카테고리 재연결 시도...');
+                supabase.removeChannel(categoriesChannel);
+                setupCategoriesSubscription();
+              }, 2000 * retryCount);
+            } else {
+              console.log('⚠️ 카테고리 실시간 연결 실패, 폴링으로 전환');
+              startCategoriesPolling();
+            }
+          }
+        });
+    };
+
+    const startCategoriesPolling = () => {
+      if (!categoriesPollingInterval) {
+        categoriesPollingInterval = setInterval(() => {
+          if (!isCategoriesRealtimeConnected) {
+            console.log('🔄 카테고리 폴링으로 데이터 동기화');
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+          }
+        }, 8000); // 8초마다 폴링
+      }
+    };
+
+    setupCategoriesSubscription();
+
+    return () => {
+      if (categoriesChannel) {
+        supabase.removeChannel(categoriesChannel);
+      }
+      if (categoriesPollingInterval) {
+        clearInterval(categoriesPollingInterval);
+      }
+    };
+  }, [queryClient]);
+
+  // 실시간 구독 + 폴링 백업 시스템 (평가항목용)
+  useEffect(() => {
+    let itemsChannel: any;
+    let itemsPollingInterval: NodeJS.Timeout;
+    let isItemsRealtimeConnected = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const setupItemsSubscription = () => {
+      console.log(`🔄 평가항목 실시간 구독 시도 ${retryCount + 1}/${maxRetries}`);
+      
+      itemsChannel = supabase
+        .channel(`evaluation-items-${Date.now()}`)
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'evaluation_items' 
+          }, 
+          (payload) => {
+            console.log('📡 평가항목 실시간 변경:', payload.eventType);
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluation-items"] });
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 평가항목 구독 상태:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            isItemsRealtimeConnected = true;
+            retryCount = 0;
+            if (itemsPollingInterval) {
+              clearInterval(itemsPollingInterval);
+            }
+            console.log('✅ 평가항목 실시간 구독 성공');
+          } else if (status === 'CHANNEL_ERROR') {
+            isItemsRealtimeConnected = false;
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(() => {
+                console.log('🔄 평가항목 재연결 시도...');
+                supabase.removeChannel(itemsChannel);
+                setupItemsSubscription();
+              }, 2000 * retryCount);
+            } else {
+              console.log('⚠️ 평가항목 실시간 연결 실패, 폴링으로 전환');
+              startItemsPolling();
+            }
+          }
+        });
+    };
+
+    const startItemsPolling = () => {
+      if (!itemsPollingInterval) {
+        itemsPollingInterval = setInterval(() => {
+          if (!isItemsRealtimeConnected) {
+            console.log('🔄 평가항목 폴링으로 데이터 동기화');
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluation-items"] });
+          }
+        }, 8000); // 8초마다 폴링
+      }
+    };
+
+    setupItemsSubscription();
+
+    return () => {
+      if (itemsChannel) {
+        supabase.removeChannel(itemsChannel);
+      }
+      if (itemsPollingInterval) {
+        clearInterval(itemsPollingInterval);
+      }
+    };
+  }, [queryClient]);
 
   // 평가위원 목록 가져오기
   const { data: evaluators = [] } = useQuery({
