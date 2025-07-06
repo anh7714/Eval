@@ -434,40 +434,28 @@ export default function EvaluatorEvaluationPage() {
         </Card>
 
         {/* 평가 모달 */}
-        {selectedCandidate && isEvaluationModalOpen && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-[100] p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden border border-gray-300">
-              {/* 모달 헤더 */}
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-white bg-opacity-20 rounded-lg p-2">
-                    <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
+        <Dialog open={isEvaluationModalOpen} onOpenChange={setIsEvaluationModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {evaluationTemplate && (
+              <div className="space-y-6">
+                {/* 모달 헤더 */}
+                <div className="flex justify-between items-start border-b pb-4">
                   <div>
-                    <h2 className="text-xl font-bold text-white">
-                      {selectedCandidate.name} 심사표
-                    </h2>
-                    <p className="text-blue-100 text-sm">평가 진행 중</p>
+                    <DialogTitle className="text-xl font-bold text-center">
+                      {evaluationTemplate.title}
+                    </DialogTitle>
+                    <p className="text-sm text-gray-600 mt-1 text-center">
+                      {evaluationTemplate.subtitle}
+                    </p>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEvaluationModalOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => setIsEvaluationModalOpen(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {/* 모달 컨텐츠 */}
-              <div className="p-6 bg-gray-50 overflow-y-auto max-h-[calc(95vh-80px)]">
-                {categories.length > 0 && evaluationItems.length > 0 && (
-                  <div className="space-y-4">
-
-                {/* 심사표 테이블 - 관리자 화면과 동일한 스타일 */}
                 <div className="bg-white border border-gray-400 rounded-lg overflow-hidden">
                   {/* 테이블 제목과 구분 정보 */}
                   <div className="border-b-2 border-black p-4 text-center">
