@@ -544,6 +544,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== ADMIN EVALUATION CATEGORY ROUTES =====
+  app.get("/api/admin/categories", requireAuth, async (req, res) => {
+    try {
+      const categories = await storage.getAllCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/admin/evaluation-categories", requireAuth, async (req, res) => {
+    try {
+      console.log("📝 평가 카테고리 생성 요청:", req.body);
+      const validatedData = insertEvaluationCategorySchema.parse(req.body);
+      console.log("✅ 유효성 검사 통과:", validatedData);
+      const category = await storage.createCategory(validatedData);
+      console.log("✅ 카테고리 생성 성공:", category);
+      res.json(category);
+    } catch (error) {
+      console.error("❌ 카테고리 생성 실패:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
   // ===== CATEGORY OPTIONS ROUTES =====
   app.get("/api/admin/category-options", requireAuth, async (req, res) => {
     try {

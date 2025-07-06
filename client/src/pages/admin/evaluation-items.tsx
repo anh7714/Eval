@@ -105,9 +105,7 @@ export default function EvaluationItemManagement() {
       for (let sectionIndex = 0; sectionIndex < template.sections.length; sectionIndex++) {
         const section = template.sections[sectionIndex];
         const categoryData = {
-          categoryName: section.title,
-          categoryCode: section.id,
-          description: `${section.title} 관련 평가 카테고리`,
+          name: section.title,
           type: 'evaluation',
           isActive: true,
           sortOrder: sectionIndex + 1
@@ -141,11 +139,11 @@ export default function EvaluationItemManagement() {
           const item = section.items[itemIndex];
           const itemData = {
             categoryId: categoryId,
-            itemCode: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`,
-            itemName: item.text,
+            code: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`,
+            name: item.text,
             description: item.text,
             maxScore: item.points || 0,
-            weight: "1.00",
+            weight: 1.0,
             sortOrder: itemIndex + 1,
             isActive: true
           };
