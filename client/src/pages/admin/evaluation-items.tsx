@@ -1089,125 +1089,101 @@ export default function EvaluationItemManagement() {
   // 심사표를 데이터베이스에 저장하는 mutation
   const saveTemplateMutation = useMutation({
     mutationFn: async (templateData: any) => {
+      console.log('🚀 심사표 저장 시작');
+      console.log('📋 템플릿 데이터:', templateData);
+
       // 1. 카테고리들을 먼저 저장
-      const categoryPromises = templateData.sections.map(async (section: any) => {
+      const savedCategories = [];
+      
+      for (let sectionIndex = 0; sectionIndex < templateData.sections.length; sectionIndex++) {
+        const section = templateData.sections[sectionIndex];
         const categoryData = {
-          categoryName: section.title,
-          categoryCode: section.id,
-          description: `${section.title} 관련 평가 카테고리`,
-          type: 'evaluation',
-          isActive: true,
-          sortOrder: 1
+          type: section.sectionName,
+          name: section.sectionName,
+          parentId: null,
+          sortOrder: sectionIndex,
+          isActive: true
         };
-        
+
+        console.log(`💾 카테고리 저장 [${sectionIndex}]:`, categoryData);
+
         const response = await fetch('/api/admin/evaluation-categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(categoryData)
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`카테고리 저장 실패: ${errorText}`);
+        }
         
-        if (!response.ok) throw new Error('카테고리 저장 실패');
-        return response.json();
-      });
+        const savedCategory = await response.json();
+        savedCategories.push(savedCategory);
+        console.log(`✅ 카테고리 저장 성공 [${sectionIndex}]:`, savedCategory);
+      }
 
-      const savedCategories = await Promise.all(categoryPromises);
-      console.log('✅ 저장된 카테고리들:', savedCategories);
+      console.log('✅ 모든 카테고리 저장 완료:', savedCategories.length);
 
-      // 2. 각 카테고리에 평가항목들 저장 - 순차적으로 처리
+      // 2. 각 카테고리에 평가항목들 저장
       console.log('📝 평가항목 저장 시작...');
-      console.log('📋 템플릿 데이터 구조 확인:', {
-        sectionsCount: templateData.sections.length,
-        sections: templateData.sections.map((section, index) => ({
-          index,
-          sectionName: section.sectionName,
-          itemsCount: section.items?.length || 0,
-          items: section.items?.slice(0, 2) // 처음 2개 항목만 표시
-        }))
-      });
-      
-      const savedItems = [];
+      const evaluationItems = [];
       
       for (let sectionIndex = 0; sectionIndex < templateData.sections.length; sectionIndex++) {
         const section = templateData.sections[sectionIndex];
         const categoryId = savedCategories[sectionIndex].id;
         
-        console.log(`📝 섹션 ${sectionIndex} 처리 중: ${section.items.length}개 항목`);
+        console.log(`📝 섹션 ${sectionIndex} 처리 중: ${section.items?.length || 0}개 항목`);
         
-        for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
-          const item = section.items[itemIndex];
-          
-          try {
-            // 필드 유효성 검사
+        if (section.items && section.items.length > 0) {
+          for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
+            const item = section.items[itemIndex];
+            
             if (!item.text) {
-              console.error(`❌ 평가항목 텍스트가 없습니다 [섹션${sectionIndex}-항목${itemIndex}]:`, item);
+              console.warn(`⚠️ 평가항목 텍스트가 없어 건너뜀 [섹션${sectionIndex}-항목${itemIndex}]`);
               continue;
             }
             
             const itemData = {
               categoryId: categoryId,
-              itemCode: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`, // 고유한 itemCode 생성
+              itemCode: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`,
               itemName: item.text,
               description: item.text,
               maxScore: item.points || 0,
-              weight: "1.00", // decimal 타입으로 문자열 전송
+              weight: "1.00",
               sortOrder: itemIndex,
               isActive: true
             };
 
-            console.log(`💾 평가항목 저장 요청 [섹션${sectionIndex}-항목${itemIndex}]:`, {
-              categoryId: categoryId,
-              itemData: itemData,
-              originalItem: item
-            });
+            console.log(`💾 평가항목 저장 [섹션${sectionIndex}-항목${itemIndex}]:`, itemData);
 
             const response = await fetch('/api/admin/evaluation-items', {
               method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json'
-              },
-              credentials: 'include', // 세션 쿠키 포함
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify(itemData)
             });
 
-            // 응답 상태와 내용을 먼저 확인
-            const responseText = await response.text();
-            console.log(`📊 응답 상태 [섹션${sectionIndex}-항목${itemIndex}]:`, {
-              status: response.status,
-              statusText: response.statusText,
-              responseText: responseText.substring(0, 200) // 처음 200자만 출력
-            });
-
             if (!response.ok) {
-              console.error(`❌ 평가항목 저장 실패 [섹션${sectionIndex}-항목${itemIndex}]:`, {
-                status: response.status,
-                statusText: response.statusText,
-                errorText: responseText
-              });
-              throw new Error(`평가항목 저장 실패 [${response.status}]: ${responseText}`);
+              const errorText = await response.text();
+              console.error(`❌ 평가항목 저장 실패 [섹션${sectionIndex}-항목${itemIndex}]:`, errorText);
+              throw new Error(`평가항목 저장 실패: ${errorText}`);
             }
             
-            // JSON 파싱 시도
-            try {
-              const savedItem = JSON.parse(responseText);
-              console.log(`✅ 평가항목 저장 성공 [섹션${sectionIndex}-항목${itemIndex}]:`, savedItem);
-              savedItems.push(savedItem);
-            } catch (parseError) {
-              console.error(`❌ JSON 파싱 실패 [섹션${sectionIndex}-항목${itemIndex}]:`, {
-                parseError: parseError,
-                responseText: responseText
-              });
-              throw new Error(`JSON 파싱 실패: ${responseText}`);
-            }
-          } catch (error) {
-            console.error(`❌ 평가항목 저장 오류 [섹션${sectionIndex}-항목${itemIndex}]:`, error);
-            throw error;
+            const savedItem = await response.json();
+            evaluationItems.push(savedItem);
+            console.log(`✅ 평가항목 저장 성공 [섹션${sectionIndex}-항목${itemIndex}]:`, savedItem);
+
+            // 서버 부하 방지를 위한 지연
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
-          
-          // 각 항목 사이에 약간의 지연을 두어 서버 부하 방지
-          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-      return { categories: savedCategories, itemCount: savedItems.length };
+
+      console.log('✅ 모든 평가항목 저장 완료:', evaluationItems.length);
+      
+      return { categories: savedCategories, itemCount: evaluationItems.length };
     },
     onSuccess: (data) => {
       toast({
