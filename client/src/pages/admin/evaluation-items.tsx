@@ -144,7 +144,7 @@ export default function EvaluationItemManagement() {
             name: item.text,
             description: item.text,
             maxScore: item.points || 0,
-            weight: 1.0,
+            weight: "1.00",
             sortOrder: itemIndex + 1,
             isActive: true
           };
