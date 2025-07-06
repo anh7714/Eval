@@ -787,12 +787,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 평가위원 전용 후보자 조회 API
+  // 평가위원 전용 후보자 조회 API (평가 상태 포함)
   app.get("/api/evaluator/candidates", requireEvaluatorAuth, async (req, res) => {
     try {
+      const evaluatorId = req.session.evaluator.id;
       const candidates = await storage.getActiveCandidates();
-      res.json(candidates);
+      
+      // 각 후보자의 평가 상태 확인
+      const candidatesWithStatus = await Promise.all(
+        candidates.map(async (candidate) => {
+          try {
+            const evaluationStatus = await storage.getEvaluationStatus(evaluatorId, candidate.id);
+            return {
+              ...candidate,
+              evaluationStatus: evaluationStatus || { isCompleted: false, hasTemporarySave: false, totalScore: 0 }
+            };
+          } catch (error) {
+            return {
+              ...candidate,
+              evaluationStatus: { isCompleted: false, hasTemporarySave: false, totalScore: 0 }
+            };
+          }
+        })
+      );
+      
+      res.json(candidatesWithStatus);
     } catch (error) {
+      console.error('평가자 후보자 목록 조회 오류:', error);
       res.status(500).json({ message: "Failed to fetch candidates" });
     }
   });

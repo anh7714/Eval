@@ -1146,6 +1146,31 @@ export class SupabaseStorage {
     console.log('✅ Supabase 평가완료 성공');
     return { success: true, message: '평가가 완료되었습니다.' };
   }
+
+  // 평가 상태 확인 메서드
+  async getEvaluationStatus(evaluatorId: number, candidateId: number): Promise<any> {
+    const { data, error } = await supabase
+      .from('evaluation_submissions')
+      .select('is_completed, total_score, scores')
+      .eq('evaluator_id', evaluatorId)
+      .eq('candidate_id', candidateId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
+      console.error('평가 상태 확인 오류:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      return { isCompleted: false, hasTemporarySave: false, totalScore: 0 };
+    }
+    
+    return {
+      isCompleted: data.is_completed || false,
+      hasTemporarySave: !data.is_completed && Object.keys(data.scores || {}).length > 0,
+      totalScore: data.total_score || 0
+    };
+  }
 }
 
 // Initialize and export storage instance

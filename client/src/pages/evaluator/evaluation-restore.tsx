@@ -331,11 +331,23 @@ export default function EvaluatorEvaluationPage() {
       const matchesSubCategory = selectedSubCategory === "all" || 
         candidate.subCategory === selectedSubCategory;
         
-      // 임시로 모든 상태를 "미시작"으로 설정
-      const statusMatch = selectedStatus === "all" || selectedStatus === "incomplete";
+      // 평가 상태 확인
+      const evaluationStatus = candidate.evaluationStatus || { isCompleted: false, hasTemporarySave: false };
+      let currentStatus = "incomplete";
+      
+      if (evaluationStatus.isCompleted) {
+        currentStatus = "completed";
+      } else if (evaluationStatus.hasTemporarySave) {
+        currentStatus = "in_progress";
+      }
+      
+      const statusMatch = selectedStatus === "all" || selectedStatus === currentStatus;
       
       return matchesMainCategory && matchesSubCategory && statusMatch && candidate.isActive;
     }).map((candidate: any, index: number) => {
+      // 평가 상태 확인
+      const evaluationStatus = candidate.evaluationStatus || { isCompleted: false, hasTemporarySave: false, totalScore: 0 };
+      
       return {
         candidate: {
           id: candidate.id,
@@ -347,14 +359,14 @@ export default function EvaluatorEvaluationPage() {
           subCategory: candidate.subCategory || '미분류'
         },
         rank: index + 1,
-        isCompleted: false, // 임시로 모두 미완료로 설정
-        progress: 0, // 임시로 모두 0%로 설정
-        totalScore: 0,
+        isCompleted: evaluationStatus.isCompleted,
+        progress: evaluationStatus.isCompleted ? 100 : (evaluationStatus.hasTemporarySave ? 50 : 0),
+        totalScore: evaluationStatus.totalScore || 0,
         maxPossibleScore: 100,
-        percentage: 0,
+        percentage: evaluationStatus.totalScore ? Math.round((evaluationStatus.totalScore / 100) * 100) : 0,
         evaluatorCount: 1,
-        completedEvaluations: 0,
-        averageScore: 0
+        completedEvaluations: evaluationStatus.isCompleted ? 1 : 0,
+        averageScore: evaluationStatus.totalScore || 0
       };
     });
   }, [candidates, selectedMainCategory, selectedSubCategory, selectedStatus]);
