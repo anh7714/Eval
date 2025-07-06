@@ -139,6 +139,7 @@ export class SupabaseStorage {
     const { data, error } = await supabase
       .from('system_config')
       .select('*')
+      .order('updated_at', { ascending: false })
       .limit(1);
     
     if (error) throw error;

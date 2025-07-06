@@ -173,6 +173,10 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 평가위원 프로필 API 엔드포인트 추가 (/api/evaluator/profile)
 - ✓ 실제 로그인한 사용자 이름을 동적으로 표시하는 환영 메시지 완성
 - ✓ 관리자: "[실제이름]님! 환영합니다.", 평가위원: "[실제이름] 위원님! 환영합니다."
+- ✓ 시스템 설정 저장 기능 완전 구현 (2025.07.06)
+- ✓ Supabase 데이터베이스 스키마 확장 (system_name, description, admin_email 등 추가)
+- ✓ 동적 시스템 이름 변경 기능 구현 - 헤더의 "종합평가시스템" 동적 교체
+- ✓ 시스템 설정 페이지에서 저장한 시스템 이름이 애플리케이션 전체 헤더에 즉시 반영
 
 ## User Preferences
 
