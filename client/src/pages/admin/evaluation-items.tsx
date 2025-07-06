@@ -1439,8 +1439,14 @@ export default function EvaluationItemManagement() {
         ) : (
           // 기존 관리 모드
           <div className="space-y-6">
+            <Tabs defaultValue="categories" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="categories">카테고리</TabsTrigger>
+                <TabsTrigger value="items">평가항목</TabsTrigger>
+                <TabsTrigger value="template">템플릿</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="categories">
+              <TabsContent value="categories">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">평가 카테고리</h2>
@@ -2014,7 +2020,8 @@ export default function EvaluationItemManagement() {
               </Card>
             </div>
           </TabsContent>
-        </Tabs>
+            </Tabs>
+          </div>
         )}
       </div>
     </div>
