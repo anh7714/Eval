@@ -141,7 +141,7 @@ export default function AdminDashboard() {
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">완료율</p>
               <Badge variant="secondary" className="text-xs">
-                {((stats as any)?.completed || 0)}/{(stats as any)?.totalCandidates || 0} 완료
+                0/{(stats as any)?.totalCandidates || 0} 완료
               </Badge>
             </CardContent>
           </Card>
@@ -152,11 +152,11 @@ export default function AdminDashboard() {
                 <Users className="w-7 h-7 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-                {(stats as any)?.inProgress || 0}
+                {(stats as any)?.activeEvaluators || 0}
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">진행중</p>
               <Badge variant="secondary" className="text-xs">
-                평가 일부 진행
+                활성 평가자 수
               </Badge>
             </CardContent>
           </Card>
@@ -170,11 +170,11 @@ export default function AdminDashboard() {
                 <FileText className="w-7 h-7 text-gray-600 dark:text-gray-400" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-                {(stats as any)?.notStarted || 0}
+                {(stats as any)?.totalCandidates || 0}
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">미완료</p>
               <Badge variant="secondary" className="text-xs">
-                평가 미시작
+                총 평가대상
               </Badge>
               <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
                 클릭하여 상세보기
@@ -188,11 +188,11 @@ export default function AdminDashboard() {
                 <UserCheck className="w-7 h-7 text-green-600 dark:text-green-400" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-                {(stats as any)?.completed || 0}
+                {(stats as any)?.totalEvaluators || 0}
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">완료</p>
               <Badge variant="secondary" className="text-xs">
-                모든 평가 완료
+                총 평가자 수
               </Badge>
             </CardContent>
           </Card>
