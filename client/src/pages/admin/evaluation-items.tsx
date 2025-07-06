@@ -212,7 +212,7 @@ export default function EvaluationItemManagement() {
 
   // 데이터베이스 데이터를 템플릿 구조로 변환
   const convertDataToTemplate = () => {
-    if (!categories.length || !items.length) {
+    if (!categories || !items || categories.length === 0 || items.length === 0) {
       return currentTemplate; // 데이터가 없으면 기본 템플릿 반환
     }
 
@@ -249,12 +249,12 @@ export default function EvaluationItemManagement() {
       items 
     });
     
-    if (categories.length > 0 && items.length > 0) {
+    if (categories && items && Array.isArray(categories) && Array.isArray(items) && categories.length > 0 && items.length > 0) {
       console.log('🔄 템플릿 변환 시작...');
       const convertedTemplate = convertDataToTemplate();
       console.log('📋 변환된 템플릿:', convertedTemplate);
       setCurrentTemplate(convertedTemplate);
-    } else if (categories.length > 0 || items.length > 0) {
+    } else if ((categories && Array.isArray(categories) && categories.length > 0) || (items && Array.isArray(items) && items.length > 0)) {
       console.log('⚠️ 부분 데이터만 로드됨');
     }
   }, [categories, items]);

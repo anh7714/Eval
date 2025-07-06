@@ -439,7 +439,23 @@ export class SupabaseStorage {
   // Add more methods as needed...
   // For now, implementing core methods needed for basic functionality
   async getAllCategories(): Promise<EvaluationCategory[]> {
-    return [];
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (error) {
+        console.error('Supabase getAllCategories error:', error);
+        return [];
+      }
+
+      return data.map((item: any) => this.mapEvaluationCategory(item));
+    } catch (error) {
+      console.error('getAllCategories error:', error);
+      return [];
+    }
   }
 
   async getActiveCategories(): Promise<EvaluationCategory[]> {
@@ -504,7 +520,29 @@ export class SupabaseStorage {
   }
 
   async getAllEvaluationItems(): Promise<(EvaluationItem & { categoryName: string })[]> {
-    return [];
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_items')
+        .select(`
+          *,
+          evaluation_categories(name)
+        `)
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (error) {
+        console.error('Supabase getAllEvaluationItems error:', error);
+        return [];
+      }
+
+      return data.map((item: any) => ({
+        ...this.mapEvaluationItem(item),
+        categoryName: item.evaluation_categories?.name || 'Unknown'
+      }));
+    } catch (error) {
+      console.error('getAllEvaluationItems error:', error);
+      return [];
+    }
   }
 
   async getActiveEvaluationItems(): Promise<(EvaluationItem & { categoryName: string })[]> {
