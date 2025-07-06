@@ -36,7 +36,9 @@ export default function AdminDashboard() {
   const { data: stats, isLoading, refetch: refetchStats, isFetching } = useQuery({
     queryKey: ["/api/admin/statistics"],
     retry: 2,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // 창 포커스 시 자동 갱신 활성화
+    refetchInterval: 3000, // 3초마다 자동 갱신
+    staleTime: 1000, // 1초 후 stale로 처리하여 빠른 업데이트
   });
 
   const { data: adminProfile } = useQuery({
@@ -131,7 +133,7 @@ export default function AdminDashboard() {
             console.log('🔄 대시보드 폴링으로 데이터 동기화');
             queryClient.invalidateQueries({ queryKey: ["/api/admin/statistics"] });
           }
-        }, 10000); // 10초마다 폴링
+        }, 2000); // 2초마다 빠른 폴링으로 즉시 업데이트 효과
       }
     };
 
