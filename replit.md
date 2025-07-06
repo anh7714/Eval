@@ -187,6 +187,10 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 심사표 템플릿 편집 후 평가항목으로 내보내기 기능 완성
 - ✓ 템플릿 섹션을 카테고리로, 각 항목을 평가항목으로 자동 변환
 - ✓ 내보내기 완료 후 평가항목 탭으로 자동 이동하는 UX 개선
+- ✓ 템플릿 기반 평가항목 표시 기능 작업 중 (2025.07.06)
+- ✓ Supabase 백엔드 createCategory 및 createEvaluationItem 메서드 구현
+- ✓ 평가항목 페이지에 템플릿 구조 직접 표시 기능 개발 진행
+- → 현재 evaluation-items.tsx 파일 구문 오류 수정 작업 진행 중
 
 ## User Preferences
 
