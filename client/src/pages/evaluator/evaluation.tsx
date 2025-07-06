@@ -50,33 +50,41 @@ export default function EvaluatorEvaluationPage() {
   const filteredResults = React.useMemo(() => {
     if (!candidates || !Array.isArray(candidates)) return [];
     
-    return candidates.filter((candidate: any) => {
-      const mainCategoryMatch = selectedMainCategory === "all" || candidate.mainCategory === selectedMainCategory;
-      const subCategoryMatch = selectedSubCategory === "all" || candidate.subCategory === selectedSubCategory;
+    return (candidates as any[]).filter((candidate: any) => {
+      // category 필드에서 mainCategory와 subCategory 추출
+      const categoryParts = candidate.category ? candidate.category.split(' > ') : [];
+      const mainCategory = categoryParts[0] || '';
+      const subCategory = categoryParts[1] || '';
+      
+      const mainCategoryMatch = selectedMainCategory === "all" || mainCategory === selectedMainCategory;
+      const subCategoryMatch = selectedSubCategory === "all" || subCategory === selectedSubCategory;
       // 임시로 모든 상태를 "미시작"으로 설정
       const statusMatch = selectedStatus === "all" || selectedStatus === "incomplete";
       
       return mainCategoryMatch && subCategoryMatch && statusMatch && candidate.isActive;
-    }).map((candidate: any, index: number) => ({
-      candidate: {
-        id: candidate.id,
-        name: candidate.name,
-        department: candidate.department || '미분류',
-        position: candidate.position || '미설정',
-        category: candidate.mainCategory || '미분류',
-        mainCategory: candidate.mainCategory || '미분류',
-        subCategory: candidate.subCategory || '미분류'
-      },
-      rank: index + 1,
-      isCompleted: false, // 임시로 모두 미완료로 설정
-      progress: 0, // 임시로 모두 0%로 설정
-      totalScore: 0,
-      maxPossibleScore: 100,
-      percentage: 0,
-      evaluatorCount: 1,
-      completedEvaluations: 0,
-      averageScore: 0
-    }));
+    }).map((candidate: any, index: number) => {
+      const categoryParts = candidate.category ? candidate.category.split(' > ') : [];
+      return {
+        candidate: {
+          id: candidate.id,
+          name: candidate.name,
+          department: candidate.department || '미분류',
+          position: candidate.position || '미설정',
+          category: categoryParts[0] || '미분류',
+          mainCategory: categoryParts[0] || '미분류',
+          subCategory: categoryParts[1] || '미분류'
+        },
+        rank: index + 1,
+        isCompleted: false, // 임시로 모두 미완료로 설정
+        progress: 0, // 임시로 모두 0%로 설정
+        totalScore: 0,
+        maxPossibleScore: 100,
+        percentage: 0,
+        evaluatorCount: 1,
+        completedEvaluations: 0,
+        averageScore: 0
+      };
+    });
   }, [candidates, selectedMainCategory, selectedSubCategory, selectedStatus]);
 
   const getStatusBadge = (result: CandidateResult) => {
@@ -145,7 +153,7 @@ export default function EvaluatorEvaluationPage() {
                     </SelectTrigger>
                     <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
                       <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 구분</SelectItem>
-                      {Array.from(new Set((candidates as any[]).map((c: any) => c.mainCategory).filter(Boolean))).map((category: any) => (
+                      {candidates && Array.isArray(candidates) && Array.from(new Set((candidates as any[]).map((c: any) => c.category ? c.category.split(' > ')[0] : null).filter(Boolean))).map((category: any) => (
                         <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
                           {category}
                         </SelectItem>
@@ -161,7 +169,7 @@ export default function EvaluatorEvaluationPage() {
                     </SelectTrigger>
                     <SelectContent className="z-[9999] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
                       <SelectItem value="all" className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">전체 세부구분</SelectItem>
-                      {Array.from(new Set((candidates as any[]).map((c: any) => c.subCategory).filter(Boolean))).map((category: any) => (
+                      {candidates && Array.isArray(candidates) && Array.from(new Set((candidates as any[]).map((c: any) => c.category ? c.category.split(' > ')[1] : null).filter(Boolean))).map((category: any) => (
                         <SelectItem key={category} value={category} className="hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer py-3 px-4 transition-colors duration-150">
                           {category}
                         </SelectItem>
