@@ -33,12 +33,22 @@ export default function EvaluationItemManagement() {
   // 데이터베이스에서 데이터 가져오기
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['/api/admin/evaluation-categories'],
-    queryFn: () => fetch('/api/admin/evaluation-categories').then(res => res.json())
+    queryFn: () => fetch('/api/admin/evaluation-categories', {
+      credentials: 'include'
+    }).then(res => res.json())
   });
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
     queryKey: ['/api/admin/evaluation-items'],
-    queryFn: () => fetch('/api/admin/evaluation-items').then(res => res.json())
+    queryFn: () => fetch('/api/admin/evaluation-items', {
+      credentials: 'include'
+    }).then(res => {
+      if (!res.ok) {
+        console.warn('평가항목 로딩 실패:', res.status, res.statusText);
+        return [];
+      }
+      return res.json();
+    })
   });
 
   // 평가위원 데이터는 필요할 때만 로드 (현재는 사용하지 않음)
