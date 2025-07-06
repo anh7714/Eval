@@ -1437,7 +1437,7 @@ export default function EvaluationItemManagement() {
             </CardContent>
           </Card>
         ) : (
-          // 관리 모드 (기존 템플릿 탭 기능)
+          // 관리 모드 - 템플릿 기능 직접 표시
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -1452,36 +1452,45 @@ export default function EvaluationItemManagement() {
                       variant={isEditing ? "default" : "outline"}
                       size="sm"
                     >
-                      {isEditing ? (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          저장 완료
-                        </>
-                      ) : (
-                        <>
-                          <Edit3 className="h-4 w-4 mr-2" />
-                          편집하기
-                        </>
-                      )}
+                      {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit3 className="h-4 w-4 mr-2" />}
+                      {isEditing ? "편집 완료" : "편집"}
                     </Button>
-                    <Button
-                      onClick={exportTemplateToEvaluationItems}
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 border-green-600 hover:bg-green-50"
-                    >
+                    <Button onClick={saveTemplate} variant="outline" size="sm">
                       <Download className="h-4 w-4 mr-2" />
+                      JSON 저장
+                    </Button>
+                    <Button onClick={saveAsExcel} variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200">
+                      <Download className="h-4 w-4 mr-2" />
+                      Excel 저장
+                    </Button>
+                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
+                      <Upload className="h-4 w-4 mr-2" />
+                      불러오기
+                    </Button>
+                    <Button onClick={resetScores} variant="outline" size="sm">
+                      <X className="h-4 w-4 mr-2" />
+                      점수 초기화
+                    </Button>
+                    <Button onClick={printTemplate} variant="outline" size="sm">
+                      <Printer className="h-4 w-4 mr-2" />
+                      인쇄
+                    </Button>
+                    <Button onClick={exportToEvaluationItems} variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
+                      <Upload className="h-4 w-4 mr-2" />
                       평가항목으로 내보내기
                     </Button>
-                    <Button
-                      onClick={() => generateBatchPrintData()}
-                      variant="outline"
-                      size="sm"
-                      className="text-purple-600 border-purple-600 hover:bg-purple-50"
-                    >
-                      <Printer className="h-4 w-4 mr-2" />
-                      배치 인쇄
-                    </Button>
+                    {isEditing && (
+                      <>
+                        <Button onClick={addSection} size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          영역 추가
+                        </Button>
+                        <Button onClick={addColumn} size="sm" variant="secondary">
+                          <Plus className="h-4 w-4 mr-2" />
+                          컬럼 추가
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -1493,97 +1502,6 @@ export default function EvaluationItemManagement() {
                   accept=".json"
                   className="hidden"
                 />
-
-                {/* 컬럼 관리 (편집 모드에서만 표시) */}
-                {isEditing && (
-                  <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <h3 className="text-sm font-bold mb-3 text-amber-800">컬럼 설정</h3>
-                    <div className="mb-4 p-3 bg-amber-100 rounded-md border-l-4 border-amber-400">
-                      <div className="flex">
-                        <div className="flex-shrink-0">
-                          <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-xs text-amber-800">
-                            <strong>제목박스의 컬럼 표시/숨김을 설정할 수 있습니다. 필수 컬럼은 삭제할 수 없습니다.</strong>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      {columnConfig.map((column) => (
-                        <div key={column.id} className="flex items-center gap-2 text-xs bg-white p-2 rounded border">
-                          <Input
-                            value={column.title}
-                            onChange={(e) => updateColumnConfig(column.id, 'title', e.target.value)}
-                            className="w-32 text-xs"
-                            disabled={column.required}
-                          />
-                          <select
-                            value={column.type}
-                            onChange={(e) => updateColumnConfig(column.id, 'type', e.target.value)}
-                            className="text-xs border rounded px-2 py-1 bg-white"
-                            disabled={column.required}
-                          >
-                            <option value="text">텍스트</option>
-                            <option value="number">숫자</option>
-                            <option value="select">선택</option>
-                          </select>
-                          <label className="flex items-center gap-1">
-                            <input
-                              type="checkbox"
-                              checked={column.visible}
-                              onChange={(e) => updateColumnConfig(column.id, 'visible', e.target.checked)}
-                              className="rounded"
-                            />
-                            <span className="text-xs">표시</span>
-                          </label>
-                          <div className="text-xs text-gray-500">
-                            {column.required ? '필수' : '선택'}
-                          </div>
-                          {!column.required && (
-                            <Button
-                              onClick={() => deleteColumn(column.id)}
-                              size="sm"
-                              variant="outline"
-                              className="h-6 w-6 p-0 hover:bg-red-50 hover:border-red-200"
-                            >
-                              <Trash2 className="h-3 w-3 text-red-500" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 인쇄용 영역 */}
-                <div id="template-print-area">
-                  {/* 제목과 구분 정보 표 */}
-                  <div className="overflow-x-auto mb-0">
-                    <table className="w-full border-collapse border border-gray-400 text-sm">
-                      <tbody>
-                        <tr>
-                          <td colSpan={2} className="border-t border-l border-r border-gray-400 p-2 text-sm text-right">
-                            {selectedCandidateInfo && (
-                              <span>구분 : {selectedCandidateInfo.category || selectedCandidateInfo.department}</span>
-                            )}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan={2} className="border-l border-r border-b border-gray-400 p-4 text-center text-lg font-bold title">
-                            {selectedCandidateInfo ? getDynamicTitle() : currentTemplate.title}
-                          </td>
-                        </tr>
-                      </tbody>
-                <h2 className="text-2xl font-semibold">평가 카테고리</h2>
-                <Button onClick={() => setIsAddingCategory(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  카테고리 추가
-                </Button>
-              </div>
 
               {isAddingCategory && (
                 <Card>
