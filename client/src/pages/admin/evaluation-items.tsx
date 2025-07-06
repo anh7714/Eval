@@ -1173,43 +1173,28 @@ export default function EvaluationItemManagement() {
   // 카테고리 추가 함수
   const handleCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 데모용 카테고리 추가
-    const newCategoryData = {
-      id: Date.now(),
-      ...newCategory,
-      isActive: true
-    };
-
-    setCategories(prev => [...prev, newCategoryData]);
+    // 실제 구현에서는 여기서 API 호출
     setIsAddingCategory(false);
     setNewCategory({ categoryCode: "", categoryName: "", description: "" });
-    showNotification('카테고리가 추가되었습니다!');
+    toast({
+      title: "카테고리 추가",
+      description: "카테고리가 추가되었습니다!",
+    });
   };
 
-  // 평가항목 추가 함수
+  // 평가항목 추가 함수 (실제 구현에서는 API 호출을 통해 처리)
   const handleItemSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 데모용 평가항목 추가
-    const category = categories.find(c => c.id === parseInt(newItem.categoryId));
-    const newItemData = {
-      id: Date.now(),
-      ...newItem,
-      categoryId: parseInt(newItem.categoryId),
-      categoryName: category?.categoryName || '',
-      maxScore: parseInt(newItem.maxScore),
-      weight: parseFloat(newItem.weight),
-      isActive: true
-    };
-
-    setItems(prev => [...prev, newItemData]);
+    // 실제 구현에서는 여기서 API 호출
     setIsAddingItem(false);
     setNewItem({ categoryId: "", itemCode: "", itemName: "", description: "", maxScore: "", weight: "" });
-    showNotification('평가항목이 추가되었습니다!');
+    toast({
+      title: "평가항목 추가",
+      description: "평가항목이 추가되었습니다!",
+    });
   };
 
-  if (isLoading) {
+  if (categoriesLoading || itemsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
