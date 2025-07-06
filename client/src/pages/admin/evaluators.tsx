@@ -265,25 +265,8 @@ export default function EvaluatorManagement() {
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">평가자 관리</h1>
             <p className="text-lg text-gray-600">평가자를 추가, 수정, 삭제할 수 있습니다.</p>
-            {/* 실시간 상태 정보 */}
-            <div className="text-xs text-gray-400 mt-2 space-x-4">
-              <span>👥 평가자: {evaluators.length}개</span>
-              <span>✅ 활성: {evaluators.filter((e: any) => e.isActive).length}개</span>
-              <span>🔄 실시간 연동 활성화</span>
-            </div>
           </div>
           <div className="flex space-x-2">
-            {/* 수동 새로고침 버튼 */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="flex items-center space-x-1"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              <span>새로고침</span>
-            </Button>
             <Button variant="outline" size="sm">
               <Upload className="h-4 w-4 mr-2" />
               엑셀 업로드

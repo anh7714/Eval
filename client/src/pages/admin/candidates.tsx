@@ -717,24 +717,8 @@ export default function CandidateManagement() {
               💡 엑셀 업로드 형식: 기관명(성명), 소속(부서), 직책(직급), 구분, 설명 컬럼을 포함해주세요.
             </p>
             {/* 실시간 상태 정보 */}
-            <div className="text-xs text-gray-400 mt-2 space-x-4">
-              <span>🌐 서버: {candidates.length}개</span>
-              <span>⏳ 처리중: {pendingOperations.size}개</span>
-              <span>❌ 실패: {failedOperations.size}개</span>
-            </div>
           </div>
           <div className="flex space-x-2">
-            {/* 수동 새로고침 버튼 */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="flex items-center space-x-1"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              <span>새로고침</span>
-            </Button>
             <input
               type="file"
               ref={fileInputRef}

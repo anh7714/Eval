@@ -255,24 +255,7 @@ export default function AdminDashboard() {
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 평가 시스템의 전체 현황을 확인하고 관리합니다.
               </p>
-              {/* 실시간 상태 정보 */}
-              <div className="text-xs text-slate-400 mt-2 space-x-4">
-                <span>👥 평가대상: {(stats as any)?.totalCandidates || 0}명</span>
-                <span>👤 평가자: {(stats as any)?.totalEvaluators || 0}명</span>
-                <span>🔄 실시간 연동 활성화</span>
-              </div>
             </div>
-            {/* 수동 새로고침 버튼 */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetchStats()}
-              disabled={isFetching}
-              className="flex items-center space-x-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              <span>새로고침</span>
-            </Button>
           </div>
         </div>
         
