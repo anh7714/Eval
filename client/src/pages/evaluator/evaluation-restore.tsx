@@ -434,152 +434,188 @@ export default function EvaluatorEvaluationPage() {
           </CardContent>
         </Card>
 
-        {/* 평가 모달 */}
-        <Dialog open={isEvaluationModalOpen} onOpenChange={setIsEvaluationModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            {evaluationTemplate && (
-              <div className="space-y-6">
-                {/* 모달 헤더 */}
-                <div className="flex justify-between items-start border-b pb-4">
-                  <div>
-                    <DialogTitle className="text-xl font-bold text-center">
-                      {evaluationTemplate.title}
-                    </DialogTitle>
-                    <p className="text-sm text-gray-600 mt-1 text-center">
-                      {evaluationTemplate.subtitle}
-                    </p>
+        {/* 평가 모달 - 완전히 새로운 전문적인 디자인 */}
+        {selectedCandidate && isEvaluationModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[200] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-hidden border-2 border-gray-300">
+              {/* 모달 헤더 */}
+              <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white bg-opacity-20 rounded-lg p-2">
+                    <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEvaluationModalOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">
+                      {selectedCandidate.name} 심사표
+                    </h2>
+                    <p className="text-slate-200 text-sm">평가 진행 중</p>
+                  </div>
                 </div>
+                <Button
+                  onClick={() => setIsEvaluationModalOpen(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
 
-                {/* 심사표 테이블 - 관리자 화면과 동일한 스타일 */}
-                <div className="bg-white border border-gray-400 rounded-lg overflow-hidden">
-                  {/* 테이블 제목과 구분 정보 */}
-                  <div className="border-b-2 border-black p-4 text-center">
-                    <h2 className="text-xl font-bold mb-2">{evaluationTemplate.title}</h2>
-                    <div className="text-right text-sm text-gray-600">
-                      {evaluationTemplate.subtitle}
+              {/* 모달 컨텐츠 */}
+              <div className="bg-gray-50 overflow-y-auto max-h-[calc(95vh-80px)]">
+                {Array.isArray(categories) && categories.length > 0 && Array.isArray(evaluationItems) && evaluationItems.length > 0 && (
+                  <div className="p-6">
+                    {/* 심사표 제목 섹션 */}
+                    <div className="bg-white border-2 border-black rounded-lg overflow-hidden shadow-lg mb-6">
+                      <div className="border-b-2 border-black p-4">
+                        <div className="text-right text-sm text-gray-600 mb-2">
+                          구분 · 재활약 · 돌봄SOS 서비스 제공기관 선정 심사
+                        </div>
+                        <h1 className="text-2xl font-bold text-center text-gray-900">
+                          {selectedCandidate.name} 심사표
+                        </h1>
+                      </div>
+                    </div>
+
+                    {/* 평가 항목 테이블 */}
+                    <div className="bg-white border-2 border-black rounded-lg overflow-hidden shadow-lg">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                              구분 (100점)
+                            </th>
+                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                              세부 항목
+                            </th>
+                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                              유형
+                            </th>
+                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                              배점
+                            </th>
+                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                              평가점수
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            // 카테고리별로 평가 항목을 그룹화
+                            const categoryGroups: { [key: string]: any[] } = {};
+                            
+                            (evaluationItems as any[]).forEach((item: any) => {
+                              const category = (categories as any[]).find((cat: any) => cat.id === item.categoryId);
+                              const categoryName = category?.name || '기타';
+                              
+                              if (!categoryGroups[categoryName]) {
+                                categoryGroups[categoryName] = [];
+                              }
+                              categoryGroups[categoryName].push(item);
+                            });
+
+                            const totalPoints = (evaluationItems as any[]).reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
+
+                            return Object.entries(categoryGroups).map(([categoryName, items]) => {
+                              const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
+                              
+                              return items.map((item: any, itemIndex: number) => (
+                                <tr key={`${categoryName}-${itemIndex}`} className="hover:bg-gray-50">
+                                  {itemIndex === 0 && (
+                                    <td 
+                                      className="border border-black px-3 py-4 text-center font-bold bg-gray-50 align-middle"
+                                      rowSpan={items.length}
+                                    >
+                                      <div className="text-sm font-bold text-gray-900">{categoryName}</div>
+                                      <div className="text-xs text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
+                                    </td>
+                                  )}
+                                  <td className="border border-black px-4 py-3 text-sm text-gray-900">
+                                    {itemIndex + 1}. {item.itemName || item.description}
+                                  </td>
+                                  <td className="border border-black px-3 py-3 text-center text-sm text-gray-900">
+                                    정성
+                                  </td>
+                                  <td className="border border-black px-3 py-3 text-center text-sm font-medium text-gray-900">
+                                    {item.maxScore}점
+                                  </td>
+                                  <td className="border border-black px-3 py-3 text-center bg-blue-50">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max={item.maxScore}
+                                      placeholder="0"
+                                      className="w-20 text-center text-sm mx-auto bg-white border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md font-medium"
+                                      defaultValue=""
+                                    />
+                                  </td>
+                                </tr>
+                              ));
+                            }).flat().concat([
+                              // 합계 행
+                              <tr key="total" className="bg-yellow-100 font-bold">
+                                <td className="border border-black px-4 py-4 text-center font-bold text-gray-900" colSpan={2}>
+                                  합계
+                                </td>
+                                <td className="border border-black px-3 py-4 text-center"></td>
+                                <td className="border border-black px-3 py-4 text-center font-bold text-gray-900">
+                                  {totalPoints}점
+                                </td>
+                                <td className="border border-black px-3 py-4 text-center bg-blue-50">
+                                  <span className="text-lg font-bold text-blue-800">0점</span>
+                                </td>
+                              </tr>
+                            ]);
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* 평가일과 평가위원 정보 */}
+                    <div className="mt-6 bg-white border border-gray-300 rounded-lg p-4 shadow-sm">
+                      <div className="flex justify-between items-center text-sm text-gray-700">
+                        <div>
+                          평가일: {new Date().toLocaleDateString('ko-KR', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </div>
+                        <div>
+                          평가위원: <span className="font-medium">안형용</span> (서명)
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 하단 버튼들 */}
+                    <div className="flex justify-end space-x-4 mt-6 pt-4 border-t border-gray-200">
+                      <Button
+                        variant="outline"
+                        className="px-6 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsEvaluationModalOpen(false)}
+                      >
+                        취소
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="px-6 py-2 bg-gray-600 text-white hover:bg-gray-700 border-2 border-gray-600"
+                      >
+                        임시 저장
+                      </Button>
+                      <Button
+                        className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-600 shadow-lg"
+                      >
+                        평가 완료
+                      </Button>
                     </div>
                   </div>
-
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                          구분 (100점)
-                        </th>
-                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                          세부 항목
-                        </th>
-                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                          유형
-                        </th>
-                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                          배점
-                        </th>
-                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                          평가점수
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        // 카테고리별로 평가 항목을 그룹화
-                        const categoryGroups: { [key: string]: any[] } = {};
-                        
-                        (evaluationItems as any[]).forEach((item: any) => {
-                          const category = (categories as any[]).find((cat: any) => cat.id === item.categoryId);
-                          const categoryName = category?.name || '기타';
-                          
-                          if (!categoryGroups[categoryName]) {
-                            categoryGroups[categoryName] = [];
-                          }
-                          categoryGroups[categoryName].push(item);
-                        });
-
-                        const totalPoints = (evaluationItems as any[]).reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
-
-                        return Object.entries(categoryGroups).map(([categoryName, items]) => {
-                          const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
-                          
-                          return items.map((item: any, itemIndex: number) => (
-                            <tr key={`${categoryName}-${itemIndex}`}>
-                              {itemIndex === 0 && (
-                                <td 
-                                  className="border border-gray-400 px-2 py-3 text-center font-bold bg-gray-50 align-middle"
-                                  rowSpan={items.length}
-                                >
-                                  <div className="text-sm font-bold">{categoryName}</div>
-                                  <div className="text-xs text-gray-600 mt-1">({categoryTotal}점)</div>
-                                </td>
-                              )}
-                              <td className="border border-gray-400 px-3 py-2 text-sm">
-                                {itemIndex + 1}. {item.itemName}
-                              </td>
-                              <td className="border border-gray-400 px-2 py-2 text-center text-sm">
-                                정성
-                              </td>
-                              <td className="border border-gray-400 px-2 py-2 text-center text-sm">
-                                {item.maxScore}점
-                              </td>
-                              <td className="border border-gray-400 px-2 py-2 text-center bg-blue-50">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max={item.maxScore}
-                                  placeholder="0"
-                                  className="w-16 text-center text-sm mx-auto bg-blue-50 focus:bg-white"
-                                  defaultValue={0}
-                                />
-                              </td>
-                            </tr>
-                          ));
-                        }).flat().concat([
-                          // 합계 행
-                          <tr key="total" className="bg-yellow-50 font-bold">
-                            <td className="border border-gray-400 px-4 py-3 text-center" colSpan={2}>합계</td>
-                            <td className="border border-gray-400 px-2 py-3 text-center"></td>
-                            <td className="border border-gray-400 px-2 py-3 text-center">{totalPoints}점</td>
-                            <td className="border border-gray-400 px-2 py-3 text-center bg-blue-50">
-                              <span className="text-lg font-bold">0점</span>
-                            </td>
-                          </tr>
-                        ]);
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* 모달 하단 버튼 */}
-                <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEvaluationModalOpen(false)}
-                  >
-                    취소
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-gray-500 text-white hover:bg-gray-600"
-                  >
-                    임시 저장
-                  </Button>
-                  <Button
-                    className="bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    평가 완료
-                  </Button>
-                </div>
+                )}
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
