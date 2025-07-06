@@ -1227,7 +1227,7 @@ export default function EvaluationItemManagement() {
       
       for (const section of currentTemplate.sections) {
         // 카테고리 생성
-        const categoryResponse = await fetch('/api/admin/categories', {
+        const categoryResponse = await fetch('/api/categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1246,15 +1246,15 @@ export default function EvaluationItemManagement() {
           for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
             const item = section.items[itemIndex];
             
-            const itemResponse = await fetch('/api/admin/evaluation-items', {
+            const itemResponse = await fetch('/api/evaluation-items', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                categoryId: category.id.toString(),
+                categoryId: category.id,
                 itemCode: `${section.id}${itemIndex + 1}`,
                 itemName: item.text,
                 description: `${section.title} - ${item.text}`,
-                maxScore: item.points.toString(),
+                maxScore: item.points,
                 weight: "1.0"
               })
             });
