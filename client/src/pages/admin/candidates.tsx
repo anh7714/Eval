@@ -136,44 +136,91 @@ export default function CandidateManagement() {
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // 실시간 양방향 동기화 - 즉시 반영
+  // 실시간 구독 + 폴링 백업 시스템
   useEffect(() => {
-    console.log('🔄 실시간 양방향 동기화 시작...');
+    let channel: any;
+    let pollingInterval: NodeJS.Timeout;
+    let isRealtimeConnected = false;
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    const channel = supabase
-      .channel('candidates-realtime-fast')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'candidates' 
-        }, 
-        (payload) => {
-          console.log('📡 실시간 변경 감지:', payload.eventType, payload.new || payload.old);
+    const setupRealtimeSubscription = () => {
+      console.log(`🔄 실시간 구독 시도 ${retryCount + 1}/${maxRetries}`);
+      
+      channel = supabase
+        .channel(`candidates-${Date.now()}`)
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'candidates' 
+          }, 
+          (payload) => {
+            console.log('📡 실시간 변경:', payload.eventType);
+            
+            if (payload.eventType === 'UPDATE' && payload.new) {
+              queryClient.setQueryData(['candidates'], (old: any[]) => {
+                if (!old) return [];
+                return old.map(candidate => 
+                  candidate.id === payload.new.id 
+                    ? { ...candidate, ...payload.new }
+                    : candidate
+                );
+              });
+            } else {
+              queryClient.invalidateQueries({ queryKey: ['candidates'] });
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 구독 상태:', status);
           
-          // 즉시 캐시 업데이트 (debounce 제거)
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            queryClient.setQueryData(['candidates'], (old: any[]) => {
-              if (!old) return [];
-              return old.map(candidate => 
-                candidate.id === payload.new.id 
-                  ? { ...candidate, ...payload.new }
-                  : candidate
-              );
-            });
-          } else {
-            // INSERT/DELETE의 경우 전체 새로고침
+          if (status === 'SUBSCRIBED') {
+            isRealtimeConnected = true;
+            retryCount = 0;
+            // 실시간 연결 성공 시 폴링 중지
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+            }
+            console.log('✅ 실시간 구독 성공');
+          } else if (status === 'CHANNEL_ERROR') {
+            isRealtimeConnected = false;
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(() => {
+                console.log('🔄 재연결 시도...');
+                supabase.removeChannel(channel);
+                setupRealtimeSubscription();
+              }, 2000 * retryCount);
+            } else {
+              // 실시간 연결 실패 시 폴링으로 백업
+              console.log('⚠️ 실시간 연결 실패, 폴링으로 전환');
+              startPolling();
+            }
+          }
+        });
+    };
+
+    const startPolling = () => {
+      if (!pollingInterval) {
+        pollingInterval = setInterval(() => {
+          if (!isRealtimeConnected) {
+            console.log('🔄 폴링으로 데이터 동기화');
             queryClient.invalidateQueries({ queryKey: ['candidates'] });
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 실시간 구독 상태:', status);
-      });
+        }, 5000); // 5초마다 폴링
+      }
+    };
+
+    setupRealtimeSubscription();
 
     return () => {
-      console.log('🔄 실시간 구독 종료');
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
     };
   }, [queryClient]);
 
@@ -677,6 +724,17 @@ export default function CandidateManagement() {
             </div>
           </div>
           <div className="flex space-x-2">
+            {/* 수동 새로고침 버튼 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="flex items-center space-x-1"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              <span>새로고침</span>
+            </Button>
             <input
               type="file"
               ref={fileInputRef}
