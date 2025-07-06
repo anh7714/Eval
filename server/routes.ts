@@ -723,8 +723,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/statistics", requireAuth, async (req, res) => {
     try {
       const stats = await storage.getSystemStatistics();
+      console.log('📊 서버 통계 데이터:', stats);
       res.json(stats);
     } catch (error) {
+      console.error('❌ 통계 API 오류:', error);
       res.status(500).json({ message: "Failed to fetch statistics" });
     }
   });

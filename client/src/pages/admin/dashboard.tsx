@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,13 @@ export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["/api/admin/statistics"],
   });
+
+  // 통계 데이터 로깅
+  React.useEffect(() => {
+    if (stats) {
+      console.log('📊 대시보드 통계 데이터:', stats);
+    }
+  }, [stats]);
 
   const { data: incompleteDetails, isLoading: incompleteLoading } = useQuery({
     queryKey: ["/api/admin/incomplete-details"],
