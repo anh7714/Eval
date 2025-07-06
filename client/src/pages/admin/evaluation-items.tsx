@@ -1225,7 +1225,9 @@ export default function EvaluationItemManagement() {
       // 먼저 기존 카테고리들을 생성
       const createdCategories: any[] = [];
       
-      for (const section of currentTemplate.sections) {
+      for (let sectionIndex = 0; sectionIndex < currentTemplate.sections.length; sectionIndex++) {
+        const section = currentTemplate.sections[sectionIndex];
+        
         // 카테고리 생성
         const categoryResponse = await fetch('/api/categories', {
           method: 'POST',
@@ -1234,6 +1236,7 @@ export default function EvaluationItemManagement() {
             categoryCode: section.id,
             categoryName: section.title,
             description: `${section.title} 관련 평가 항목들`,
+            sortOrder: sectionIndex,
             isActive: true
           })
         });
@@ -1255,7 +1258,9 @@ export default function EvaluationItemManagement() {
                 itemName: item.text,
                 description: `${section.title} - ${item.text}`,
                 maxScore: item.points,
-                weight: "1.0"
+                weight: "1.0",
+                sortOrder: itemIndex,
+                isActive: true
               })
             });
             
