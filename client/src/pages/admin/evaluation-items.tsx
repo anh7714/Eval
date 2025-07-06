@@ -1650,7 +1650,7 @@ export default function EvaluationItemManagement() {
                       </Button>
                       <Button onClick={exportToEvaluationItems} variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
                         <Upload className="h-4 w-4 mr-2" />
-                        평가항목으로 내보내기
+                        심사표 저장
                       </Button>
                       {isEditing && (
                         <>
