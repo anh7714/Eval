@@ -93,6 +93,9 @@ CREATE TABLE IF NOT EXISTS evaluation_submissions (
   id SERIAL PRIMARY KEY,
   evaluator_id INTEGER REFERENCES evaluators(id) ON DELETE CASCADE,
   candidate_id INTEGER REFERENCES candidates(id) ON DELETE CASCADE,
+  scores JSONB DEFAULT '{}',
+  total_score INTEGER DEFAULT 0,
+  is_completed BOOLEAN DEFAULT false,
   submitted_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(evaluator_id, candidate_id)
 );

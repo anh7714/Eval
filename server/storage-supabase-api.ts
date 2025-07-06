@@ -1050,6 +1050,8 @@ export class SupabaseStorage {
     totalScore: number;
     isCompleted: boolean;
   }): Promise<any> {
+    console.log('📝 Supabase 임시저장 시도:', data);
+    
     const { error } = await supabase
       .from('evaluation_submissions')
       .upsert({
@@ -1063,8 +1065,12 @@ export class SupabaseStorage {
         onConflict: 'evaluator_id,candidate_id'
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase 임시저장 오류:', error);
+      throw new Error(`임시저장 실패: ${error.message}`);
+    }
     
+    console.log('✅ Supabase 임시저장 성공');
     return { success: true, message: '임시저장이 완료되었습니다.' };
   }
 
@@ -1076,6 +1082,8 @@ export class SupabaseStorage {
     totalScore: number;
     isCompleted: boolean;
   }): Promise<any> {
+    console.log('🏁 Supabase 평가완료 시도:', data);
+    
     const { error } = await supabase
       .from('evaluation_submissions')
       .upsert({
@@ -1089,8 +1097,12 @@ export class SupabaseStorage {
         onConflict: 'evaluator_id,candidate_id'
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase 평가완료 오류:', error);
+      throw new Error(`평가완료 실패: ${error.message}`);
+    }
     
+    console.log('✅ Supabase 평가완료 성공');
     return { success: true, message: '평가가 완료되었습니다.' };
   }
 }
