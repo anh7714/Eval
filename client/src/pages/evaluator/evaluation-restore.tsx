@@ -97,7 +97,7 @@ export default function EvaluatorEvaluationPage() {
     }
     
     // 심사표 템플릿 생성
-    const template = createEvaluationTemplate(candidate, Array.isArray(categories) ? categories : [], Array.isArray(evaluationItems) ? evaluationItems : [], systemConfig);
+    const template = createEvaluationTemplate(candidate, categories, evaluationItems, systemConfig);
     setEvaluationTemplate(template);
     setIsEvaluationModalOpen(true);
     

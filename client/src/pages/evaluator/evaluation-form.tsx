@@ -48,11 +48,6 @@ export default function EvaluationForm() {
     queryKey: ["/api/evaluator/evaluation-items"],
   });
 
-  // 사전점수 데이터 가져오기
-  const { data: presetScores = [], isLoading: presetScoresLoading } = useQuery({
-    queryKey: ["/api/evaluator/preset-scores", candidateId],
-  });
-
   const { data: existingScores, isLoading: scoresLoading } = useQuery({
     queryKey: ["/api/evaluator/scores", candidateId],
     onSuccess: (data) => {
@@ -66,39 +61,9 @@ export default function EvaluationForm() {
           };
         });
         setScores(scoresMap);
-      } else {
-        // 기존 점수가 없다면 사전점수 적용
-        initializePresetScores();
       }
     },
   });
-
-  // 사전점수 초기화 함수
-  const initializePresetScores = () => {
-    if (presetScores && presetScores.length > 0) {
-      const scoresMap: { [key: number]: Score } = {};
-      presetScores.forEach((preset: any) => {
-        if (preset.apply_preset) {
-          scoresMap[preset.evaluation_item_id] = {
-            itemId: preset.evaluation_item_id,
-            score: preset.preset_score,
-            comments: "",
-          };
-        }
-      });
-      setScores(prev => ({
-        ...prev,
-        ...scoresMap,
-      }));
-    }
-  };
-
-  // 사전점수 데이터가 로드되면 초기화
-  useEffect(() => {
-    if (presetScores && presetScores.length > 0 && Object.keys(scores).length === 0) {
-      initializePresetScores();
-    }
-  }, [presetScores]);
 
   const { data: submission } = useQuery({
     queryKey: ["/api/evaluator/submission", candidateId],
@@ -141,19 +106,7 @@ export default function EvaluationForm() {
     },
   });
 
-  // 사전점수 적용 여부 확인 함수
-  const isPresetScoreApplied = (itemId: number) => {
-    return presetScores.some((preset: any) => 
-      preset.evaluation_item_id === itemId && preset.apply_preset
-    );
-  };
-
   const handleScoreChange = (itemId: number, field: 'score' | 'comments', value: string | number) => {
-    // 사전점수가 적용된 항목의 점수는 수정 불가
-    if (field === 'score' && isPresetScoreApplied(itemId)) {
-      return;
-    }
-
     const newScore = {
       ...scores[itemId],
       itemId,
@@ -312,11 +265,6 @@ export default function EvaluationForm() {
                           <div>
                             <label className="text-sm font-medium mb-2 block">
                               점수 (0 ~ {item.maxScore}점)
-                              {isPresetScoreApplied(item.id) && (
-                                <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                  사전점수 적용
-                                </span>
-                              )}
                             </label>
                             <Input
                               type="number"
@@ -329,23 +277,18 @@ export default function EvaluationForm() {
                                 Math.min(Math.max(0, parseInt(e.target.value) || 0), item.maxScore)
                               )}
                               placeholder="점수 입력"
-                              disabled={submission?.isSubmitted || isPresetScoreApplied(item.id)}
-                              className={isPresetScoreApplied(item.id) ? "bg-gray-100 text-gray-600" : ""}
+                              disabled={submission?.isSubmitted}
                             />
                             <div className="flex mt-2">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`h-4 w-4 ${
-                                    isPresetScoreApplied(item.id) 
-                                      ? "text-gray-400" 
-                                      : "cursor-pointer"
-                                  } ${
+                                  className={`h-4 w-4 cursor-pointer ${
                                     scores[item.id]?.score >= (star * item.maxScore / 5)
                                       ? "text-yellow-400 fill-current"
                                       : "text-gray-300"
                                   }`}
-                                  onClick={() => !submission?.isSubmitted && !isPresetScoreApplied(item.id) && handleScoreChange(
+                                  onClick={() => !submission?.isSubmitted && handleScoreChange(
                                     item.id, 
                                     'score', 
                                     Math.round(star * item.maxScore / 5)

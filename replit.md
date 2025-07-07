@@ -194,12 +194,6 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 기존 UI 구조 완전 보존하여 심사표 보기/관리모드 토글 구조 유지
 - ✓ 평가표 템플릿 기능을 관리모드 메인화면에 통합하여 직접 편집 가능
 - ✓ 불필요한 평가위원/평가대상 선택 기능 제거하여 심사표 보기 모드 단순화
-- ✓ 사전점수 관리 시스템 완전 구현 (2025.07.07)
-- ✓ 관리자 평가항목 페이지에 "사전 점수 관리" 모달 기능 추가
-- ✓ 평가대상별 사전점수 설정 및 평가항목별 적용 여부 선택 기능
-- ✓ 평가자 측에서 사전점수 적용 항목 회색 음영 표시 및 수정 불가 처리
-- ✓ 사전점수 조회 API 엔드포인트 추가 (/api/evaluator/preset-scores/:candidateId)
-- ✓ TypeScript 타입 안전성 강화 및 LSP 오류 해결
 
 ## User Preferences
 
