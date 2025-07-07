@@ -9,6 +9,7 @@ import type {
   Evaluation,
   EvaluationSubmission,
   CategoryOption,
+  PresetScore,
   InsertSystemConfig,
   InsertAdmin,
   InsertEvaluator,
@@ -16,7 +17,8 @@ import type {
   InsertEvaluationItem,
   InsertCandidate,
   InsertEvaluation,
-  InsertCategoryOption
+  InsertCategoryOption,
+  InsertPresetScore
 } from '../shared/schema';
 
 let supabase: ReturnType<typeof createClient>;
@@ -1170,6 +1172,175 @@ export class SupabaseStorage {
       hasTemporarySave: !data.is_completed && Object.keys(data.scores || {}).length > 0,
       totalScore: data.total_score || 0,
       scores: data.scores || {}
+    };
+  }
+
+  // ===== PRESET SCORES 관리 메서드 =====
+  
+  async getPresetScores(): Promise<PresetScore[]> {
+    try {
+      const { data, error } = await supabase
+        .from('preset_scores')
+        .select('*')
+        .order('candidate_id', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching preset scores:', error);
+        throw error;
+      }
+      
+      return data?.map(this.mapPresetScore) || [];
+    } catch (error) {
+      console.error('Error in getPresetScores:', error);
+      throw error;
+    }
+  }
+
+  async getPresetScoresByCandidate(candidateId: number): Promise<PresetScore[]> {
+    try {
+      const { data, error } = await supabase
+        .from('preset_scores')
+        .select('*')
+        .eq('candidate_id', candidateId)
+        .order('item_id', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching preset scores by candidate:', error);
+        throw error;
+      }
+      
+      return data?.map(this.mapPresetScore) || [];
+    } catch (error) {
+      console.error('Error in getPresetScoresByCandidate:', error);
+      throw error;
+    }
+  }
+
+  async getPresetScoresByItem(itemId: number): Promise<PresetScore[]> {
+    try {
+      const { data, error } = await supabase
+        .from('preset_scores')
+        .select('*')
+        .eq('item_id', itemId)
+        .order('candidate_id', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching preset scores by item:', error);
+        throw error;
+      }
+      
+      return data?.map(this.mapPresetScore) || [];
+    } catch (error) {
+      console.error('Error in getPresetScoresByItem:', error);
+      throw error;
+    }
+  }
+
+  async createPresetScore(presetScore: InsertPresetScore): Promise<PresetScore> {
+    try {
+      const { data, error } = await supabase
+        .from('preset_scores')
+        .insert(this.mapToSupabasePresetScore(presetScore))
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating preset score:', error);
+        throw error;
+      }
+      
+      return this.mapPresetScore(data);
+    } catch (error) {
+      console.error('Error in createPresetScore:', error);
+      throw error;
+    }
+  }
+
+  async updatePresetScore(id: number, presetScore: Partial<InsertPresetScore>): Promise<PresetScore> {
+    try {
+      const { data, error } = await supabase
+        .from('preset_scores')
+        .update(this.mapToSupabasePresetScore(presetScore))
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating preset score:', error);
+        throw error;
+      }
+      
+      return this.mapPresetScore(data);
+    } catch (error) {
+      console.error('Error in updatePresetScore:', error);
+      throw error;
+    }
+  }
+
+  async deletePresetScore(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('preset_scores')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting preset score:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in deletePresetScore:', error);
+      throw error;
+    }
+  }
+
+  async upsertPresetScore(candidateId: number, itemId: number, score: number, notes?: string): Promise<PresetScore> {
+    try {
+      const { data, error } = await supabase
+        .from('preset_scores')
+        .upsert({
+          candidate_id: candidateId,
+          item_id: itemId,
+          score: score,
+          notes: notes,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'candidate_id,item_id'
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error upserting preset score:', error);
+        throw error;
+      }
+      
+      return this.mapPresetScore(data);
+    } catch (error) {
+      console.error('Error in upsertPresetScore:', error);
+      throw error;
+    }
+  }
+
+  // Private mapper methods for preset scores
+  private mapPresetScore(data: any): PresetScore {
+    return {
+      id: data.id,
+      candidateId: data.candidate_id,
+      itemId: data.item_id,
+      score: data.score,
+      notes: data.notes,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    };
+  }
+
+  private mapToSupabasePresetScore(presetScore: Partial<InsertPresetScore>): any {
+    return {
+      candidate_id: presetScore.candidateId,
+      item_id: presetScore.itemId,
+      score: presetScore.score,
+      notes: presetScore.notes
     };
   }
 }

@@ -69,6 +69,8 @@ export const evaluationItems = pgTable("evaluation_items", {
   weight: decimal("weight", { precision: 5, scale: 2 }).notNull().default("1.00"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
+  isQuantitative: boolean("is_quantitative").notNull().default(false),
+  hasPresetScores: boolean("has_preset_scores").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -122,6 +124,17 @@ export const evaluationSubmissions = pgTable("evaluation_submissions", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
+// Preset Scores (Pre-configured scores for quantitative evaluation items)
+export const presetScores = pgTable("preset_scores", {
+  id: serial("id").primaryKey(),
+  candidateId: integer("candidate_id").references(() => candidates.id).notNull(),
+  itemId: integer("item_id").references(() => evaluationItems.id).notNull(),
+  score: integer("score").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Create insert schemas
 export const insertSystemConfigSchema = createInsertSchema(systemConfig).omit({
   id: true,
@@ -168,6 +181,12 @@ export const insertEvaluationSubmissionSchema = createInsertSchema(evaluationSub
   createdAt: true,
 });
 
+export const insertPresetScoreSchema = createInsertSchema(presetScores).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Infer types
 export type SystemConfig = typeof systemConfig.$inferSelect;
 export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
@@ -195,3 +214,6 @@ export type InsertEvaluation = z.infer<typeof insertEvaluationSchema>;
 
 export type EvaluationSubmission = typeof evaluationSubmissions.$inferSelect;
 export type InsertEvaluationSubmission = z.infer<typeof insertEvaluationSubmissionSchema>;
+
+export type PresetScore = typeof presetScores.$inferSelect;
+export type InsertPresetScore = z.infer<typeof insertPresetScoreSchema>;

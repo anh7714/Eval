@@ -25,12 +25,15 @@ declare module 'express-session' {
 }
 
 // Auth middleware for admin routes
-function requireAuth(req: any, res: any, next: any) {
+function requireAdminAuth(req: any, res: any, next: any) {
   if (!req.session?.user) {
-    return res.status(401).json({ message: "Authentication required" });
+    return res.status(401).json({ message: "Admin authentication required" });
   }
   next();
 }
+
+// Legacy alias for backward compatibility
+const requireAuth = requireAdminAuth;
 
 // Auth middleware for evaluator routes
 function requireEvaluatorAuth(req: any, res: any, next: any) {
@@ -1004,6 +1007,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ message: "Failed to fetch incomplete details", error: error.message });
+    }
+  });
+
+  // ===== PRESET SCORES ROUTES =====
+  
+  // 사전 점수 전체 조회
+  app.get("/api/admin/preset-scores", requireAdminAuth, async (req, res) => {
+    try {
+      const presetScores = await storage.getPresetScores();
+      res.json(presetScores);
+    } catch (error) {
+      console.error("Failed to fetch preset scores:", error);
+      res.status(500).json({ message: "Failed to fetch preset scores" });
+    }
+  });
+
+  // 평가대상별 사전 점수 조회
+  app.get("/api/admin/preset-scores/candidate/:candidateId", requireAdminAuth, async (req, res) => {
+    try {
+      const candidateId = parseInt(req.params.candidateId);
+      const presetScores = await storage.getPresetScoresByCandidate(candidateId);
+      res.json(presetScores);
+    } catch (error) {
+      console.error("Failed to fetch preset scores by candidate:", error);
+      res.status(500).json({ message: "Failed to fetch preset scores by candidate" });
+    }
+  });
+
+  // 평가항목별 사전 점수 조회
+  app.get("/api/admin/preset-scores/item/:itemId", requireAdminAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      const presetScores = await storage.getPresetScoresByItem(itemId);
+      res.json(presetScores);
+    } catch (error) {
+      console.error("Failed to fetch preset scores by item:", error);
+      res.status(500).json({ message: "Failed to fetch preset scores by item" });
+    }
+  });
+
+  // 사전 점수 등록/수정 (upsert)
+  app.post("/api/admin/preset-scores", requireAdminAuth, async (req, res) => {
+    try {
+      const { candidateId, itemId, score, notes } = req.body;
+      const presetScore = await storage.upsertPresetScore(candidateId, itemId, score, notes);
+      res.json(presetScore);
+    } catch (error) {
+      console.error("Failed to upsert preset score:", error);
+      res.status(500).json({ message: "Failed to save preset score" });
+    }
+  });
+
+  // 사전 점수 삭제
+  app.delete("/api/admin/preset-scores/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deletePresetScore(id);
+      res.json({ message: "Preset score deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete preset score:", error);
+      res.status(500).json({ message: "Failed to delete preset score" });
+    }
+  });
+
+  // 평가위원용 사전 점수 조회 (평가항목 정보와 함께)
+  app.get("/api/evaluator/preset-scores/candidate/:candidateId", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const candidateId = parseInt(req.params.candidateId);
+      const presetScores = await storage.getPresetScoresByCandidate(candidateId);
+      res.json(presetScores);
+    } catch (error) {
+      console.error("Failed to fetch preset scores for evaluator:", error);
+      res.status(500).json({ message: "Failed to fetch preset scores" });
     }
   });
 

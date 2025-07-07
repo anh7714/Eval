@@ -31,6 +31,8 @@ export default function EvaluationItemManagement() {
     description: "",
     maxScore: "",
     weight: "",
+    isQuantitative: false,
+    hasPresetScores: false,
   });
 
   // 컬럼 설정 관리
@@ -772,7 +774,7 @@ export default function EvaluationItemManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluation-items"] });
       setIsAddingItem(false);
-      setNewItem({ categoryId: "", itemCode: "", itemName: "", description: "", maxScore: "", weight: "" });
+      setNewItem({ categoryId: "", itemCode: "", itemName: "", description: "", maxScore: "", weight: "", isQuantitative: false, hasPresetScores: false });
       toast({ title: "성공", description: "평가항목이 추가되었습니다." });
     },
     onError: () => {
@@ -800,6 +802,8 @@ export default function EvaluationItemManagement() {
       description: newItem.description,
       maxScore: parseInt(newItem.maxScore),
       weight: parseFloat(newItem.weight),
+      isQuantitative: newItem.isQuantitative,
+      hasPresetScores: newItem.hasPresetScores,
       isActive: true,
       sortOrder: items.length + 1
     });
