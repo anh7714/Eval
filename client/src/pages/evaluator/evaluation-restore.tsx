@@ -708,10 +708,10 @@ export default function EvaluatorEvaluationPage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">
+                    <h2 className="text-2xl font-bold text-white">
                       {selectedCandidate.name} 심사표
                     </h2>
-                    <p className="text-slate-200 text-sm">평가 진행 중</p>
+                    <p className="text-slate-200 text-base">평가 진행 중</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -759,19 +759,19 @@ export default function EvaluatorEvaluationPage() {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="bg-gray-100">
-                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-base">
                               구분 (100점)
                             </th>
-                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-base">
                               세부 항목
                             </th>
-                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-base">
                               유형
                             </th>
-                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-base">
                               배점
                             </th>
-                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-base">
                               평가점수
                             </th>
                           </tr>
@@ -803,17 +803,17 @@ export default function EvaluatorEvaluationPage() {
                                       className="border border-black px-2 py-2 text-center font-bold bg-gray-50 align-middle"
                                       rowSpan={items.length}
                                     >
-                                      <div className="text-sm font-bold text-gray-900">{categoryName}</div>
-                                      <div className="text-xs text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
+                                      <div className="text-base font-bold text-gray-900">{categoryName}</div>
+                                      <div className="text-sm text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
                                     </td>
                                   )}
-                                  <td className="border border-black px-2 py-2 text-sm text-gray-900">
+                                  <td className="border border-black px-2 py-2 text-base text-gray-900">
                                     {itemIndex + 1}. {item.itemName || item.description}
                                   </td>
-                                  <td className="border border-black px-2 py-2 text-center text-sm text-gray-900">
+                                  <td className="border border-black px-2 py-2 text-center text-base text-gray-900">
                                     정성
                                   </td>
-                                  <td className="border border-black px-2 py-2 text-center text-sm font-medium text-gray-900">
+                                  <td className="border border-black px-2 py-2 text-center text-base font-medium text-gray-900">
                                     {item.maxScore}점
                                   </td>
                                   <td className="border border-black px-2 py-2 text-center bg-blue-50">
@@ -838,7 +838,7 @@ export default function EvaluatorEvaluationPage() {
                                           handleScoreChange(item.id, value, item.maxScore);
                                         }
                                       }}
-                                      className="w-20 text-center text-sm mx-auto bg-white border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      className="w-20 text-center text-base mx-auto bg-white border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       style={{ 
                                         MozAppearance: 'textfield',
                                         WebkitAppearance: 'none'
@@ -850,15 +850,15 @@ export default function EvaluatorEvaluationPage() {
                             }).flat().concat([
                               // 합계 행
                               <tr key="total" className="bg-yellow-100 font-bold">
-                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900" colSpan={2}>
+                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-base" colSpan={2}>
                                   합계
                                 </td>
                                 <td className="border border-black px-2 py-2 text-center"></td>
-                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900">
+                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-base">
                                   {totalPoints}점
                                 </td>
                                 <td className="border border-black px-2 py-2 text-center bg-blue-50">
-                                  <span className="text-lg font-bold text-blue-800">
+                                  <span className="text-xl font-bold text-blue-800">
                                     {Object.values(evaluationScores).reduce((sum, score) => sum + score, 0)}점
                                   </span>
                                 </td>
@@ -885,7 +885,7 @@ export default function EvaluatorEvaluationPage() {
             <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full border-2 border-slate-300">
               {/* 헤더 */}
               <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-6 rounded-t-xl">
-                <h2 className="text-xl font-bold text-center">
+                <h2 className="text-2xl font-bold text-center">
                   🔒 평가 완료 확인
                 </h2>
               </div>
@@ -893,10 +893,10 @@ export default function EvaluatorEvaluationPage() {
               {/* 내용 */}
               <div className="p-6">
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-6">
-                  <p className="text-slate-800 font-medium text-lg mb-3 text-center">
+                  <p className="text-slate-800 font-medium text-xl mb-3 text-center">
                     평가를 완료하시겠습니까?
                   </p>
-                  <p className="text-red-700 font-bold text-sm text-center bg-red-50 p-3 rounded border-2 border-red-200">
+                  <p className="text-red-700 font-bold text-base text-center bg-red-50 p-3 rounded border-2 border-red-200">
                     ⚠️ '평가 완료'를 누르면 더 이상 수정할 수 없습니다.<br/>
                     제출하시겠습니까?
                   </p>
