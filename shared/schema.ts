@@ -124,7 +124,20 @@ export const evaluationSubmissions = pgTable("evaluation_submissions", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
-// Preset Scores (Pre-configured scores for quantitative evaluation items)
+// Preset Score Options (Pre-configured score options for quantitative evaluation items)
+export const presetScoreOptions = pgTable("preset_score_options", {
+  id: serial("id").primaryKey(),
+  evaluationItemId: integer("evaluation_item_id").references(() => evaluationItems.id).notNull(),
+  label: text("label").notNull(), // 예: "우수", "보통", "미흡", "매우미흡"
+  score: integer("score").notNull(), // 해당 등급의 점수
+  description: text("description"), // 등급 설명
+  sortOrder: integer("sort_order").notNull().default(0), // 표시 순서
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Preset Scores (Deprecated - keeping for backward compatibility)
 export const presetScores = pgTable("preset_scores", {
   id: serial("id").primaryKey(),
   candidateId: integer("candidate_id").references(() => candidates.id).notNull(),
