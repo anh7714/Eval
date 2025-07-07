@@ -69,8 +69,7 @@ export const evaluationItems = pgTable("evaluation_items", {
   weight: decimal("weight", { precision: 5, scale: 2 }).notNull().default("1.00"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
-  isQuantitative: boolean("is_quantitative").notNull().default(false),
-  hasPresetScores: boolean("has_preset_scores").notNull().default(false),
+  evaluationType: text("evaluation_type").notNull().default("quantitative"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
