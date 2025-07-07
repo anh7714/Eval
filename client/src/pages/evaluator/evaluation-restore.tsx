@@ -798,13 +798,13 @@ export default function EvaluatorEvaluationPage() {
         {/* 평가 완료 확인 다이얼로그 */}
         {showConfirmDialog && (
           <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-            <DialogContent className="sm:max-w-[480px] bg-white/95 backdrop-blur-sm border-2 border-slate-300 shadow-2xl">
+            <DialogContent className="sm:max-w-[480px] bg-white/95 backdrop-blur-sm border-2 border-slate-300 shadow-2xl" aria-describedby="confirm-dialog-description">
               <DialogHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-6 -mx-6 -mt-6 mb-6 rounded-t-lg">
                 <DialogTitle className="text-xl font-bold text-center">
                   🔒 평가 완료 확인
                 </DialogTitle>
               </DialogHeader>
-              <div className="py-4 px-2">
+              <div className="py-4 px-2" id="confirm-dialog-description">
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-4">
                   <p className="text-slate-800 font-medium text-lg mb-3 text-center">
                     평가를 완료하시겠습니까?
@@ -824,7 +824,12 @@ export default function EvaluatorEvaluationPage() {
                   취소
                 </Button>
                 <Button
-                  onClick={confirmCompleteEvaluation}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🎯 평가완료 확인 버튼 직접 클릭됨');
+                    confirmCompleteEvaluation();
+                  }}
                   disabled={completeEvaluationMutation.isPending}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 font-bold shadow-lg border-2 border-blue-600"
                 >
