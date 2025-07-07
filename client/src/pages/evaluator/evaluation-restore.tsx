@@ -694,14 +694,28 @@ export default function EvaluatorEvaluationPage() {
                     <p className="text-slate-200 text-sm">평가 진행 중</p>
                   </div>
                 </div>
-                <Button
-                  onClick={() => setIsEvaluationModalOpen(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center space-x-4">
+                  {/* 진행률 정보 */}
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="bg-blue-500 bg-opacity-90 px-3 py-1 rounded-full">
+                      <span className="text-white font-medium">완료: {progressData?.completed || 0}</span>
+                    </div>
+                    <div className="bg-gray-500 bg-opacity-90 px-3 py-1 rounded-full">
+                      <span className="text-white font-medium">전체: {progressData?.total || 0}</span>
+                    </div>
+                    <div className="bg-green-500 bg-opacity-90 px-3 py-1 rounded-full">
+                      <span className="text-white font-medium">진행률: {progressData?.progress || 0}%</span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setIsEvaluationModalOpen(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
 
               {/* 모달 컨텐츠 */}
