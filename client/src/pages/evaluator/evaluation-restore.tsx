@@ -921,9 +921,11 @@ export default function EvaluatorEvaluationPage() {
             <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    평가 결과 미리보기
-                  </h2>
+                  <div className="flex-1 text-center">
+                    <h2 className="text-3xl font-bold text-gray-800">
+                      {previewCandidate.name} 심사표
+                    </h2>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -935,22 +937,8 @@ export default function EvaluatorEvaluationPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-2">평가대상 정보</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-sm text-gray-600">기관명(성명):</span>
-                        <span className="ml-2 font-medium">{previewCandidate.name}</span>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-600">소속(부서):</span>
-                        <span className="ml-2 font-medium">{previewCandidate.department}</span>
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="bg-white border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-semibold text-lg mb-4">심사표</h3>
                     
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse border border-black">
