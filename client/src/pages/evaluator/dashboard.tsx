@@ -4,13 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, ClipboardList, ArrowRight, LogOut } from "lucide-react";
-import { Link, useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
+import { CheckCircle, Clock, ClipboardList, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 
 export default function EvaluatorDashboard() {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
 
   const { data: progress, isLoading: progressLoading } = useQuery({
     queryKey: ["/api/evaluator/progress"],
@@ -24,14 +21,7 @@ export default function EvaluatorDashboard() {
     queryKey: ["/api/evaluator/candidates"],
   });
 
-  const handleLogout = () => {
-    localStorage.removeItem("evaluator");
-    toast({
-      title: "로그아웃 완료",
-      description: "평가자 로그인 화면으로 이동합니다.",
-    });
-    setLocation("/evaluator/login");
-  };
+
 
   if (progressLoading) {
     return (
@@ -214,25 +204,7 @@ export default function EvaluatorDashboard() {
 
 
 
-        {/* 로그아웃 */}
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-700">시스템 종료</CardTitle>
-            <CardDescription className="text-red-600">
-              평가가 완료되었거나 시스템을 종료하려면 로그아웃하세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              variant="destructive" 
-              onClick={handleLogout}
-              className="w-full sm:w-auto"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              로그아웃
-            </Button>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );
