@@ -1548,6 +1548,7 @@ export class SupabaseStorage {
           candidate_id: data.candidateId,
           evaluation_item_id: data.evaluationItemId,
           preset_score: data.presetScore,
+          apply_preset: data.applyPreset || false,
           notes: data.notes || null
         }, {
           onConflict: 'candidate_id,evaluation_item_id'

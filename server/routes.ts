@@ -1231,7 +1231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 평가대상별 사전 점수 등록/수정
   app.post("/api/admin/candidate-preset-scores", requireAdminAuth, async (req: Request, res: Response) => {
     try {
-      const { candidateId, evaluationItemId, presetScore, notes } = req.body;
+      const { candidateId, evaluationItemId, presetScore, applyPreset, notes } = req.body;
       
       if (!candidateId || !evaluationItemId || presetScore === undefined) {
         return res.status(400).json({ error: "Required fields missing" });
@@ -1241,6 +1241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         candidateId,
         evaluationItemId,
         presetScore,
+        applyPreset: applyPreset !== undefined ? applyPreset : false,
         notes
       });
       

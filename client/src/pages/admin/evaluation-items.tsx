@@ -1418,11 +1418,15 @@ export default function EvaluationItemManagement() {
     const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // 정량 평가항목 필터링 (안전하게 처리)
-    const quantitativeItems = Array.isArray(items) ? items.filter(item => item.isQuantitative) : [];
+    // 안전한 데이터 확인
+    const safeItems = Array.isArray(items) ? items : [];
+    const safeCandidates = Array.isArray(candidates) ? candidates : [];
+    
+    // 정량 평가항목 필터링
+    const quantitativeItems = safeItems.filter(item => item.isQuantitative);
     
     console.log('🔍 모달 열림 - quantitativeItems:', quantitativeItems);
-    console.log('🔍 모달 열림 - candidates:', candidates);
+    console.log('🔍 모달 열림 - candidates:', safeCandidates);
     
     // 사전 점수 데이터 로드
     useEffect(() => {
@@ -1446,7 +1450,7 @@ export default function EvaluationItemManagement() {
     }, []);
 
     // 사전 점수 저장
-    const savePresetScore = async (candidateId: number, itemId: number, score: number) => {
+    const savePresetScore = async (candidateId: number, itemId: number, score: number, applyPreset?: boolean) => {
       try {
         const response = await fetch('/api/admin/candidate-preset-scores', {
           method: 'POST',
@@ -1455,7 +1459,8 @@ export default function EvaluationItemManagement() {
           body: JSON.stringify({
             candidateId,
             evaluationItemId: itemId,
-            presetScore: score
+            presetScore: score,
+            applyPreset: applyPreset
           })
         });
         
@@ -1516,7 +1521,7 @@ export default function EvaluationItemManagement() {
                       </h3>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Array.isArray(candidates) ? candidates.map(candidate => {
+                        {safeCandidates.length > 0 ? safeCandidates.map(candidate => {
                           const existingScore = candidatePresetScores.find(
                             p => p.candidate_id === candidate.id && p.evaluation_item_id === item.id
                           );
@@ -1524,23 +1529,40 @@ export default function EvaluationItemManagement() {
                           return (
                             <div key={candidate.id} className="flex items-center gap-2">
                               <span className="text-sm flex-1">{candidate.name}</span>
-                              <Input
-                                type="number"
-                                min="0"
-                                max={item.maxScore}
-                                defaultValue={existingScore?.preset_score || ''}
-                                placeholder="점수"
-                                className="w-20 text-center"
-                                onBlur={(e) => {
-                                  const score = parseInt(e.target.value);
-                                  if (!isNaN(score) && score >= 0 && score <= item.maxScore) {
-                                    savePresetScore(candidate.id, item.id, score);
-                                  }
-                                }}
-                              />
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={item.maxScore}
+                                  defaultValue={existingScore?.preset_score || ''}
+                                  placeholder="점수"
+                                  className="w-20 text-center"
+                                  onBlur={(e) => {
+                                    const score = parseInt(e.target.value);
+                                    if (!isNaN(score) && score >= 0 && score <= item.maxScore) {
+                                      savePresetScore(candidate.id, item.id, score);
+                                    }
+                                  }}
+                                />
+                                <select 
+                                  className="w-16 text-xs border rounded px-1 py-1"
+                                  defaultValue={existingScore?.apply_preset ? "yes" : "no"}
+                                  onChange={(e) => {
+                                    // 사전점수 적용 여부 저장
+                                    const applyPreset = e.target.value === "yes";
+                                    const currentScore = existingScore?.preset_score || 0;
+                                    savePresetScore(candidate.id, item.id, currentScore, applyPreset);
+                                  }}
+                                >
+                                  <option value="no">미적용</option>
+                                  <option value="yes">적용</option>
+                                </select>
+                              </div>
                             </div>
                           );
-                        }) : [<p key="no-candidates" className="text-gray-500">평가대상이 없습니다.</p>]}
+                        }) : (
+                          <p className="text-gray-500">평가대상이 없습니다.</p>
+                        )}
                       </div>
                     </div>
                   ))

@@ -143,6 +143,7 @@ export const candidatePresetScores = pgTable("candidate_preset_scores", {
   candidateId: integer("candidate_id").references(() => candidates.id).notNull(),
   evaluationItemId: integer("evaluation_item_id").references(() => evaluationItems.id).notNull(),
   presetScore: integer("preset_score").notNull(), // 사전 점수 (숫자 직접 입력)
+  applyPreset: boolean("apply_preset").notNull().default(false), // 사전점수 적용 여부
   notes: text("notes"), // 메모
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
