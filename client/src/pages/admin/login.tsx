@@ -30,6 +30,7 @@ export default function AdminLogin() {
         toast({
           title: "로그인 성공",
           description: "관리자 대시보드로 이동합니다.",
+          duration: 2000, // 2초 후 자동으로 사라짐
         });
         setLocation("/admin/dashboard");
       } else {

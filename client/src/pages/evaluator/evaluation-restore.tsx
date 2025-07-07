@@ -798,7 +798,7 @@ export default function EvaluatorEvaluationPage() {
         {/* 평가 완료 확인 다이얼로그 - 커스텀 모달 */}
         {showConfirmDialog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full border-2 border-slate-300">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full border-2 border-slate-300">
               {/* 헤더 */}
               <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-6 rounded-t-xl">
                 <h2 className="text-xl font-bold text-center">
@@ -813,8 +813,7 @@ export default function EvaluatorEvaluationPage() {
                     평가를 완료하시겠습니까?
                   </p>
                   <p className="text-red-700 font-bold text-sm text-center bg-red-50 p-3 rounded border-2 border-red-200">
-                    ⚠️ '평가 완료'를 누르면 더 이상 수정할 수 없습니다.<br/>
-                    제출하시겠습니까?
+                    ⚠️ '평가 완료'를 누르면 더 이상 수정할 수 없습니다. 제출하시겠습니까?
                   </p>
                 </div>
                 
