@@ -55,6 +55,13 @@ export default function EvaluatorEvaluationPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // 컴포넌트 마운트 해제 시 화면 비율 복원
+  React.useEffect(() => {
+    return () => {
+      document.body.style.zoom = '1';
+    };
+  }, []);
+
   // 필터 초기화 함수
   const resetFilters = () => {
     setSelectedMainCategory("all");
@@ -93,6 +100,9 @@ export default function EvaluatorEvaluationPage() {
     const template = createEvaluationTemplate(candidate, categories, evaluationItems, systemConfig);
     setEvaluationTemplate(template);
     setIsEvaluationModalOpen(true);
+    
+    // 화면 비율을 90%로 축소
+    document.body.style.zoom = '0.9';
   };
 
   // 심사표 템플릿 생성 함수
@@ -204,6 +214,8 @@ export default function EvaluatorEvaluationPage() {
       setIsEvaluationModalOpen(false);
       setShowConfirmDialog(false);
       setEvaluationScores({});
+      // 화면 비율을 100%로 복원
+      document.body.style.zoom = '1';
       // 데이터 새로고침
       queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
@@ -705,7 +717,11 @@ export default function EvaluatorEvaluationPage() {
                 <div className="flex items-center space-x-3">
                   {/* 상단 액션 버튼들 */}
                   <Button
-                    onClick={() => setIsEvaluationModalOpen(false)}
+                    onClick={() => {
+                      setIsEvaluationModalOpen(false);
+                      // 화면 비율을 100%로 복원
+                      document.body.style.zoom = '1';
+                    }}
                     variant="outline"
                     size="sm"
                     className="bg-white bg-opacity-10 border-white border-opacity-30 text-white hover:bg-white hover:bg-opacity-20 rounded-md px-4 py-2 text-sm font-medium"
@@ -1033,3 +1049,4 @@ export default function EvaluatorEvaluationPage() {
     </div>
   );
 }
+
