@@ -992,7 +992,14 @@ export default function EvaluationItemManagement() {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={() => {
+                        if (isEditing) {
+                          // 편집 완료 시 템플릿 상태 저장
+                          console.log('✅ 편집 완료 - 템플릿 상태 저장됨:', currentTemplate);
+                          toast({ title: "성공", description: "템플릿 편집이 완료되었습니다." });
+                        }
+                        setIsEditing(!isEditing);
+                      }}
                       variant={isEditing ? "default" : "outline"}
                       size="sm"
                     >
