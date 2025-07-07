@@ -371,6 +371,8 @@ export default function EvaluationItemManagement() {
             description: item.text,
             maxScore: item.points || 0,
             weight: "1.00",
+            isQuantitative: item.type === '정량',
+            hasPresetScores: item.type === '정량',
             sortOrder: itemIndex + 1,
             isActive: true
           };
