@@ -498,7 +498,7 @@ export default function EvaluationItemManagement() {
         .map((item: any, index: number) => ({
           id: index + 1,
           text: item.name,
-          type: '정성', // 기본값으로 설정
+          type: item.isQuantitative ? '정량' : '정성', // 데이터베이스 값 기반 매핑
           points: item.maxScore || 0,
           score: 0
         }))
