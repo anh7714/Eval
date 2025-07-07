@@ -194,6 +194,14 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 기존 UI 구조 완전 보존하여 심사표 보기/관리모드 토글 구조 유지
 - ✓ 평가표 템플릿 기능을 관리모드 메인화면에 통합하여 직접 편집 가능
 - ✓ 불필요한 평가위원/평가대상 선택 기능 제거하여 심사표 보기 모드 단순화
+- ✓ 사전점수 관리 시스템 구현 시작 (2025.07.07)
+- ✓ candidate_preset_scores 테이블 스키마 설계 및 API 엔드포인트 구현
+- ✓ PresetScoreModal 컴포넌트 개발 중 - 초기화 오류 해결 진행중
+- ✓ 정량 평가항목에서 사전점수 적용 여부 선택 UI 설계
+- ✓ 점수 입력 필드와 적용/미적용 드롭다운 기본 구조 완성
+- → 사전점수 관리 모달 컴포넌트 초기화 오류 수정 작업 진행중
+- → PresetScoreModalComponent로 이름 변경하여 호이스팅 문제 해결 시도
+- → 평가항목 템플릿 내보내기 기능으로 새로운 평가항목들 생성됨
 
 ## User Preferences
 
