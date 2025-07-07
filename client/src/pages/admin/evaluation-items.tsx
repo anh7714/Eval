@@ -1418,8 +1418,8 @@ export default function EvaluationItemManagement() {
     const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // 정량 평가항목 필터링
-    const quantitativeItems = (items as any[]).filter(item => item.isQuantitative);
+    // 정량 평가항목 필터링 (안전하게 처리)
+    const quantitativeItems = Array.isArray(items) ? items.filter(item => item.isQuantitative) : [];
     
     console.log('🔍 모달 열림 - quantitativeItems:', quantitativeItems);
     console.log('🔍 모달 열림 - candidates:', candidates);
@@ -1516,7 +1516,7 @@ export default function EvaluationItemManagement() {
                       </h3>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {(candidates as any[]).map(candidate => {
+                        {Array.isArray(candidates) ? candidates.map(candidate => {
                           const existingScore = candidatePresetScores.find(
                             p => p.candidate_id === candidate.id && p.evaluation_item_id === item.id
                           );
@@ -1540,7 +1540,7 @@ export default function EvaluationItemManagement() {
                               />
                             </div>
                           );
-                        })}
+                        }) : [<p key="no-candidates" className="text-gray-500">평가대상이 없습니다.</p>]}
                       </div>
                     </div>
                   ))
