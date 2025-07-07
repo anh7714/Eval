@@ -678,7 +678,7 @@ export default function EvaluatorEvaluationPage() {
         {/* 평가 모달 - 완전히 새로운 전문적인 디자인 */}
         {selectedCandidate && isEvaluationModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[200] p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-hidden border-2 border-gray-300">
+            <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border-2 border-gray-300">
               {/* 모달 헤더 */}
               <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 flex justify-between items-center">
                 <div className="flex items-center space-x-3">
@@ -705,7 +705,7 @@ export default function EvaluatorEvaluationPage() {
               </div>
 
               {/* 모달 컨텐츠 */}
-              <div className="bg-gray-50 overflow-y-auto max-h-[calc(95vh-80px)]">
+              <div className="bg-gray-50 overflow-y-auto max-h-[calc(90vh-80px)]">
                 {Array.isArray(categories) && categories.length > 0 && Array.isArray(evaluationItems) && evaluationItems.length > 0 && (
                   <div className="p-6">
                     {/* 심사표 제목 섹션 */}
@@ -725,19 +725,19 @@ export default function EvaluatorEvaluationPage() {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="bg-gray-100">
-                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
                               구분 (100점)
                             </th>
-                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
                               세부 항목
                             </th>
-                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
                               유형
                             </th>
-                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
                               배점
                             </th>
-                            <th className="border border-black px-4 py-3 text-center font-bold text-gray-900">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900 text-sm">
                               평가점수
                             </th>
                           </tr>
@@ -766,23 +766,23 @@ export default function EvaluatorEvaluationPage() {
                                 <tr key={`${categoryName}-${itemIndex}`} className="hover:bg-gray-50">
                                   {itemIndex === 0 && (
                                     <td 
-                                      className="border border-black px-3 py-4 text-center font-bold bg-gray-50 align-middle"
+                                      className="border border-black px-2 py-2 text-center font-bold bg-gray-50 align-middle"
                                       rowSpan={items.length}
                                     >
                                       <div className="text-sm font-bold text-gray-900">{categoryName}</div>
                                       <div className="text-xs text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
                                     </td>
                                   )}
-                                  <td className="border border-black px-4 py-3 text-sm text-gray-900">
+                                  <td className="border border-black px-2 py-2 text-sm text-gray-900">
                                     {itemIndex + 1}. {item.itemName || item.description}
                                   </td>
-                                  <td className="border border-black px-3 py-3 text-center text-sm text-gray-900">
+                                  <td className="border border-black px-2 py-2 text-center text-sm text-gray-900">
                                     정성
                                   </td>
-                                  <td className="border border-black px-3 py-3 text-center text-sm font-medium text-gray-900">
+                                  <td className="border border-black px-2 py-2 text-center text-sm font-medium text-gray-900">
                                     {item.maxScore}점
                                   </td>
-                                  <td className="border border-black px-3 py-3 text-center bg-blue-50">
+                                  <td className="border border-black px-2 py-2 text-center bg-blue-50">
                                     <Input
                                       type="number"
                                       min="0"
@@ -816,14 +816,14 @@ export default function EvaluatorEvaluationPage() {
                             }).flat().concat([
                               // 합계 행
                               <tr key="total" className="bg-yellow-100 font-bold">
-                                <td className="border border-black px-4 py-4 text-center font-bold text-gray-900" colSpan={2}>
+                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900" colSpan={2}>
                                   합계
                                 </td>
-                                <td className="border border-black px-3 py-4 text-center"></td>
-                                <td className="border border-black px-3 py-4 text-center font-bold text-gray-900">
+                                <td className="border border-black px-2 py-2 text-center"></td>
+                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900">
                                   {totalPoints}점
                                 </td>
-                                <td className="border border-black px-3 py-4 text-center bg-blue-50">
+                                <td className="border border-black px-2 py-2 text-center bg-blue-50">
                                   <span className="text-lg font-bold text-blue-800">
                                     {Object.values(evaluationScores).reduce((sum, score) => sum + score, 0)}점
                                   </span>
