@@ -1395,20 +1395,7 @@ export default function EvaluationItemManagement() {
 
         {/* 사전 점수 관리 모달 */}
         {showPresetScoreModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[80vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">사전 점수 관리</h2>
-                <button
-                  onClick={() => setShowPresetScoreModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-              <PresetScoreModalContent />
-            </div>
-          </div>
+          <PresetScoreModal />
         )}
       </div>
     </div>
@@ -1428,8 +1415,8 @@ export default function EvaluationItemManagement() {
     }, 3000);
   }
 
-  // 사전 점수 관리 모달 내용 컴포넌트
-  const PresetScoreModalContent = () => {
+  // 사전 점수 관리 모달 컴포넌트
+  const PresetScoreModal = () => {
     const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
