@@ -308,6 +308,7 @@ export default function EvaluationItemManagement() {
   const saveTemplateMutation = useMutation({
     mutationFn: async (template: any) => {
       console.log('📝 심사표 저장 시작 (덮어쓰기 방식)...', template);
+      console.log('📋 저장할 템플릿 구조:', JSON.stringify(template, null, 2));
       
       // 1. 기존 데이터 모두 삭제
       console.log('🗑️ 기존 데이터 삭제 중...');
@@ -387,6 +388,8 @@ export default function EvaluationItemManagement() {
 
         for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
           const item = section.items[itemIndex];
+          console.log(`📋 평가항목 데이터 생성: ${item.text}, 유형: ${item.type}, 정량여부: ${item.type === '정량'}`);
+          
           const itemData = {
             categoryId: categoryId,
             code: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`,
@@ -399,6 +402,8 @@ export default function EvaluationItemManagement() {
             sortOrder: itemIndex + 1,
             isActive: true
           };
+          
+          console.log(`💾 저장할 평가항목 데이터:`, itemData);
 
           const response = await fetch('/api/admin/evaluation-items', {
             method: 'POST',
@@ -414,36 +419,10 @@ export default function EvaluationItemManagement() {
           const savedItem = await response.json();
           savedItems.push(savedItem);
           
-          // 4. 정량 평가항목의 경우 preset 점수 저장
+          // 4. 정량 평가항목의 경우 preset 점수 저장 (나중에 구현)
           if (item.type === '정량') {
-            const presetScores = [
-              { score: item.points || 0, label: '우수' },
-              { score: Math.round((item.points || 0) * 0.8), label: '보통' },
-              { score: Math.round((item.points || 0) * 0.6), label: '미흡' },
-              { score: 0, label: '매우 미흡' }
-            ];
-
-            for (const preset of presetScores) {
-              const presetData = {
-                evaluationItemId: savedItem.id,
-                score: preset.score,
-                label: preset.label,
-                description: `${preset.label} 수준의 평가 점수`,
-                sortOrder: presetScores.indexOf(preset) + 1,
-                isActive: true
-              };
-
-              const presetResponse = await fetch('/api/admin/preset-scores', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(presetData)
-              });
-
-              if (!presetResponse.ok) {
-                console.warn(`Preset 점수 저장 실패: ${presetResponse.statusText}`);
-              }
-            }
+            console.log(`✅ 정량 평가항목 저장 완료: ${item.text} (ID: ${savedItem.id})`);
+            // TODO: 정량 평가항목용 preset 점수 시스템은 별도 구현 예정
           }
           
           // 서버 부하 방지를 위한 지연
