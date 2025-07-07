@@ -1394,7 +1394,22 @@ export default function EvaluationItemManagement() {
         )}
 
         {/* 사전 점수 관리 모달 */}
-        {showPresetScoreModal && <PresetScoreModal />}
+        {showPresetScoreModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">사전 점수 관리</h2>
+                <button
+                  onClick={() => setShowPresetScoreModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              <PresetScoreModalContent />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1413,8 +1428,8 @@ export default function EvaluationItemManagement() {
     }, 3000);
   }
 
-  // 사전 점수 관리 모달 컴포넌트
-  const PresetScoreModal = () => {
+  // 사전 점수 관리 모달 내용 컴포넌트
+  const PresetScoreModalContent = () => {
     const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -1480,97 +1495,76 @@ export default function EvaluationItemManagement() {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
-          <div className="p-6 border-b">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">정량 평가항목 사전 점수 관리</h2>
-              <Button
-                onClick={() => setShowPresetScoreModal(false)}
-                variant="outline"
-                size="sm"
-              >
-                닫기
-              </Button>
-            </div>
-            <p className="text-sm text-gray-600 mt-2">
-              정량 평가항목에 대해 평가대상별로 사전 점수를 설정할 수 있습니다.
-            </p>
+      <div className="space-y-6">
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-2 text-gray-600">로딩 중...</p>
           </div>
-
-          <div className="p-6 overflow-y-auto">
-            {loading ? (
+        ) : (
+          <div className="space-y-6">
+            {quantitativeItems.length === 0 ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-2 text-gray-600">로딩 중...</p>
+                <p className="text-gray-600">정량 평가항목이 없습니다.</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  평가항목 편집에서 항목의 유형을 '정량'으로 설정해주세요.
+                </p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {quantitativeItems.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600">정량 평가항목이 없습니다.</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      평가항목 편집에서 항목의 유형을 '정량'으로 설정해주세요.
-                    </p>
-                  </div>
-                ) : (
-                  quantitativeItems.map(item => (
-                    <div key={item.id} className="border rounded-lg p-4">
-                      <h3 className="font-medium mb-3">
-                        {item.name} (최대 {item.maxScore}점)
-                      </h3>
+              quantitativeItems.map(item => (
+                <div key={item.id} className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-3">
+                    {item.name} (최대 {item.maxScore}점)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {safeCandidates.length > 0 ? safeCandidates.map(candidate => {
+                      const existingScore = candidatePresetScores.find(
+                        p => p.candidate_id === candidate.id && p.evaluation_item_id === item.id
+                      );
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {safeCandidates.length > 0 ? safeCandidates.map(candidate => {
-                          const existingScore = candidatePresetScores.find(
-                            p => p.candidate_id === candidate.id && p.evaluation_item_id === item.id
-                          );
-                          
-                          return (
-                            <div key={candidate.id} className="flex items-center gap-2">
-                              <span className="text-sm flex-1">{candidate.name}</span>
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max={item.maxScore}
-                                  defaultValue={existingScore?.preset_score || ''}
-                                  placeholder="점수"
-                                  className="w-20 text-center"
-                                  onBlur={(e) => {
-                                    const score = parseInt(e.target.value);
-                                    if (!isNaN(score) && score >= 0 && score <= item.maxScore) {
-                                      savePresetScore(candidate.id, item.id, score);
-                                    }
-                                  }}
-                                />
-                                <select 
-                                  className="w-16 text-xs border rounded px-1 py-1"
-                                  defaultValue={existingScore?.apply_preset ? "yes" : "no"}
-                                  onChange={(e) => {
-                                    // 사전점수 적용 여부 저장
-                                    const applyPreset = e.target.value === "yes";
-                                    const currentScore = existingScore?.preset_score || 0;
-                                    savePresetScore(candidate.id, item.id, currentScore, applyPreset);
-                                  }}
-                                >
-                                  <option value="no">미적용</option>
-                                  <option value="yes">적용</option>
-                                </select>
-                              </div>
-                            </div>
-                          );
-                        }) : (
-                          <p className="text-gray-500">평가대상이 없습니다.</p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                      return (
+                        <div key={candidate.id} className="flex items-center gap-2">
+                          <span className="text-sm flex-1">{candidate.name}</span>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              max={item.maxScore}
+                              defaultValue={existingScore?.preset_score || ''}
+                              placeholder="점수"
+                              className="w-20 text-center"
+                              onBlur={(e) => {
+                                const score = parseInt(e.target.value);
+                                if (!isNaN(score) && score >= 0 && score <= item.maxScore) {
+                                  savePresetScore(candidate.id, item.id, score);
+                                }
+                              }}
+                            />
+                            <select 
+                              className="w-16 text-xs border rounded px-1 py-1"
+                              defaultValue={existingScore?.apply_preset ? "yes" : "no"}
+                              onChange={(e) => {
+                                const applyPreset = e.target.value === "yes";
+                                const currentScore = existingScore?.preset_score || 0;
+                                savePresetScore(candidate.id, item.id, currentScore, applyPreset);
+                              }}
+                            >
+                              <option value="no">미적용</option>
+                              <option value="yes">적용</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <p className="text-gray-500">평가대상이 없습니다.</p>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        </div>
+        )}
       </div>
     );
   };
