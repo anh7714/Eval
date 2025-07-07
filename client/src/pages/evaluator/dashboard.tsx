@@ -35,9 +35,9 @@ export default function EvaluatorDashboard() {
   }
 
   // 실제 후보자 수 기반으로 통계 계산
-  const actualTotalCount = candidates?.length || 0;
-  const completedCount = progress?.completed || 0;
-  const totalCount = progress?.total || actualTotalCount;
+  const actualTotalCount = Array.isArray(candidates) ? candidates.length : 0;
+  const completedCount = (typeof progress === 'object' && progress !== null && 'completed' in progress) ? Number(progress.completed) || 0 : 0;
+  const totalCount = (typeof progress === 'object' && progress !== null && 'total' in progress) ? Number(progress.total) || actualTotalCount : actualTotalCount;
   const remainingCount = actualTotalCount - completedCount;
   
   const progressPercentage = actualTotalCount > 0 
@@ -53,7 +53,7 @@ export default function EvaluatorDashboard() {
             평가위원 대시보드
           </h1>
           <p className="text-lg text-gray-600 mt-2">
-            {evaluator?.name ? `${evaluator.name} 위원님! 환영합니다.` : '평가위원님! 환영합니다.'}
+            {(evaluator && typeof evaluator === 'object' && 'name' in evaluator) ? `${evaluator.name} 위원님! 환영합니다.` : '평가위원님! 환영합니다.'}
           </p>
           <p className="text-sm text-gray-500 mt-1">
             현재 진행률을 확인하고 평가를 진행하세요.

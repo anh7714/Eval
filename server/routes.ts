@@ -841,6 +841,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 평가위원 전용 사전점수 조회 API
+  app.get("/api/evaluator/preset-scores/:candidateId", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const candidateId = parseInt(req.params.candidateId);
+      const presetScores = await storage.getCandidatePresetScores(candidateId);
+      res.json(presetScores);
+    } catch (error) {
+      console.error('사전점수 조회 오류:', error);
+      res.status(500).json({ message: "Failed to fetch preset scores" });
+    }
+  });
+
   // 평가위원 임시저장 API
   app.post("/api/evaluator/evaluation/save-temporary", requireEvaluatorAuth, async (req, res) => {
     try {

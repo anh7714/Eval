@@ -1483,7 +1483,28 @@ export default function EvaluationItemManagement() {
     };
 
     return (
-      <div className="space-y-6">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[80vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">사전 점수 관리</h2>
+            <button
+              onClick={() => setShowPresetScoreModal(false)}
+              className="text-gray-500 hover:text-gray-700 text-xl"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-medium text-blue-800 mb-2">사전점수 설정 안내</h3>
+            <p className="text-sm text-blue-700">
+              • <strong>사전점수 설정</strong>: 각 평가대상별로 미리 점수를 설정합니다<br/>
+              • <strong>적용 여부</strong>: 평가 시 해당 점수를 기본값으로 사용할지 선택합니다<br/>
+              • <strong>평가 시</strong>: 적용된 사전점수는 평가점수란에 회색으로 표시되며 수정 불가합니다
+            </p>
+          </div>
+
+          <div className="space-y-6">
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
@@ -1525,7 +1546,8 @@ export default function EvaluationItemManagement() {
                               onBlur={(e) => {
                                 const score = parseInt(e.target.value);
                                 if (!isNaN(score) && score >= 0 && score <= (item.maxScore || 100)) {
-                                  savePresetScore(candidate.id, item.id, score);
+                                  const currentApply = existingScore?.apply_preset || false;
+                                  savePresetScore(candidate.id, item.id, score, currentApply);
                                 }
                               }}
                             />
