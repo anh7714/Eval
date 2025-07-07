@@ -1176,6 +1176,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all evaluation data (for testing purposes)
+  app.post("/api/admin/clear-evaluation-data", requireAdminAuth, async (req, res) => {
+    try {
+      await storage.clearAllEvaluationData();
+      res.json({ message: "All evaluation data cleared successfully" });
+    } catch (error) {
+      console.error("Failed to clear evaluation data:", error);
+      res.status(500).json({ message: "Failed to clear evaluation data", error: String(error) });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

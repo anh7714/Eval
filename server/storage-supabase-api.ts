@@ -1069,6 +1069,8 @@ export class SupabaseStorage {
       weight: data.weight,
       sortOrder: data.sort_order,
       isActive: data.is_active,
+      isQuantitative: data.is_quantitative,
+      hasPresetScores: data.has_preset_scores,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at)
     };
@@ -1083,7 +1085,9 @@ export class SupabaseStorage {
       max_score: item.maxScore,
       weight: item.weight,
       sort_order: item.sortOrder,
-      is_active: item.isActive
+      is_active: item.isActive,
+      is_quantitative: item.isQuantitative,
+      has_preset_scores: item.hasPresetScores
     };
   }
 
@@ -1489,6 +1493,23 @@ export class SupabaseStorage {
       is_active: template.isActive,
       is_default: template.isDefault
     };
+  }
+
+  async clearAllEvaluationData(): Promise<void> {
+    try {
+      console.log('🧹 평가 데이터 정리 시작');
+      
+      // Delete in order due to foreign key constraints
+      await supabase.from('preset_scores').delete().neq('id', 0);
+      await supabase.from('evaluation_items').delete().neq('id', 0);
+      await supabase.from('evaluation_categories').delete().eq('type', 'evaluation');
+      await supabase.from('evaluation_templates').delete().neq('id', 0);
+      
+      console.log('✅ 평가 데이터 정리 완료');
+    } catch (error) {
+      console.error('❌ 평가 데이터 정리 오류:', error);
+      throw error;
+    }
   }
 }
 
