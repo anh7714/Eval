@@ -46,6 +46,11 @@ export default function EvaluatorEvaluationPage() {
   const [evaluationTemplate, setEvaluationTemplate] = useState<any>(null);
   const [evaluationScores, setEvaluationScores] = useState<{ [key: string]: number }>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
+  // 미리보기 모달 상태
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewCandidate, setPreviewCandidate] = useState<any>(null);
+  const [previewScores, setPreviewScores] = useState<{ [key: string]: number }>({});
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -439,6 +444,42 @@ export default function EvaluatorEvaluationPage() {
     );
   };
 
+  // 미리보기 모달 열기
+  const openPreviewModal = async (candidate: any) => {
+    try {
+      console.log('🔍 미리보기 모달 열기:', candidate);
+      
+      // 평가 데이터 가져오기
+      const response = await fetch(`/api/evaluator/evaluation/${candidate.id}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📄 미리보기 데이터:', data);
+        
+        setPreviewCandidate(candidate);
+        setPreviewScores(data.scores || {});
+        setIsPreviewModalOpen(true);
+      } else {
+        console.error('❌ 미리보기 데이터 로딩 실패');
+        toast({
+          title: "오류",
+          description: "평가 결과를 불러올 수 없습니다.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('❌ 미리보기 모달 오류:', error);
+      toast({
+        title: "오류",
+        description: "평가 결과를 불러오는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (candidatesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -565,21 +606,50 @@ export default function EvaluatorEvaluationPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="flex items-center space-x-1"
-                            onClick={() => openEvaluationModal(result.candidate)}
-                          >
-                            <Edit3 className="h-3 w-3" />
-                            <span>{result.isCompleted ? "수정" : "평가"}</span>
-                          </Button>
+                          {result.isCompleted ? (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex items-center space-x-1 bg-green-50 text-green-700 border-green-200 cursor-not-allowed"
+                              disabled
+                            >
+                              <CheckCircle className="h-3 w-3" />
+                              <span>평가완료</span>
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex items-center space-x-1"
+                              onClick={() => openEvaluationModal(result.candidate)}
+                            >
+                              <Edit3 className="h-3 w-3" />
+                              <span>평가</span>
+                            </Button>
+                          )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button size="sm" variant="ghost" className="flex items-center space-x-1">
-                            <Eye className="h-3 w-3" />
-                            <span>결과확인</span>
-                          </Button>
+                          {result.isCompleted ? (
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              onClick={() => openPreviewModal(result.candidate)}
+                            >
+                              <Eye className="h-3 w-3" />
+                              <span>결과확인</span>
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="flex items-center space-x-1 text-gray-400 cursor-not-allowed"
+                              disabled
+                            >
+                              <Eye className="h-3 w-3" />
+                              <span>결과확인</span>
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -747,21 +817,7 @@ export default function EvaluatorEvaluationPage() {
                       </table>
                     </div>
 
-                    {/* 평가일과 평가위원 정보 */}
-                    <div className="mt-6 bg-white border border-gray-300 rounded-lg p-4 shadow-sm">
-                      <div className="flex justify-between items-center text-sm text-gray-700">
-                        <div>
-                          평가일: {new Date().toLocaleDateString('ko-KR', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
-                        </div>
-                        <div>
-                          평가위원: <span className="font-medium">안형용</span> (서명)
-                        </div>
-                      </div>
-                    </div>
+
 
                     {/* 하단 버튼들 */}
                     <div className="flex justify-end space-x-4 mt-6 pt-4 border-t border-gray-200">
@@ -813,7 +869,8 @@ export default function EvaluatorEvaluationPage() {
                     평가를 완료하시겠습니까?
                   </p>
                   <p className="text-red-700 font-bold text-sm text-center bg-red-50 p-3 rounded border-2 border-red-200">
-                    ⚠️ '평가 완료'를 누르면 더 이상 수정할 수 없습니다. 제출하시겠습니까?
+                    ⚠️ '평가 완료'를 누르면 더 이상 수정할 수 없습니다.<br/>
+                    제출하시겠습니까?
                   </p>
                 </div>
                 
@@ -840,6 +897,88 @@ export default function EvaluatorEvaluationPage() {
                     className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 font-bold shadow-lg border-2 border-blue-600"
                   >
                     {completeEvaluationMutation.isPending ? "완료 처리 중..." : "평가 완료"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 미리보기 모달 */}
+        {isPreviewModalOpen && previewCandidate && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    평가 결과 미리보기
+                  </h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPreviewModalOpen(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-2">평가대상 정보</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-gray-600">기관명(성명):</span>
+                        <span className="ml-2 font-medium">{previewCandidate.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">소속(부서):</span>
+                        <span className="ml-2 font-medium">{previewCandidate.department}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-300 rounded-lg p-4">
+                    <h3 className="font-semibold text-lg mb-4">평가 결과</h3>
+                    <div className="space-y-3">
+                      {categories?.map((category: any) => (
+                        <div key={category.id} className="border-b pb-3">
+                          <h4 className="font-medium text-gray-800 mb-2">{category.name}</h4>
+                          <div className="space-y-2">
+                            {evaluationItems
+                              ?.filter((item: any) => item.categoryId === category.id)
+                              .map((item: any) => (
+                                <div key={item.id} className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-600">{item.name}</span>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-500">
+                                      {previewScores[item.id] || 0}점 / {item.maxScore}점
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold text-gray-800">총합계:</span>
+                        <span className="text-lg font-bold text-blue-600">
+                          {Object.values(previewScores).reduce((sum: number, score: any) => sum + (score || 0), 0)}점
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <Button
+                    onClick={() => setIsPreviewModalOpen(false)}
+                    className="px-6 py-2 bg-gray-600 text-white hover:bg-gray-700"
+                  >
+                    닫기
                   </Button>
                 </div>
               </div>
