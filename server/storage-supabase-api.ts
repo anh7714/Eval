@@ -10,6 +10,7 @@ import type {
   EvaluationSubmission,
   CategoryOption,
   PresetScore,
+  EvaluationTemplate,
   InsertSystemConfig,
   InsertAdmin,
   InsertEvaluator,
@@ -18,7 +19,8 @@ import type {
   InsertCandidate,
   InsertEvaluation,
   InsertCategoryOption,
-  InsertPresetScore
+  InsertPresetScore,
+  InsertEvaluationTemplate
 } from '../shared/schema';
 
 let supabase: ReturnType<typeof createClient>;
@@ -1341,6 +1343,151 @@ export class SupabaseStorage {
       item_id: presetScore.itemId,
       score: presetScore.score,
       notes: presetScore.notes
+    };
+  }
+
+  // ===== EVALUATION TEMPLATES 관리 메서드 =====
+  
+  async getEvaluationTemplates(): Promise<EvaluationTemplate[]> {
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching evaluation templates:', error);
+        throw error;
+      }
+      
+      return data?.map(this.mapEvaluationTemplate) || [];
+    } catch (error) {
+      console.error('Error in getEvaluationTemplates:', error);
+      throw error;
+    }
+  }
+
+  async getDefaultEvaluationTemplate(): Promise<EvaluationTemplate | undefined> {
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_templates')
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_default', true)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
+        console.error('Error fetching default evaluation template:', error);
+        throw error;
+      }
+      
+      return data ? this.mapEvaluationTemplate(data) : undefined;
+    } catch (error) {
+      console.error('Error in getDefaultEvaluationTemplate:', error);
+      throw error;
+    }
+  }
+
+  async createEvaluationTemplate(template: InsertEvaluationTemplate): Promise<EvaluationTemplate> {
+    try {
+      // 새 템플릿이 기본값으로 설정될 경우 기존 기본값 해제
+      if (template.isDefault) {
+        await supabase
+          .from('evaluation_templates')
+          .update({ is_default: false })
+          .eq('is_default', true);
+      }
+
+      const { data, error } = await supabase
+        .from('evaluation_templates')
+        .insert(this.mapToSupabaseEvaluationTemplate(template))
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating evaluation template:', error);
+        throw error;
+      }
+      
+      return this.mapEvaluationTemplate(data);
+    } catch (error) {
+      console.error('Error in createEvaluationTemplate:', error);
+      throw error;
+    }
+  }
+
+  async updateEvaluationTemplate(id: number, template: Partial<InsertEvaluationTemplate>): Promise<EvaluationTemplate> {
+    try {
+      // 새 템플릿이 기본값으로 설정될 경우 기존 기본값 해제
+      if (template.isDefault) {
+        await supabase
+          .from('evaluation_templates')
+          .update({ is_default: false })
+          .eq('is_default', true)
+          .neq('id', id);
+      }
+
+      const { data, error } = await supabase
+        .from('evaluation_templates')
+        .update(this.mapToSupabaseEvaluationTemplate(template))
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating evaluation template:', error);
+        throw error;
+      }
+      
+      return this.mapEvaluationTemplate(data);
+    } catch (error) {
+      console.error('Error in updateEvaluationTemplate:', error);
+      throw error;
+    }
+  }
+
+  async deleteEvaluationTemplate(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('evaluation_templates')
+        .update({ is_active: false })
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting evaluation template:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in deleteEvaluationTemplate:', error);
+      throw error;
+    }
+  }
+
+  // Private mapper methods for evaluation templates
+  private mapEvaluationTemplate(data: any): EvaluationTemplate {
+    return {
+      id: data.id,
+      name: data.name,
+      title: data.title,
+      description: data.description,
+      templateData: data.template_data,
+      isActive: data.is_active,
+      isDefault: data.is_default,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    };
+  }
+
+  private mapToSupabaseEvaluationTemplate(template: Partial<InsertEvaluationTemplate>): any {
+    return {
+      name: template.name,
+      title: template.title,
+      description: template.description,
+      template_data: template.templateData,
+      is_active: template.isActive,
+      is_default: template.isDefault
     };
   }
 }

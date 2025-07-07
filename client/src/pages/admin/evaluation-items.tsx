@@ -118,6 +118,29 @@ export default function EvaluationItemManagement() {
     }
   }, [categories, items]);
 
+  // 기본 템플릿 로드
+  useEffect(() => {
+    const loadDefaultTemplate = async () => {
+      try {
+        const response = await fetch('/api/admin/templates/default', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const template = await response.json();
+          console.log('✅ 기본 템플릿 로드 성공:', template);
+          setCurrentTemplate(template.templateData);
+        } else if (response.status !== 404) {
+          console.log('ℹ️ 저장된 기본 템플릿이 없습니다. 기본값을 사용합니다.');
+        }
+      } catch (error) {
+        console.log('ℹ️ 기본 템플릿 로드 실패. 기본값을 사용합니다:', error);
+      }
+    };
+
+    loadDefaultTemplate();
+  }, []);
+
   // 실시간 구독 + 폴링 백업 시스템 (카테고리용)
   useEffect(() => {
     let categoriesChannel: any;
@@ -394,6 +417,33 @@ export default function EvaluationItemManagement() {
           // 서버 부하 방지를 위한 지연
           await new Promise(resolve => setTimeout(resolve, 50));
         }
+      }
+
+      // 7. 템플릿을 데이터베이스에 저장
+      try {
+        const templateData = {
+          name: "기본 평가표 템플릿",
+          title: template.title,
+          description: "평가표 관리에서 생성된 기본 템플릿",
+          templateData: template,
+          isActive: true,
+          isDefault: true
+        };
+
+        const templateResponse = await fetch('/api/admin/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(templateData)
+        });
+
+        if (templateResponse.ok) {
+          console.log('✅ 템플릿이 데이터베이스에 저장되었습니다');
+        } else {
+          console.warn('⚠️ 템플릿 저장 실패, 평가항목은 정상 저장됨');
+        }
+      } catch (error) {
+        console.warn('⚠️ 템플릿 저장 중 오류:', error);
       }
 
       return { savedCategories, savedItems };

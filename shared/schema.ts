@@ -135,6 +135,19 @@ export const presetScores = pgTable("preset_scores", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Evaluation Templates (Templates for evaluation forms)
+export const evaluationTemplates = pgTable("evaluation_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  templateData: jsonb("template_data").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Create insert schemas
 export const insertSystemConfigSchema = createInsertSchema(systemConfig).omit({
   id: true,
@@ -187,6 +200,12 @@ export const insertPresetScoreSchema = createInsertSchema(presetScores).omit({
   updatedAt: true,
 });
 
+export const insertEvaluationTemplateSchema = createInsertSchema(evaluationTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Infer types
 export type SystemConfig = typeof systemConfig.$inferSelect;
 export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
@@ -217,3 +236,6 @@ export type InsertEvaluationSubmission = z.infer<typeof insertEvaluationSubmissi
 
 export type PresetScore = typeof presetScores.$inferSelect;
 export type InsertPresetScore = z.infer<typeof insertPresetScoreSchema>;
+
+export type EvaluationTemplate = typeof evaluationTemplates.$inferSelect;
+export type InsertEvaluationTemplate = z.infer<typeof insertEvaluationTemplateSchema>;
