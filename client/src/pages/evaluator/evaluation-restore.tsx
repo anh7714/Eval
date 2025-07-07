@@ -154,9 +154,16 @@ export default function EvaluatorEvaluationPage() {
         description: "평가 내용이 임시 저장되었습니다.",
         variant: "success" as any,
       });
+      // 모달 닫기
+      setIsEvaluationModalOpen(false);
+      setEvaluationScores({});
       // 데이터 새로고침
       queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
+      // 알림 후 즉시 사라지도록 타이머 설정
+      setTimeout(() => {
+        // 이미 toast가 자동으로 사라지므로 추가 작업 불필요
+      }, 1000);
     },
     onError: () => {
       toast({
@@ -837,7 +844,7 @@ export default function EvaluatorEvaluationPage() {
                         className="px-6 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
                         onClick={() => setIsEvaluationModalOpen(false)}
                       >
-                        취소
+                        목록으로
                       </Button>
                       <Button
                         variant="outline"

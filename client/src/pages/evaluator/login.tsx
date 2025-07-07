@@ -37,9 +37,12 @@ export default function EvaluatorLogin() {
         toast({
           title: "로그인 성공",
           description: "평가자 대시보드로 이동합니다.",
-          duration: 2000, // 2초 후 자동으로 사라짐
+          duration: 1000, // 1초 후 자동으로 사라짐
         });
-        setLocation("/evaluator/dashboard");
+        // 짧은 지연 후 페이지 이동
+        setTimeout(() => {
+          setLocation("/evaluator/dashboard");
+        }, 500);
       } else {
         const error = await response.json();
         toast({
