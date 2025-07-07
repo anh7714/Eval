@@ -1504,6 +1504,7 @@ export class SupabaseStorage {
       console.log('🧹 평가 데이터 정리 시작');
       
       // Delete in order due to foreign key constraints
+      await supabase.from('candidate_preset_scores').delete().neq('id', 0);
       await supabase.from('preset_scores').delete().neq('id', 0);
       await supabase.from('evaluation_items').delete().neq('id', 0);
       await supabase.from('evaluation_categories').delete().eq('type', 'evaluation');
@@ -1512,6 +1513,87 @@ export class SupabaseStorage {
       console.log('✅ 평가 데이터 정리 완료');
     } catch (error) {
       console.error('❌ 평가 데이터 정리 오류:', error);
+      throw error;
+    }
+  }
+
+  // ===== 평가대상별 사전 점수 관리 메서드들 =====
+
+  // 모든 평가대상별 사전 점수 조회
+  async getAllCandidatePresetScores(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('candidate_preset_scores')
+        .select(`
+          *,
+          candidates:candidate_id (id, name, department),
+          evaluation_items:evaluation_item_id (id, name, max_score, is_quantitative)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('getAllCandidatePresetScores error:', error);
+      throw error;
+    }
+  }
+
+  // 평가대상별 사전 점수 등록/수정
+  async upsertCandidatePresetScore(data: any): Promise<any> {
+    try {
+      const { data: result, error } = await supabase
+        .from('candidate_preset_scores')
+        .upsert({
+          candidate_id: data.candidateId,
+          evaluation_item_id: data.evaluationItemId,
+          preset_score: data.presetScore,
+          notes: data.notes || null
+        }, {
+          onConflict: 'candidate_id,evaluation_item_id'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    } catch (error) {
+      console.error('upsertCandidatePresetScore error:', error);
+      throw error;
+    }
+  }
+
+  // 평가대상별 사전 점수 삭제
+  async deleteCandidatePresetScore(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('candidate_preset_scores')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('deleteCandidatePresetScore error:', error);
+      throw error;
+    }
+  }
+
+  // 특정 평가대상의 사전 점수 조회 (평가자용)
+  async getCandidatePresetScores(candidateId: number): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('candidate_preset_scores')
+        .select(`
+          *,
+          evaluation_items:evaluation_item_id (id, name, max_score, is_quantitative)
+        `)
+        .eq('candidate_id', candidateId)
+        .eq('evaluation_items.is_quantitative', true);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('getCandidatePresetScores error:', error);
       throw error;
     }
   }

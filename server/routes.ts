@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
 import { storage } from "./storage-supabase-api";
-import { insertAdminSchema, insertEvaluatorSchema, insertCandidateSchema, insertEvaluationCategorySchema, insertEvaluationItemSchema, insertEvaluationSchema, insertSystemConfigSchema, insertCategoryOptionSchema, insertEvaluationTemplateSchema } from "@shared/schema";
+import { insertAdminSchema, insertEvaluatorSchema, insertCandidateSchema, insertEvaluationCategorySchema, insertEvaluationItemSchema, insertEvaluationSchema, insertSystemConfigSchema, insertCategoryOptionSchema, insertEvaluationTemplateSchema, insertCandidatePresetScoreSchema } from "@shared/schema";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
@@ -1047,7 +1047,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 사전 점수 등록/수정 (upsert)
+  // 평가대상별 사전 점수 조회
+  app.get("/api/admin/candidate-preset-scores", requireAdminAuth, async (req, res) => {
+    try {
+      const presetScores = await storage.getAllCandidatePresetScores();
+      res.json(presetScores);
+    } catch (error) {
+      console.error("Failed to fetch candidate preset scores:", error);
+      res.status(500).json({ message: "Failed to fetch candidate preset scores" });
+    }
+  });
+
+  // 평가대상별 사전 점수 등록/수정 (upsert)
+  app.post("/api/admin/candidate-preset-scores", requireAdminAuth, async (req, res) => {
+    try {
+      const validation = insertCandidatePresetScoreSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
+      }
+      
+      const presetScore = await storage.upsertCandidatePresetScore(validation.data);
+      res.json(presetScore);
+    } catch (error) {
+      console.error("Failed to upsert candidate preset score:", error);
+      res.status(500).json({ message: "Failed to save candidate preset score" });
+    }
+  });
+
+  // 평가대상별 사전 점수 삭제
+  app.delete("/api/admin/candidate-preset-scores/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteCandidatePresetScore(id);
+      res.json({ message: "Candidate preset score deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete candidate preset score:", error);
+      res.status(500).json({ message: "Failed to delete candidate preset score" });
+    }
+  });
+
+  // 사전 점수 등록/수정 (upsert) - 기존 호환성 유지
   app.post("/api/admin/preset-scores", requireAdminAuth, async (req, res) => {
     try {
       const { candidateId, itemId, score, notes } = req.body;
@@ -1173,6 +1212,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to delete evaluation template:", error);
       res.status(500).json({ message: "Failed to delete evaluation template", error: String(error) });
+    }
+  });
+
+  // ===== 사전 점수 관리 API =====
+  
+  // 모든 평가대상별 사전 점수 조회
+  app.get("/api/admin/candidate-preset-scores", requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const presetScores = await storage.getAllCandidatePresetScores();
+      res.json(presetScores);
+    } catch (error) {
+      console.error("Get candidate preset scores error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // 평가대상별 사전 점수 등록/수정
+  app.post("/api/admin/candidate-preset-scores", requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const { candidateId, evaluationItemId, presetScore, notes } = req.body;
+      
+      if (!candidateId || !evaluationItemId || presetScore === undefined) {
+        return res.status(400).json({ error: "Required fields missing" });
+      }
+      
+      const result = await storage.upsertCandidatePresetScore({
+        candidateId,
+        evaluationItemId,
+        presetScore,
+        notes
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Upsert candidate preset score error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // 평가대상별 사전 점수 삭제
+  app.delete("/api/admin/candidate-preset-scores/:id", requireAdminAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteCandidatePresetScore(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete candidate preset score error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
