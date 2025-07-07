@@ -559,9 +559,12 @@ export class SupabaseStorage {
 
   async createEvaluationItem(item: InsertEvaluationItem): Promise<EvaluationItem> {
     try {
+      const mappedItem = this.mapToSupabaseEvaluationItem(item);
+      console.log('🔍 Supabase 저장 데이터:', JSON.stringify(mappedItem, null, 2));
+      
       const { data, error } = await supabase
         .from('evaluation_items')
-        .insert([this.mapToSupabaseEvaluationItem(item)])
+        .insert([mappedItem])
         .select()
         .single();
 
@@ -570,6 +573,7 @@ export class SupabaseStorage {
         throw new Error(`Failed to create evaluation item: ${error.message}`);
       }
 
+      console.log('✅ Supabase 저장 결과:', JSON.stringify(data, null, 2));
       return this.mapEvaluationItem(data);
     } catch (error) {
       console.error('createEvaluationItem error:', error);
