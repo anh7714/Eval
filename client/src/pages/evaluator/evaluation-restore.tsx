@@ -362,6 +362,14 @@ export default function EvaluatorEvaluationPage() {
     queryKey: ["/api/system/config"],
   });
 
+  // 진행률 데이터 가져오기
+  const { data: progressData = {} } = useQuery({
+    queryKey: ["/api/evaluator/progress"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000, // 3초마다 자동 갱신
+    staleTime: 1000,
+  });
+
   // 평가위원에게 할당된 후보자 목록을 가져오기
   const { data: candidates = [], isLoading: candidatesLoading } = useQuery({
     queryKey: ["/api/evaluator/candidates"],
