@@ -468,7 +468,7 @@ export default function EvaluatorEvaluationPage() {
           </CardContent>
         </Card>
 
-        {/* 평가 모달 - 자동 크기 조절 */}
+        {/* 평가 모달 */}
         {selectedCandidate && isEvaluationModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[200] p-4 backdrop-blur-sm">
             <div className="bg-white rounded-lg shadow-2xl w-full h-[90vh] overflow-hidden border-2 border-gray-300 flex flex-col"
@@ -517,120 +517,118 @@ export default function EvaluatorEvaluationPage() {
                 </div>
               </div>
 
-              {/* 모달 컨텐츠 - 자동 크기 조절 */}
-              <div className="flex-1 overflow-hidden p-6">
+              {/* 모달 컨텐츠 */}
+              <div className="flex-1 overflow-auto p-6">
                 {Array.isArray(categories) && categories.length > 0 && Array.isArray(evaluationItems) && evaluationItems.length > 0 && (
-                  <div className="bg-white border-2 border-black rounded-lg overflow-hidden shadow-lg h-full">
-                    <div className="w-full h-full overflow-auto">
-                      <div className="transform scale-95 origin-top-left" style={{ width: '105.26%', height: '105.26%' }}>
-                        <table className="w-full border-collapse" style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.85rem)' }}>
-                          <thead>
-                            <tr className="bg-gray-100">
-                              <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
-                                구분 (100점)
-                              </th>
-                              <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
-                                세부 항목
-                              </th>
-                              <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
-                                유형
-                              </th>
-                              <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
-                                배점
-                              </th>
-                              <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
-                                평가점수
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(() => {
-                              // 카테고리별로 평가항목 그룹화
-                              const categoryGroups = categories.reduce((groups: any, category: any) => {
-                                if (category.type === 'evaluation') {
-                                  groups[category.name] = {
-                                    name: category.name,
-                                    items: evaluationItems.filter((item: any) => item.categoryId === category.id)
-                                  };
-                                }
-                                return groups;
-                              }, {});
+                  <div className="bg-white border-2 border-black rounded-lg overflow-hidden shadow-lg">
+                    <div className="scale-90 origin-top-left" style={{ width: '111.1%', height: '111.1%' }}>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
+                              구분 (100점)
+                            </th>
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
+                              세부 항목
+                            </th>
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
+                              유형
+                            </th>
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
+                              배점
+                            </th>
+                            <th className="border border-black px-2 py-2 text-center font-bold text-gray-900">
+                              평가점수
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            // 카테고리별로 평가항목 그룹화
+                            const categoryGroups = categories.reduce((groups: any, category: any) => {
+                              if (category.type === 'evaluation') {
+                                groups[category.name] = {
+                                  name: category.name,
+                                  items: evaluationItems.filter((item: any) => item.categoryId === category.id)
+                                };
+                              }
+                              return groups;
+                            }, {});
 
-                              // 총점 계산
-                              const totalPoints = Object.values(categoryGroups).reduce((sum: number, group: any) => {
-                                return sum + group.items.reduce((itemSum: number, item: any) => itemSum + (item.maxScore || 0), 0);
-                              }, 0);
+                            // 총점 계산
+                            const totalPoints = Object.values(categoryGroups).reduce((sum: number, group: any) => {
+                              return sum + group.items.reduce((itemSum: number, item: any) => itemSum + (item.maxScore || 0), 0);
+                            }, 0);
 
-                              return Object.entries(categoryGroups).map(([categoryName, group]: [string, any]) => {
-                                const items = group.items;
-                                const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
-                                
-                                return items.map((item: any, itemIndex: number) => (
-                                  <tr key={`${categoryName}-${itemIndex}`} className="hover:bg-gray-50">
-                                    {itemIndex === 0 && (
-                                      <td 
-                                        className="border border-black px-2 py-2 text-center font-bold bg-gray-50 align-middle"
-                                        rowSpan={items.length}
-                                      >
-                                        <div className="text-sm font-bold text-gray-900">{categoryName}</div>
-                                        <div className="text-xs text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
-                                      </td>
-                                    )}
-                                    <td className="border border-black px-2 py-2 text-sm text-gray-900">
-                                      {itemIndex + 1}. {item.itemName || item.description}
+                            return Object.entries(categoryGroups).map(([categoryName, group]: [string, any]) => {
+                              const items = group.items;
+                              const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
+                              
+                              return items.map((item: any, itemIndex: number) => (
+                                <tr key={`${categoryName}-${itemIndex}`} className="hover:bg-gray-50">
+                                  {itemIndex === 0 && (
+                                    <td 
+                                      className="border border-black px-2 py-2 text-center font-bold bg-gray-50 align-middle"
+                                      rowSpan={items.length}
+                                    >
+                                      <div className="text-sm font-bold text-gray-900">{categoryName}</div>
+                                      <div className="text-xs text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
                                     </td>
-                                    <td className="border border-black px-2 py-2 text-center text-sm text-gray-900">
-                                      정성
-                                    </td>
-                                    <td className="border border-black px-2 py-2 text-center text-sm font-medium text-gray-900">
-                                      {item.maxScore}점
-                                    </td>
-                                    <td className="border border-black px-2 py-2 text-center bg-blue-50">
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        max={item.maxScore}
-                                        placeholder=""
-                                        value={evaluationScores[item.id] !== undefined ? evaluationScores[item.id] : ""}
-                                        onChange={(e) => {
-                                          const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
-                                          handleScoreChange(item.id, value, item.maxScore);
-                                        }}
-                                        onFocus={(e) => {
-                                          if (e.target.value === "0") {
-                                            e.target.value = "";
-                                          }
-                                        }}
-                                        className="w-16 h-8 text-center text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:bg-white focus:border-blue-500 focus:outline-none"
-                                        style={{
-                                          MozAppearance: 'textfield',
-                                          WebkitAppearance: 'none'
-                                        }}
-                                      />
-                                    </td>
-                                  </tr>
-                                ));
-                              }).flat().concat([
-                                // 합계 행
-                                <tr key="total" className="bg-yellow-100 font-bold">
-                                  <td className="border border-black px-2 py-2 text-center font-bold text-gray-900" colSpan={2}>
-                                    합계
+                                  )}
+                                  <td className="border border-black px-2 py-2 text-sm text-gray-900">
+                                    {itemIndex + 1}. {item.itemName || item.description}
                                   </td>
-                                  <td className="border border-black px-2 py-2 text-center"></td>
-                                  <td className="border border-black px-2 py-2 text-center font-bold text-gray-900">
-                                    {totalPoints}점
+                                  <td className="border border-black px-2 py-2 text-center text-sm text-gray-900">
+                                    정성
+                                  </td>
+                                  <td className="border border-black px-2 py-2 text-center text-sm font-medium text-gray-900">
+                                    {item.maxScore}점
                                   </td>
                                   <td className="border border-black px-2 py-2 text-center bg-blue-50">
-                                    <span className="text-lg font-bold text-blue-800">
-                                      {Object.values(evaluationScores).reduce((sum, score) => sum + score, 0)}점
-                                    </span>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max={item.maxScore}
+                                      placeholder=""
+                                      value={evaluationScores[item.id] !== undefined ? evaluationScores[item.id] : ""}
+                                      onChange={(e) => {
+                                        const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
+                                        handleScoreChange(item.id, value, item.maxScore);
+                                      }}
+                                      onFocus={(e) => {
+                                        if (e.target.value === "0") {
+                                          e.target.value = "";
+                                        }
+                                      }}
+                                      className="w-16 h-8 text-center text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:bg-white focus:border-blue-500 focus:outline-none"
+                                      style={{
+                                        MozAppearance: 'textfield',
+                                        WebkitAppearance: 'none'
+                                      }}
+                                    />
                                   </td>
                                 </tr>
-                              ]);
-                            })()}
-                          </tbody>
-                        </table>
-                      </div>
+                              ));
+                            }).flat().concat([
+                              // 합계 행
+                              <tr key="total" className="bg-yellow-100 font-bold">
+                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900" colSpan={2}>
+                                  합계
+                                </td>
+                                <td className="border border-black px-2 py-2 text-center"></td>
+                                <td className="border border-black px-2 py-2 text-center font-bold text-gray-900">
+                                  {totalPoints}점
+                                </td>
+                                <td className="border border-black px-2 py-2 text-center bg-blue-50">
+                                  <span className="text-lg font-bold text-blue-800">
+                                    {Object.values(evaluationScores).reduce((sum, score) => sum + score, 0)}점
+                                  </span>
+                                </td>
+                              </tr>
+                            ]);
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
