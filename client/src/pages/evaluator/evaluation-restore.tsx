@@ -708,17 +708,7 @@ export default function EvaluatorEvaluationPage() {
               <div className="bg-gray-50 overflow-y-auto max-h-[calc(90vh-80px)]">
                 {Array.isArray(categories) && categories.length > 0 && Array.isArray(evaluationItems) && evaluationItems.length > 0 && (
                   <div className="p-6">
-                    {/* 심사표 제목 섹션 */}
-                    <div className="bg-white border-2 border-black rounded-lg overflow-hidden shadow-lg mb-6">
-                      <div className="border-b-2 border-black p-4">
-                        <div className="text-right text-sm text-gray-600 mb-2">
-                          구분 · 재활약 · 돌봄SOS 서비스 제공기관 선정 심사
-                        </div>
-                        <h1 className="text-2xl font-bold text-center text-gray-900">
-                          {selectedCandidate.name} 심사표
-                        </h1>
-                      </div>
-                    </div>
+
 
                     {/* 평가 항목 테이블 */}
                     <div className="bg-white border-2 border-black rounded-lg overflow-hidden shadow-lg">
