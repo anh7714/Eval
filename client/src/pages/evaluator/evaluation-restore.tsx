@@ -165,16 +165,25 @@ export default function EvaluatorEvaluationPage() {
   // 평가 완료 뮤테이션
   const completeEvaluationMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('🚀 평가완료 API 호출 시작:', data);
       const response = await fetch('/api/evaluator/evaluation/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('평가 완료 실패');
-      return response.json();
+      console.log('📥 평가완료 API 응답 상태:', response.status);
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('❌ 평가완료 API 오류:', errorData);
+        throw new Error(`평가 완료 실패: ${response.status} - ${errorData}`);
+      }
+      const result = await response.json();
+      console.log('✅ 평가완료 API 성공:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🎉 평가완료 성공 콜백:', data);
       toast({
         title: "평가 완료",
         description: "평가가 성공적으로 완료되었습니다.",
@@ -187,10 +196,11 @@ export default function EvaluatorEvaluationPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/evaluator/candidates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/evaluator/progress"] });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('💥 평가완료 에러 콜백:', error);
       toast({
         title: "평가 실패",
-        description: "평가 완료 중 오류가 발생했습니다.",
+        description: `평가 완료 중 오류가 발생했습니다: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -210,11 +220,15 @@ export default function EvaluatorEvaluationPage() {
 
   // 평가 완료 함수
   const handleCompleteEvaluation = () => {
+    console.log('🎯 평가완료 버튼 클릭');
+    console.log('📊 현재 평가 점수:', evaluationScores);
+    console.log('👤 선택된 평가대상:', selectedCandidate);
     setShowConfirmDialog(true);
   };
 
   // 평가 완료 확인 함수
   const confirmCompleteEvaluation = () => {
+    console.log('✅ 평가완료 확인 버튼 클릭');
     const totalScore = Object.values(evaluationScores).reduce((sum, score) => sum + score, 0);
     const data = {
       candidateId: selectedCandidate.id,
@@ -222,6 +236,7 @@ export default function EvaluatorEvaluationPage() {
       totalScore,
       isCompleted: true
     };
+    console.log('📤 평가완료 데이터 전송:', data);
     completeEvaluationMutation.mutate(data);
   };
 
