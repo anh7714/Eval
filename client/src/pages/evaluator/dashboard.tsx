@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, User, FileText, ClipboardList, ArrowRight, LogOut } from "lucide-react";
+import { CheckCircle, Clock, ClipboardList, ArrowRight, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
@@ -212,58 +212,7 @@ export default function EvaluatorDashboard() {
           </CardContent>
         </Card>
 
-        {/* 평가위원 정보 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>평가위원 정보</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">성명:</span>
-                  <span className="text-sm">{evaluator?.name || '정보 없음'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">소속:</span>
-                  <span className="text-sm">{evaluator?.department || '정보 없음'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">상태:</span>
-                  <Badge variant="outline" className="text-xs">활성</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>시스템 정보</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">평가 시스템:</span>
-                  <span className="text-sm">종합평가시스템</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">평가 유형:</span>
-                  <span className="text-sm">종합 평가</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">상태:</span>
-                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800">운영 중</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* 로그아웃 */}
         <Card className="border-red-200 bg-red-50">
