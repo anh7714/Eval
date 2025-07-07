@@ -1392,6 +1392,9 @@ export default function EvaluationItemManagement() {
             </Card>
           </div>
         )}
+
+        {/* 사전 점수 관리 모달 */}
+        {showPresetScoreModal && <PresetScoreModal />}
       </div>
     </div>
   );
@@ -1417,6 +1420,9 @@ export default function EvaluationItemManagement() {
 
     // 정량 평가항목 필터링
     const quantitativeItems = (items as any[]).filter(item => item.isQuantitative);
+    
+    console.log('🔍 모달 열림 - quantitativeItems:', quantitativeItems);
+    console.log('🔍 모달 열림 - candidates:', candidates);
     
     // 사전 점수 데이터 로드
     useEffect(() => {
