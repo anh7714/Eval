@@ -1598,50 +1598,6 @@ export class SupabaseStorage {
       throw error;
     }
   }
-
-  // 새로운 사전점수 관리 메서드
-  async getCandidatePresetScores() {
-    try {
-      const { data, error } = await supabase
-        .from('candidate_preset_scores')
-        .select('*');
-      
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('사전점수 조회 오류:', error);
-      return [];
-    }
-  }
-
-  async saveCandidatePresetScore(scoreData: {
-    candidateId: number;
-    evaluationItemId: number;
-    presetScore: number;
-    applyPreset: boolean;
-  }) {
-    try {
-      const { data, error } = await supabase
-        .from('candidate_preset_scores')
-        .upsert({
-          candidate_id: scoreData.candidateId,
-          evaluation_item_id: scoreData.evaluationItemId,
-          preset_score: scoreData.presetScore,
-          apply_preset: scoreData.applyPreset,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'candidate_id,evaluation_item_id'
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('사전점수 저장 오류:', error);
-      throw error;
-    }
-  }
 }
 
 // Initialize and export storage instance
