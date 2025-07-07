@@ -1395,7 +1395,7 @@ export default function EvaluationItemManagement() {
 
         {/* 사전 점수 관리 모달 */}
         {showPresetScoreModal && (
-          <PresetScoreModal />
+          <PresetScoreModalComponent />
         )}
       </div>
     </div>
@@ -1416,7 +1416,7 @@ export default function EvaluationItemManagement() {
   }
 
   // 사전 점수 관리 모달 컴포넌트
-  const PresetScoreModal = () => {
+  const PresetScoreModalComponent = () => {
     const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
