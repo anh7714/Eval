@@ -124,13 +124,51 @@ export const evaluationSubmissions = pgTable("evaluation_submissions", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
-// Preset Scores (Pre-configured scores for quantitative evaluation items)
+// Preset Score Options (Pre-configured score options for quantitative evaluation items)
+export const presetScoreOptions = pgTable("preset_score_options", {
+  id: serial("id").primaryKey(),
+  evaluationItemId: integer("evaluation_item_id").references(() => evaluationItems.id).notNull(),
+  label: text("label").notNull(), // 예: "우수", "보통", "미흡", "매우미흡"
+  score: integer("score").notNull(), // 해당 등급의 점수
+  description: text("description"), // 등급 설명
+  sortOrder: integer("sort_order").notNull().default(0), // 표시 순서
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Candidate Preset Scores (Individual preset scores for each candidate and evaluation item)
+export const candidatePresetScores = pgTable("candidate_preset_scores", {
+  id: serial("id").primaryKey(),
+  candidateId: integer("candidate_id").references(() => candidates.id).notNull(),
+  evaluationItemId: integer("evaluation_item_id").references(() => evaluationItems.id).notNull(),
+  presetScore: integer("preset_score").notNull(), // 사전 점수 (숫자 직접 입력)
+  applyPreset: boolean("apply_preset").notNull().default(false), // 사전점수 적용 여부
+  notes: text("notes"), // 메모
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Preset Scores (Deprecated - keeping for backward compatibility)
 export const presetScores = pgTable("preset_scores", {
   id: serial("id").primaryKey(),
   candidateId: integer("candidate_id").references(() => candidates.id).notNull(),
   itemId: integer("item_id").references(() => evaluationItems.id).notNull(),
   score: integer("score").notNull(),
   notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Evaluation Templates (Templates for evaluation forms)
+export const evaluationTemplates = pgTable("evaluation_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  templateData: jsonb("template_data").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -187,6 +225,24 @@ export const insertPresetScoreSchema = createInsertSchema(presetScores).omit({
   updatedAt: true,
 });
 
+export const insertPresetScoreOptionSchema = createInsertSchema(presetScoreOptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCandidatePresetScoreSchema = createInsertSchema(candidatePresetScores).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEvaluationTemplateSchema = createInsertSchema(evaluationTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Infer types
 export type SystemConfig = typeof systemConfig.$inferSelect;
 export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
@@ -217,3 +273,12 @@ export type InsertEvaluationSubmission = z.infer<typeof insertEvaluationSubmissi
 
 export type PresetScore = typeof presetScores.$inferSelect;
 export type InsertPresetScore = z.infer<typeof insertPresetScoreSchema>;
+
+export type PresetScoreOption = typeof presetScoreOptions.$inferSelect;
+export type InsertPresetScoreOption = z.infer<typeof insertPresetScoreOptionSchema>;
+
+export type CandidatePresetScore = typeof candidatePresetScores.$inferSelect;
+export type InsertCandidatePresetScore = z.infer<typeof insertCandidatePresetScoreSchema>;
+
+export type EvaluationTemplate = typeof evaluationTemplates.$inferSelect;
+export type InsertEvaluationTemplate = z.infer<typeof insertEvaluationTemplateSchema>;

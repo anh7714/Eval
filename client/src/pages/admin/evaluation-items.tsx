@@ -48,6 +48,7 @@ export default function EvaluationItemManagement() {
   const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   const [batchPrintMode, setBatchPrintMode] = useState(false);
+  const [showPresetScoreModal, setShowPresetScoreModal] = useState(false);
 
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
@@ -117,6 +118,29 @@ export default function EvaluationItemManagement() {
       console.log('✅ 평가항목 조회 성공:', items);
     }
   }, [categories, items]);
+
+  // 기본 템플릿 로드
+  useEffect(() => {
+    const loadDefaultTemplate = async () => {
+      try {
+        const response = await fetch('/api/admin/templates/default', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const template = await response.json();
+          console.log('✅ 기본 템플릿 로드 성공:', template);
+          setCurrentTemplate(template.templateData);
+        } else if (response.status !== 404) {
+          console.log('ℹ️ 저장된 기본 템플릿이 없습니다. 기본값을 사용합니다.');
+        }
+      } catch (error) {
+        console.log('ℹ️ 기본 템플릿 로드 실패. 기본값을 사용합니다:', error);
+      }
+    };
+
+    loadDefaultTemplate();
+  }, []);
 
   // 실시간 구독 + 폴링 백업 시스템 (카테고리용)
   useEffect(() => {
@@ -285,6 +309,7 @@ export default function EvaluationItemManagement() {
   const saveTemplateMutation = useMutation({
     mutationFn: async (template: any) => {
       console.log('📝 심사표 저장 시작 (덮어쓰기 방식)...', template);
+      console.log('📋 저장할 템플릿 구조:', JSON.stringify(template, null, 2));
       
       // 1. 기존 데이터 모두 삭제
       console.log('🗑️ 기존 데이터 삭제 중...');
@@ -364,6 +389,8 @@ export default function EvaluationItemManagement() {
 
         for (let itemIndex = 0; itemIndex < section.items.length; itemIndex++) {
           const item = section.items[itemIndex];
+          console.log(`📋 평가항목 데이터 생성: ${item.text}, 유형: ${item.type}, 정량여부: ${item.type === '정량'}`);
+          
           const itemData = {
             categoryId: categoryId,
             code: `ITEM_${Date.now()}_${sectionIndex}_${itemIndex}`,
@@ -376,6 +403,8 @@ export default function EvaluationItemManagement() {
             sortOrder: itemIndex + 1,
             isActive: true
           };
+          
+          console.log(`💾 저장할 평가항목 데이터:`, itemData);
 
           const response = await fetch('/api/admin/evaluation-items', {
             method: 'POST',
@@ -391,9 +420,42 @@ export default function EvaluationItemManagement() {
           const savedItem = await response.json();
           savedItems.push(savedItem);
           
+          // 4. 정량 평가항목의 경우 preset 점수 저장 (나중에 구현)
+          if (item.type === '정량') {
+            console.log(`✅ 정량 평가항목 저장 완료: ${item.text} (ID: ${savedItem.id})`);
+            // TODO: 정량 평가항목용 preset 점수 시스템은 별도 구현 예정
+          }
+          
           // 서버 부하 방지를 위한 지연
           await new Promise(resolve => setTimeout(resolve, 50));
         }
+      }
+
+      // 7. 템플릿을 데이터베이스에 저장
+      try {
+        const templateData = {
+          name: "기본 평가표 템플릿",
+          title: template.title,
+          description: "평가표 관리에서 생성된 기본 템플릿",
+          templateData: template,
+          isActive: true,
+          isDefault: true
+        };
+
+        const templateResponse = await fetch('/api/admin/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(templateData)
+        });
+
+        if (templateResponse.ok) {
+          console.log('✅ 템플릿이 데이터베이스에 저장되었습니다');
+        } else {
+          console.warn('⚠️ 템플릿 저장 실패, 평가항목은 정상 저장됨');
+        }
+      } catch (error) {
+        console.warn('⚠️ 템플릿 저장 중 오류:', error);
       }
 
       return { savedCategories, savedItems };
@@ -437,7 +499,7 @@ export default function EvaluationItemManagement() {
         .map((item: any, index: number) => ({
           id: index + 1,
           text: item.name,
-          type: '정성', // 기본값으로 설정
+          type: item.isQuantitative ? '정량' : '정성', // 데이터베이스 값 기반 매핑
           points: item.maxScore || 0,
           score: 0
         }))
@@ -1035,11 +1097,46 @@ export default function EvaluationItemManagement() {
                       <Upload className="h-4 w-4 mr-2" />
                       {saveTemplateMutation.isPending ? "저장 중..." : "심사표 저장"}
                     </Button>
+                    
+                    {/* 테스트용 데이터 정리 버튼 */}
+                    <Button 
+                      onClick={async () => {
+                        if (window.confirm('모든 평가 데이터를 정리하시겠습니까? (카테고리, 평가항목, 템플릿)')) {
+                          try {
+                            const response = await fetch('/api/admin/clear-evaluation-data', {
+                              method: 'POST',
+                              credentials: 'include'
+                            });
+                            if (response.ok) {
+                              toast({ title: "성공", description: "평가 데이터 정리 완료" });
+                              window.location.reload();
+                            } else {
+                              toast({ title: "오류", description: "데이터 정리 실패", variant: "destructive" });
+                            }
+                          } catch (error) {
+                            toast({ title: "오류", description: `오류 발생: ${error}`, variant: "destructive" });
+                          }
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-700"
+                      size="sm"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      데이터 정리
+                    </Button>
                     {isEditing && (
                       <>
                         <Button onClick={addSection} size="sm">
                           <Plus className="h-4 w-4 mr-2" />
                           영역 추가
+                        </Button>
+                        <Button 
+                          onClick={() => setShowPresetScoreModal(true)} 
+                          size="sm" 
+                          variant="outline" 
+                          className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
+                        >
+                          사전점수 관리
                         </Button>
                         <Button onClick={addColumn} size="sm" variant="secondary">
                           <Plus className="h-4 w-4 mr-2" />
@@ -1295,6 +1392,11 @@ export default function EvaluationItemManagement() {
             </Card>
           </div>
         )}
+
+        {/* 사전 점수 관리 모달 */}
+        {showPresetScoreModal && (
+          <PresetScoreModalComponent />
+        )}
       </div>
     </div>
   );
@@ -1312,6 +1414,148 @@ export default function EvaluationItemManagement() {
       }
     }, 3000);
   }
+
+  // 사전 점수 관리 모달 컴포넌트
+  const PresetScoreModalComponent = () => {
+    const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    // 안전한 데이터 확인
+    const safeItems = Array.isArray(items) ? items : [];
+    const safeCandidates = Array.isArray(candidates) ? candidates : [];
+    
+    // 정량 평가항목 필터링 - 모든 평가항목을 정량으로 처리 (임시)
+    const quantitativeItems = safeItems; // 모든 항목을 정량으로 처리
+    
+    console.log('🔍 모달 열림 - quantitativeItems:', quantitativeItems);
+    console.log('🔍 모달 열림 - candidates:', safeCandidates);
+    
+    // 사전 점수 데이터 로드
+    useEffect(() => {
+      const loadPresetScores = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/admin/candidate-preset-scores', {
+            credentials: 'include'
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setCandidatePresetScores(data);
+            console.log('🔍 로드된 사전점수 데이터:', data);
+          }
+        } catch (error) {
+          console.error('사전 점수 로드 오류:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadPresetScores();
+    }, []);
+
+    // 사전 점수 저장
+    const savePresetScore = async (candidateId: number, itemId: number, score: number, applyPreset?: boolean) => {
+      try {
+        const response = await fetch('/api/admin/candidate-preset-scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            candidateId,
+            evaluationItemId: itemId,
+            presetScore: score,
+            applyPreset: applyPreset
+          })
+        });
+        
+        if (response.ok) {
+          toast({ title: "성공", description: "사전 점수가 저장되었습니다." });
+          // 데이터 다시 로드
+          const data = await response.json();
+          setCandidatePresetScores(prev => {
+            const filtered = prev.filter(p => !(p.candidate_id === candidateId && p.evaluation_item_id === itemId));
+            return [...filtered, data];
+          });
+        }
+      } catch (error) {
+        console.error('사전 점수 저장 오류:', error);
+        toast({ title: "오류", description: "사전 점수 저장 중 오류가 발생했습니다.", variant: "destructive" });
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-2 text-gray-600">로딩 중...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {quantitativeItems.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">평가항목이 없습니다.</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  먼저 평가항목을 추가해주세요.
+                </p>
+              </div>
+            ) : (
+              quantitativeItems.map(item => (
+                <div key={item.id} className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-3">
+                    {item.name} (최대 {item.maxScore}점)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {safeCandidates.length > 0 ? safeCandidates.map(candidate => {
+                      const existingScore = candidatePresetScores.find(
+                        p => p.candidate_id === candidate.id && p.evaluation_item_id === item.id
+                      );
+                      
+                      return (
+                        <div key={candidate.id} className="flex items-center gap-2">
+                          <span className="text-sm flex-1">{candidate.name}</span>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              max={item.maxScore || 100}
+                              defaultValue={existingScore?.preset_score || ''}
+                              placeholder="점수"
+                              className="w-20 text-center"
+                              onBlur={(e) => {
+                                const score = parseInt(e.target.value);
+                                if (!isNaN(score) && score >= 0 && score <= (item.maxScore || 100)) {
+                                  savePresetScore(candidate.id, item.id, score);
+                                }
+                              }}
+                            />
+                            <select 
+                              className="w-20 text-xs border rounded px-1 py-1 bg-white"
+                              defaultValue={existingScore?.apply_preset ? "yes" : "no"}
+                              onChange={(e) => {
+                                const applyPreset = e.target.value === "yes";
+                                const currentScore = existingScore?.preset_score || 0;
+                                savePresetScore(candidate.id, item.id, currentScore, applyPreset);
+                              }}
+                            >
+                              <option value="no">미적용</option>
+                              <option value="yes">적용</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <p className="text-gray-500">평가대상이 없습니다.</p>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // 🎯 통합된 평가표 HTML 생성 함수 (일반/배치/개별 인쇄 모두 공통 사용)
   function generateEvaluationHTML(evaluatorInfo: any, candidateInfo: any, templateData = currentTemplate) {
