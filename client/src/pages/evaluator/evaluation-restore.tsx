@@ -702,26 +702,32 @@ export default function EvaluatorEvaluationPage() {
                     <p className="text-slate-200 text-sm">평가 진행 중</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  {/* 진행률 정보 */}
-                  <div className="flex items-center space-x-3 text-sm">
-                    <div className="bg-blue-500 bg-opacity-90 px-3 py-1 rounded-full">
-                      <span className="text-white font-medium">완료: {progressData?.completed || 0}</span>
-                    </div>
-                    <div className="bg-gray-500 bg-opacity-90 px-3 py-1 rounded-full">
-                      <span className="text-white font-medium">전체: {progressData?.total || 0}</span>
-                    </div>
-                    <div className="bg-green-500 bg-opacity-90 px-3 py-1 rounded-full">
-                      <span className="text-white font-medium">진행률: {progressData?.progress || 0}%</span>
-                    </div>
-                  </div>
+                <div className="flex items-center space-x-3">
+                  {/* 상단 액션 버튼들 */}
                   <Button
                     onClick={() => setIsEvaluationModalOpen(false)}
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg"
+                    className="bg-white bg-opacity-10 border-white border-opacity-30 text-white hover:bg-white hover:bg-opacity-20 rounded-md px-4 py-2 text-sm font-medium"
                   >
-                    <X className="h-5 w-5" />
+                    목록으로
+                  </Button>
+                  <Button
+                    onClick={handleTemporarySave}
+                    variant="outline"
+                    size="sm"
+                    className="bg-slate-600 bg-opacity-90 border-slate-500 text-white hover:bg-slate-500 rounded-md px-4 py-2 text-sm font-medium"
+                  >
+                    임시저장
+                  </Button>
+                  <Button
+                    onClick={handleCompleteEvaluation}
+                    variant="default"
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 text-sm font-medium"
+                    disabled={completeEvaluationMutation.isPending}
+                  >
+                    {completeEvaluationMutation.isPending ? "완료 중..." : "평가완료"}
                   </Button>
                 </div>
               </div>
@@ -849,31 +855,7 @@ export default function EvaluatorEvaluationPage() {
 
 
 
-                    {/* 하단 버튼들 */}
-                    <div className="flex justify-end space-x-4 mt-6 pt-4 border-t border-gray-200">
-                      <Button
-                        variant="outline"
-                        className="px-6 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsEvaluationModalOpen(false)}
-                      >
-                        목록으로
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="px-6 py-2 bg-gray-600 text-white hover:bg-gray-700 border-2 border-gray-600"
-                        onClick={handleTemporarySave}
-                        disabled={saveTemporaryMutation.isPending}
-                      >
-                        {saveTemporaryMutation.isPending ? "저장 중..." : "임시 저장"}
-                      </Button>
-                      <Button
-                        className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-600 shadow-lg"
-                        onClick={handleCompleteEvaluation}
-                        disabled={completeEvaluationMutation.isPending}
-                      >
-                        {completeEvaluationMutation.isPending ? "완료 중..." : "평가 완료"}
-                      </Button>
-                    </div>
+
                   </div>
                 )}
               </div>
