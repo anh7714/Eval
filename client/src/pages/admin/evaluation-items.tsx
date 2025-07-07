@@ -48,7 +48,7 @@ export default function EvaluationItemManagement() {
   const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   const [batchPrintMode, setBatchPrintMode] = useState(false);
-  const [showPresetScoreModal, setShowPresetScoreModal] = useState(false);
+
 
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
@@ -1393,10 +1393,7 @@ export default function EvaluationItemManagement() {
           </div>
         )}
 
-        {/* 사전 점수 관리 모달 */}
-        {showPresetScoreModal && (
-          <PresetScoreModalComponent />
-        )}
+
       </div>
     </div>
   );

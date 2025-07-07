@@ -855,6 +855,14 @@ export default function CandidateManagement() {
               <Download className="h-4 w-4 mr-2" />
               예시파일 다운
             </Button>
+            <Button 
+              onClick={() => setShowPresetScoreModal(true)} 
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              사전점수 관리
+            </Button>
             <Button onClick={() => setIsAddingCandidate(true)}>
               <Plus className="h-4 w-4 mr-2" />
               평가대상 추가
@@ -1537,6 +1545,169 @@ export default function CandidateManagement() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* 사전점수 관리 모달 */}
+      {showPresetScoreModal && <PresetScoreManagementModal />}
     </div>
   );
+
+  // 사전점수 관리 모달 컴포넌트
+  function PresetScoreManagementModal() {
+    const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    // 평가항목 데이터 로드
+    const { data: items = [] } = useQuery({
+      queryKey: ['/api/admin/evaluation-items'],
+      queryFn: async () => {
+        const response = await fetch('/api/admin/evaluation-items', {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch evaluation items');
+        return response.json();
+      },
+      enabled: showPresetScoreModal,
+    });
+
+    // 사전점수 데이터 로드
+    useEffect(() => {
+      if (!showPresetScoreModal) return;
+      
+      const loadPresetScores = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/admin/candidate-preset-scores', {
+            credentials: 'include'
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setCandidatePresetScores(data);
+          }
+        } catch (error) {
+          console.error('사전 점수 로드 오류:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadPresetScores();
+    }, [showPresetScoreModal]);
+
+    // 사전점수 저장
+    const savePresetScore = async (candidateId: number, itemId: number, score: number, applyPreset: boolean = true) => {
+      try {
+        const response = await fetch('/api/admin/candidate-preset-scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            candidateId,
+            evaluationItemId: itemId,
+            presetScore: score,
+            applyPreset: applyPreset
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCandidatePresetScores(prev => {
+            const filtered = prev.filter(item => 
+              !(item.candidate_id === candidateId && item.evaluation_item_id === itemId)
+            );
+            return [...filtered, data];
+          });
+          toast({ title: "성공", description: "사전 점수가 저장되었습니다." });
+        } else {
+          toast({ title: "오류", description: "사전 점수 저장에 실패했습니다.", variant: "destructive" });
+        }
+      } catch (error) {
+        console.error('사전 점수 저장 오류:', error);
+        toast({ title: "오류", description: "사전 점수 저장 중 오류가 발생했습니다.", variant: "destructive" });
+      }
+    };
+
+    // 정량 평가항목만 필터링
+    const quantitativeItems = items.filter((item: any) => item.isQuantitative || true); // 모든 항목을 정량으로 처리
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[80vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">사전점수 관리</h2>
+            <button
+              onClick={() => setShowPresetScoreModal(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-2 text-gray-600">로딩 중...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {quantitativeItems.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">평가항목이 없습니다.</p>
+                  <p className="text-sm text-gray-500 mt-2">먼저 평가항목을 추가해주세요.</p>
+                </div>
+              ) : (
+                quantitativeItems.map((item: any) => (
+                  <div key={item.id} className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">
+                      {item.name} (배점: {item.maxScore || 100}점)
+                    </h3>
+                    <div className="space-y-2">
+                      {candidates.map((candidate: any) => {
+                        const existingScore = candidatePresetScores.find(
+                          score => score.candidate_id === candidate.id && score.evaluation_item_id === item.id
+                        );
+                        
+                        return (
+                          <div key={candidate.id} className="flex items-center gap-2">
+                            <span className="text-sm flex-1 min-w-[200px]">{candidate.name}</span>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max={item.maxScore || 100}
+                                defaultValue={existingScore?.preset_score || ''}
+                                placeholder="점수"
+                                className="w-20 text-center"
+                                onBlur={(e) => {
+                                  const score = parseInt(e.target.value);
+                                  if (!isNaN(score) && score >= 0 && score <= (item.maxScore || 100)) {
+                                    const applyPreset = existingScore?.apply_preset ?? true;
+                                    savePresetScore(candidate.id, item.id, score, applyPreset);
+                                  }
+                                }}
+                              />
+                              <select 
+                                className="w-24 text-xs border rounded px-2 py-1 bg-white"
+                                value={existingScore?.apply_preset ? "yes" : "no"}
+                                onChange={(e) => {
+                                  const applyPreset = e.target.value === "yes";
+                                  const currentScore = existingScore?.preset_score || 0;
+                                  savePresetScore(candidate.id, item.id, currentScore, applyPreset);
+                                }}
+                              >
+                                <option value="no">미적용</option>
+                                <option value="yes">적용</option>
+                              </select>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 }
