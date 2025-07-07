@@ -10,7 +10,6 @@ import type {
   EvaluationSubmission,
   CategoryOption,
   PresetScore,
-  EvaluationTemplate,
   InsertSystemConfig,
   InsertAdmin,
   InsertEvaluator,
@@ -19,8 +18,7 @@ import type {
   InsertCandidate,
   InsertEvaluation,
   InsertCategoryOption,
-  InsertPresetScore,
-  InsertEvaluationTemplate
+  InsertPresetScore
 } from '../shared/schema';
 
 let supabase: ReturnType<typeof createClient>;
@@ -1069,8 +1067,6 @@ export class SupabaseStorage {
       weight: data.weight,
       sortOrder: data.sort_order,
       isActive: data.is_active,
-      isQuantitative: data.is_quantitative,
-      hasPresetScores: data.has_preset_scores,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at)
     };
@@ -1085,9 +1081,7 @@ export class SupabaseStorage {
       max_score: item.maxScore,
       weight: item.weight,
       sort_order: item.sortOrder,
-      is_active: item.isActive,
-      is_quantitative: item.isQuantitative,
-      has_preset_scores: item.hasPresetScores
+      is_active: item.isActive
     };
   }
 
@@ -1348,168 +1342,6 @@ export class SupabaseStorage {
       score: presetScore.score,
       notes: presetScore.notes
     };
-  }
-
-  // ===== EVALUATION TEMPLATES 관리 메서드 =====
-  
-  async getEvaluationTemplates(): Promise<EvaluationTemplate[]> {
-    try {
-      const { data, error } = await supabase
-        .from('evaluation_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('is_default', { ascending: false })
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching evaluation templates:', error);
-        throw error;
-      }
-      
-      return data?.map(this.mapEvaluationTemplate) || [];
-    } catch (error) {
-      console.error('Error in getEvaluationTemplates:', error);
-      throw error;
-    }
-  }
-
-  async getDefaultEvaluationTemplate(): Promise<EvaluationTemplate | undefined> {
-    try {
-      const { data, error } = await supabase
-        .from('evaluation_templates')
-        .select('*')
-        .eq('is_active', true)
-        .eq('is_default', true)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
-        console.error('Error fetching default evaluation template:', error);
-        throw error;
-      }
-      
-      return data ? this.mapEvaluationTemplate(data) : undefined;
-    } catch (error) {
-      console.error('Error in getDefaultEvaluationTemplate:', error);
-      throw error;
-    }
-  }
-
-  async createEvaluationTemplate(template: InsertEvaluationTemplate): Promise<EvaluationTemplate> {
-    try {
-      // 새 템플릿이 기본값으로 설정될 경우 기존 기본값 해제
-      if (template.isDefault) {
-        await supabase
-          .from('evaluation_templates')
-          .update({ is_default: false })
-          .eq('is_default', true);
-      }
-
-      const { data, error } = await supabase
-        .from('evaluation_templates')
-        .insert(this.mapToSupabaseEvaluationTemplate(template))
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating evaluation template:', error);
-        throw error;
-      }
-      
-      return this.mapEvaluationTemplate(data);
-    } catch (error) {
-      console.error('Error in createEvaluationTemplate:', error);
-      throw error;
-    }
-  }
-
-  async updateEvaluationTemplate(id: number, template: Partial<InsertEvaluationTemplate>): Promise<EvaluationTemplate> {
-    try {
-      // 새 템플릿이 기본값으로 설정될 경우 기존 기본값 해제
-      if (template.isDefault) {
-        await supabase
-          .from('evaluation_templates')
-          .update({ is_default: false })
-          .eq('is_default', true)
-          .neq('id', id);
-      }
-
-      const { data, error } = await supabase
-        .from('evaluation_templates')
-        .update(this.mapToSupabaseEvaluationTemplate(template))
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error updating evaluation template:', error);
-        throw error;
-      }
-      
-      return this.mapEvaluationTemplate(data);
-    } catch (error) {
-      console.error('Error in updateEvaluationTemplate:', error);
-      throw error;
-    }
-  }
-
-  async deleteEvaluationTemplate(id: number): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('evaluation_templates')
-        .update({ is_active: false })
-        .eq('id', id);
-      
-      if (error) {
-        console.error('Error deleting evaluation template:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error in deleteEvaluationTemplate:', error);
-      throw error;
-    }
-  }
-
-  // Private mapper methods for evaluation templates
-  private mapEvaluationTemplate(data: any): EvaluationTemplate {
-    return {
-      id: data.id,
-      name: data.name,
-      title: data.title,
-      description: data.description,
-      templateData: data.template_data,
-      isActive: data.is_active,
-      isDefault: data.is_default,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
-    };
-  }
-
-  private mapToSupabaseEvaluationTemplate(template: Partial<InsertEvaluationTemplate>): any {
-    return {
-      name: template.name,
-      title: template.title,
-      description: template.description,
-      template_data: template.templateData,
-      is_active: template.isActive,
-      is_default: template.isDefault
-    };
-  }
-
-  async clearAllEvaluationData(): Promise<void> {
-    try {
-      console.log('🧹 평가 데이터 정리 시작');
-      
-      // Delete in order due to foreign key constraints
-      await supabase.from('preset_scores').delete().neq('id', 0);
-      await supabase.from('evaluation_items').delete().neq('id', 0);
-      await supabase.from('evaluation_categories').delete().eq('type', 'evaluation');
-      await supabase.from('evaluation_templates').delete().neq('id', 0);
-      
-      console.log('✅ 평가 데이터 정리 완료');
-    } catch (error) {
-      console.error('❌ 평가 데이터 정리 오류:', error);
-      throw error;
-    }
   }
 }
 

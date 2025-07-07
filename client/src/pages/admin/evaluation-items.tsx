@@ -118,29 +118,6 @@ export default function EvaluationItemManagement() {
     }
   }, [categories, items]);
 
-  // 기본 템플릿 로드
-  useEffect(() => {
-    const loadDefaultTemplate = async () => {
-      try {
-        const response = await fetch('/api/admin/templates/default', {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const template = await response.json();
-          console.log('✅ 기본 템플릿 로드 성공:', template);
-          setCurrentTemplate(template.templateData);
-        } else if (response.status !== 404) {
-          console.log('ℹ️ 저장된 기본 템플릿이 없습니다. 기본값을 사용합니다.');
-        }
-      } catch (error) {
-        console.log('ℹ️ 기본 템플릿 로드 실패. 기본값을 사용합니다:', error);
-      }
-    };
-
-    loadDefaultTemplate();
-  }, []);
-
   // 실시간 구독 + 폴링 백업 시스템 (카테고리용)
   useEffect(() => {
     let categoriesChannel: any;
@@ -414,68 +391,9 @@ export default function EvaluationItemManagement() {
           const savedItem = await response.json();
           savedItems.push(savedItem);
           
-          // 4. 정량 평가항목의 경우 preset 점수 저장
-          if (item.type === '정량') {
-            const presetScores = [
-              { score: item.points || 0, label: '우수' },
-              { score: Math.round((item.points || 0) * 0.8), label: '보통' },
-              { score: Math.round((item.points || 0) * 0.6), label: '미흡' },
-              { score: 0, label: '매우 미흡' }
-            ];
-
-            for (const preset of presetScores) {
-              const presetData = {
-                evaluationItemId: savedItem.id,
-                score: preset.score,
-                label: preset.label,
-                description: `${preset.label} 수준의 평가 점수`,
-                sortOrder: presetScores.indexOf(preset) + 1,
-                isActive: true
-              };
-
-              const presetResponse = await fetch('/api/admin/preset-scores', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(presetData)
-              });
-
-              if (!presetResponse.ok) {
-                console.warn(`Preset 점수 저장 실패: ${presetResponse.statusText}`);
-              }
-            }
-          }
-          
           // 서버 부하 방지를 위한 지연
           await new Promise(resolve => setTimeout(resolve, 50));
         }
-      }
-
-      // 7. 템플릿을 데이터베이스에 저장
-      try {
-        const templateData = {
-          name: "기본 평가표 템플릿",
-          title: template.title,
-          description: "평가표 관리에서 생성된 기본 템플릿",
-          templateData: template,
-          isActive: true,
-          isDefault: true
-        };
-
-        const templateResponse = await fetch('/api/admin/templates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(templateData)
-        });
-
-        if (templateResponse.ok) {
-          console.log('✅ 템플릿이 데이터베이스에 저장되었습니다');
-        } else {
-          console.warn('⚠️ 템플릿 저장 실패, 평가항목은 정상 저장됨');
-        }
-      } catch (error) {
-        console.warn('⚠️ 템플릿 저장 중 오류:', error);
       }
 
       return { savedCategories, savedItems };
@@ -1116,33 +1034,6 @@ export default function EvaluationItemManagement() {
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       {saveTemplateMutation.isPending ? "저장 중..." : "심사표 저장"}
-                    </Button>
-                    
-                    {/* 테스트용 데이터 정리 버튼 */}
-                    <Button 
-                      onClick={async () => {
-                        if (window.confirm('모든 평가 데이터를 정리하시겠습니까? (카테고리, 평가항목, 템플릿)')) {
-                          try {
-                            const response = await fetch('/api/admin/clear-evaluation-data', {
-                              method: 'POST',
-                              credentials: 'include'
-                            });
-                            if (response.ok) {
-                              toast({ title: "성공", description: "평가 데이터 정리 완료" });
-                              window.location.reload();
-                            } else {
-                              toast({ title: "오류", description: "데이터 정리 실패", variant: "destructive" });
-                            }
-                          } catch (error) {
-                            toast({ title: "오류", description: `오류 발생: ${error}`, variant: "destructive" });
-                          }
-                        }
-                      }}
-                      className="bg-red-600 hover:bg-red-700"
-                      size="sm"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      데이터 정리
                     </Button>
                     {isEditing && (
                       <>
