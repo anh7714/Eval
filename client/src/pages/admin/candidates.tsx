@@ -1676,7 +1676,7 @@ export default function CandidateManagement() {
                                 defaultValue={existingScore?.preset_score || ''}
                                 placeholder="점수"
                                 className="w-20 text-center"
-                                onBlur={(e) => {
+                                onChange={(e) => {
                                   const score = parseInt(e.target.value);
                                   if (!isNaN(score) && score >= 0 && score <= (item.maxScore || 100)) {
                                     const applyPreset = existingScore?.apply_preset ?? true;

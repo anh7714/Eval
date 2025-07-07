@@ -1275,6 +1275,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 사전점수 관련 라우트 추가
+  app.get('/api/admin/candidate-preset-scores', requireAdminAuth, async (req, res) => {
+    try {
+      const presetScores = await storage.getCandidatePresetScores();
+      res.json(presetScores);
+    } catch (error) {
+      console.error('사전점수 조회 오류:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/admin/candidate-preset-scores', requireAdminAuth, async (req, res) => {
+    try {
+      const { candidateId, evaluationItemId, presetScore, applyPreset } = req.body;
+      
+      const result = await storage.saveCandidatePresetScore({
+        candidateId,
+        evaluationItemId,
+        presetScore,
+        applyPreset: applyPreset ?? true
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('사전점수 저장 오류:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
