@@ -24,6 +24,12 @@ export default function CandidateManagement() {
   const [editingCandidate, setEditingCandidate] = useState<any>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   
+  // 사전점수 입력 관련 상태
+  const [showPresetScoreModal, setShowPresetScoreModal] = useState(false);
+  const [uploadedCandidates, setUploadedCandidates] = useState<any[]>([]);
+  const [quantitativeItems, setQuantitativeItems] = useState<any[]>([]);
+  const [presetScores, setPresetScores] = useState<{[key: string]: number}>({});
+  
   // 테이블 관련 상태
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -132,6 +138,17 @@ export default function CandidateManagement() {
     refetchOnMount: false, // 마운트 시에는 캐시 사용
     refetchInterval: false, // 자동 새로고침 비활성화
     retry: 1,
+  });
+
+  // 정량 평가항목 조회
+  const { data: evaluationItems = [] } = useQuery({
+    queryKey: ["evaluation-items"],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/evaluation-items');
+      if (!response.ok) throw new Error('Failed to fetch evaluation items');
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5분
   });
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -645,7 +662,19 @@ export default function CandidateManagement() {
         toast({ title: "오류", description: "유효한 평가대상 데이터가 없습니다.", variant: "destructive" });
         return;
       }
-      bulkCreateMutation.mutate(validCandidates);
+
+      // 정량 평가항목이 있는지 확인
+      const quantitativeEvaluationItems = evaluationItems.filter((item: any) => item.isQuantitative);
+      
+      if (quantitativeEvaluationItems.length > 0) {
+        // 사전점수 입력을 위해 모달 열기
+        setUploadedCandidates(validCandidates);
+        setQuantitativeItems(quantitativeEvaluationItems);
+        setShowPresetScoreModal(true);
+      } else {
+        // 정량 평가항목이 없으면 바로 업로드
+        bulkCreateMutation.mutate(validCandidates);
+      }
     } catch (error) {
       toast({ title: "오류", description: "엑셀 파일 처리 중 오류가 발생했습니다.", variant: "destructive" });
     }
@@ -687,6 +716,89 @@ export default function CandidateManagement() {
     ];
     exportToExcel(templateData, `평가대상_업로드_템플릿.xlsx`);
     toast({ title: "성공", description: "업로드 템플릿 파일이 다운로드되었습니다." });
+  };
+
+  // 사전점수 저장 뮤테이션
+  const savePresetScoresMutation = useMutation({
+    mutationFn: async ({ candidateId, scores }: { candidateId: number; scores: {[key: string]: number} }) => {
+      const promises = Object.entries(scores).map(([itemId, score]) => {
+        return fetch('/api/admin/preset-scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidateId,
+            evaluationItemId: parseInt(itemId),
+            score
+          })
+        });
+      });
+      
+      const results = await Promise.all(promises);
+      const failedResults = results.filter(r => !r.ok);
+      
+      if (failedResults.length > 0) {
+        throw new Error('Failed to save some preset scores');
+      }
+      
+      return results;
+    },
+    onError: () => {
+      toast({ title: "오류", description: "사전점수 저장에 실패했습니다.", variant: "destructive" });
+    }
+  });
+
+  // 사전점수 입력 완료 후 평가대상들을 일괄 생성
+  const handlePresetScoreSubmit = async () => {
+    try {
+      // 1. 먼저 평가대상들을 생성
+      const response = await fetch("/api/admin/candidates/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ candidates: uploadedCandidates }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to create candidates");
+      const newCandidates = await response.json();
+
+      // 2. 생성된 평가대상들에 대해 사전점수 저장
+      for (let i = 0; i < newCandidates.length; i++) {
+        const candidate = newCandidates[i];
+        const candidateScores: {[key: string]: number} = {};
+        
+        // 각 정량 평가항목에 대해 사전점수 설정 (업로드 순서 기준)
+        quantitativeItems.forEach((item: any) => {
+          const scoreKey = `${i}-${item.id}`;
+          if (presetScores[scoreKey] !== undefined) {
+            candidateScores[item.id] = presetScores[scoreKey];
+          }
+        });
+        
+        if (Object.keys(candidateScores).length > 0) {
+          await savePresetScoresMutation.mutateAsync({
+            candidateId: candidate.id,
+            scores: candidateScores
+          });
+        }
+      }
+
+      // 3. 캐시 업데이트 및 성공 메시지
+      queryClient.setQueryData(['candidates'], (old: any[]) => [...(old || []), ...newCandidates]);
+      await refetch();
+      
+      toast({ 
+        title: "성공", 
+        description: `${newCandidates.length}명의 평가대상과 사전점수가 저장되었습니다.` 
+      });
+
+      // 4. 모달 닫기 및 상태 초기화
+      setShowPresetScoreModal(false);
+      setUploadedCandidates([]);
+      setQuantitativeItems([]);
+      setPresetScores({});
+      
+    } catch (error) {
+      toast({ title: "오류", description: "평가대상 및 사전점수 저장에 실패했습니다.", variant: "destructive" });
+    }
   };
 
   const isAnyOperationInProgress = 
@@ -1332,6 +1444,94 @@ export default function CandidateManagement() {
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 사전점수 입력 모달 */}
+        <Dialog open={showPresetScoreModal} onOpenChange={setShowPresetScoreModal}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">
+                사전점수 입력
+              </DialogTitle>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>• 업로드된 평가대상: <span className="font-semibold">{uploadedCandidates.length}명</span></p>
+                <p>• 정량 평가항목: <span className="font-semibold">{quantitativeItems.length}개</span></p>
+                <p>• 정량 평가항목에 대한 사전점수를 각 평가대상별로 입력하세요.</p>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* 평가대상별 사전점수 입력 */}
+              {uploadedCandidates.map((candidate: any, candidateIndex: number) => (
+                <Card key={candidateIndex} className="border border-gray-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg text-gray-800">
+                      {candidateIndex + 1}. {candidate.name}
+                    </CardTitle>
+                    <CardDescription>
+                      {candidate.department} | {candidate.position} | {candidate.category}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {quantitativeItems.map((item: any) => {
+                        const scoreKey = `${candidateIndex}-${item.id}`;
+                        return (
+                          <div key={item.id} className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              {item.itemName}
+                            </label>
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max={item.maxScore}
+                                value={presetScores[scoreKey] || ''}
+                                onChange={(e) => {
+                                  const score = parseInt(e.target.value) || 0;
+                                  setPresetScores(prev => ({
+                                    ...prev,
+                                    [scoreKey]: score
+                                  }));
+                                }}
+                                placeholder="점수"
+                                className="flex-1"
+                              />
+                              <span className="text-sm text-gray-500">
+                                / {item.maxScore}점
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* 버튼 영역 */}
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowPresetScoreModal(false);
+                    setUploadedCandidates([]);
+                    setQuantitativeItems([]);
+                    setPresetScores({});
+                  }}
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={handlePresetScoreSubmit}
+                  disabled={savePresetScoresMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {savePresetScoresMutation.isPending ? "저장 중..." : "평가대상 및 사전점수 저장"}
+                </Button>
               </div>
             </div>
           </DialogContent>
