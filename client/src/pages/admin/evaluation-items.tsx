@@ -42,7 +42,6 @@ export default function EvaluationItemManagement() {
     { id: 'type', title: '유형', type: 'select', visible: true, required: false, width: 'w-16', options: ['정량', '정성'] },
     { id: 'points', title: '배점', type: 'number', visible: true, required: true, width: 'w-16' },
     { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
-    { id: 'presetApply', title: '사전점수', type: 'preset', visible: true, required: false, width: 'w-20', quantitativeOnly: true },
   ]);
 
   // 평가위원 및 평가대상 선택
@@ -1312,13 +1311,7 @@ export default function EvaluationItemManagement() {
                                   <span className="text-sm">{itemIndex + 1}. {item.text}</span>
                                 )}
                               </td>
-                              {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => {
-                                // 정량 전용 컬럼인 경우 정성 항목에서는 표시하지 않음
-                                if (column.quantitativeOnly && item.type !== '정량') {
-                                  return <td key={column.id} className="border border-gray-400 px-2 py-2 text-center text-xs text-gray-400">-</td>;
-                                }
-                                
-                                return (
+                              {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
                                 <td key={column.id} className={`border border-gray-400 px-2 py-2 text-center ${column.id === 'type' ? 'type-cell' : column.id === 'points' ? 'points-cell' : column.id === 'score' ? 'score-cell' : ''}`}>
                                   {column.id === 'score' ? (
                                     <div className="flex justify-center items-center">
@@ -1330,16 +1323,6 @@ export default function EvaluationItemManagement() {
                                         min={0}
                                         className="text-xs text-center w-16 mx-auto"
                                       />
-                                    </div>
-                                  ) : column.id === 'presetApply' && item.type === '정량' ? (
-                                    <div className="flex justify-center items-center">
-                                      <select
-                                        className="text-xs border rounded px-1 py-1 w-16"
-                                        defaultValue="no"
-                                      >
-                                        <option value="no">미적용</option>
-                                        <option value="yes">적용</option>
-                                      </select>
                                     </div>
                                   ) : isEditing ? (
                                     column.id === 'type' ? (
@@ -1360,21 +1343,19 @@ export default function EvaluationItemManagement() {
                                         onChange={(e) => updateItem(section.id, item.id, column.id, parseInt(e.target.value) || 0)}
                                         className="text-xs text-center w-16 mx-auto"
                                       />
-                                    ) : column.id !== 'presetApply' ? (
+                                    ) : (
                                       <Input
                                         value={item[column.id] || ''}
                                         onChange={(e) => updateItem(section.id, item.id, column.id, e.target.value)}
                                         className="text-xs text-center w-full"
                                       />
-                                    ) : null
+                                    )
                                   ) : (
                                     <span className="text-xs">
                                       {column.id === 'points' ? `${item[column.id] || 0}점` : (item[column.id] || '')}
                                     </span>
                                   )}
                                 </td>
-                                );
-                              })}
                               ))}
                               {isEditing && (
                                 <td className="border border-gray-400 px-2 py-2 text-center">
