@@ -1437,8 +1437,8 @@ export default function EvaluationItemManagement() {
     const safeItems = Array.isArray(items) ? items : [];
     const safeCandidates = Array.isArray(candidates) ? candidates : [];
     
-    // 정량 평가항목 필터링
-    const quantitativeItems = safeItems.filter(item => item.isQuantitative);
+    // 정량 평가항목 필터링 - 모든 평가항목을 정량으로 처리 (임시)
+    const quantitativeItems = safeItems; // 모든 항목을 정량으로 처리
     
     console.log('🔍 모달 열림 - quantitativeItems:', quantitativeItems);
     console.log('🔍 모달 열림 - candidates:', safeCandidates);
@@ -1454,6 +1454,7 @@ export default function EvaluationItemManagement() {
           if (response.ok) {
             const data = await response.json();
             setCandidatePresetScores(data);
+            console.log('🔍 로드된 사전점수 데이터:', data);
           }
         } catch (error) {
           console.error('사전 점수 로드 오류:', error);
@@ -1505,9 +1506,9 @@ export default function EvaluationItemManagement() {
           <div className="space-y-6">
             {quantitativeItems.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-600">정량 평가항목이 없습니다.</p>
+                <p className="text-gray-600">평가항목이 없습니다.</p>
                 <p className="text-sm text-gray-500 mt-2">
-                  평가항목 편집에서 항목의 유형을 '정량'으로 설정해주세요.
+                  먼저 평가항목을 추가해주세요.
                 </p>
               </div>
             ) : (
@@ -1530,19 +1531,19 @@ export default function EvaluationItemManagement() {
                             <Input
                               type="number"
                               min="0"
-                              max={item.maxScore}
+                              max={item.maxScore || 100}
                               defaultValue={existingScore?.preset_score || ''}
                               placeholder="점수"
                               className="w-20 text-center"
                               onBlur={(e) => {
                                 const score = parseInt(e.target.value);
-                                if (!isNaN(score) && score >= 0 && score <= item.maxScore) {
+                                if (!isNaN(score) && score >= 0 && score <= (item.maxScore || 100)) {
                                   savePresetScore(candidate.id, item.id, score);
                                 }
                               }}
                             />
                             <select 
-                              className="w-16 text-xs border rounded px-1 py-1"
+                              className="w-20 text-xs border rounded px-1 py-1 bg-white"
                               defaultValue={existingScore?.apply_preset ? "yes" : "no"}
                               onChange={(e) => {
                                 const applyPreset = e.target.value === "yes";
