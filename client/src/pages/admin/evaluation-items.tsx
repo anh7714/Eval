@@ -464,6 +464,21 @@ export default function EvaluationItemManagement() {
     retry: 2,
     refetchOnWindowFocus: false,
   });
+  
+  // 디버깅을 위한 데이터 상태 로깅
+  useEffect(() => {
+    console.log('🔍 데이터 상태 업데이트:', {
+      categories: categories.length,
+      items: items.length,
+      categoriesLoading,
+      itemsLoading,
+      categoriesError: categoriesError?.message,
+      itemsError: itemsError?.message
+    });
+    if (items.length > 0) {
+      console.log('🔍 첫 번째 평가항목:', items[0]);
+    }
+  }, [categories, items, categoriesLoading, itemsLoading, categoriesError, itemsError]);
 
   // 에러 상태 로깅
   useEffect(() => {
@@ -1356,6 +1371,23 @@ export default function EvaluationItemManagement() {
               </div>
             </CardHeader>
             <CardContent>
+              {/* 디버깅 정보 */}
+              <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+                <strong>데이터 상태:</strong> 
+                카테고리 {categories.length}개, 평가항목 {items.length}개
+                {categoriesLoading && <span className="text-blue-600"> (카테고리 로딩중...)</span>}
+                {itemsLoading && <span className="text-blue-600"> (평가항목 로딩중...)</span>}
+                {categoriesError && <span className="text-red-600"> (카테고리 오류: {categoriesError.message})</span>}
+                {itemsError && <span className="text-red-600"> (평가항목 오류: {itemsError.message})</span>}
+                {categories.length > 0 && (
+                  <div>카테고리: {categories.map(c => c.name).join(', ')}</div>
+                )}
+                {items.length > 0 && (
+                  <div className="max-w-full overflow-hidden">
+                    평가항목 예시: {items[0]?.name || items[0]?.itemName || 'name 필드 없음'}
+                  </div>
+                )}
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border-2 border-gray-800">
                   <thead>
@@ -1369,38 +1401,50 @@ export default function EvaluationItemManagement() {
                   </thead>
                   <tbody>
                     {/* 실제 데이터베이스 기반으로 템플릿 생성 */}
-                    {categories.map((category) => {
-                      const categoryItems = items.filter(item => item.categoryId === category.id);
-                      const totalPoints = categoryItems.reduce((sum, item) => sum + (item.maxScore || 0), 0);
-                      
-                      return categoryItems.map((item, itemIndex) => (
-                        <tr key={`${category.id}-${item.id}`} className="hover:bg-gray-50">
-                          {itemIndex === 0 && (
-                            <td 
-                              className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-middle text-center"
-                              rowSpan={categoryItems.length}
-                            >
-                              <div className="font-bold text-sm">{category.name}</div>
-                              <div className="text-xs text-gray-600 mt-1">
-                                ({totalPoints}점)
-                              </div>
+                    {categories.length > 0 && items.length > 0 ? (
+                      categories.map((category) => {
+                        const categoryItems = items.filter(item => item.categoryId === category.id);
+                        const totalPoints = categoryItems.reduce((sum, item) => sum + (item.maxScore || 0), 0);
+                        
+                        if (categoryItems.length === 0) return null;
+                        
+                        return categoryItems.map((item, itemIndex) => (
+                          <tr key={`${category.id}-${item.id}`} className="hover:bg-gray-50">
+                            {itemIndex === 0 && (
+                              <td 
+                                className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-middle text-center"
+                                rowSpan={categoryItems.length}
+                              >
+                                <div className="font-bold text-sm">{category.name}</div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  ({totalPoints}점)
+                                </div>
+                              </td>
+                            )}
+                            <td className="border border-gray-400 px-4 py-2 align-middle">
+                              <span className="text-sm">
+                                {itemIndex + 1}. {item.name || item.description || `항목 ID: ${item.id}`}
+                              </span>
                             </td>
-                          )}
-                          <td className="border border-gray-400 px-4 py-2 align-middle">
-                            <span className="text-sm">{itemIndex + 1}. {item.itemName}</span>
-                          </td>
-                          <td className="border border-gray-400 px-2 py-2 text-center align-middle">
-                            <span className="text-xs">{item.isQuantitative ? '정량' : '정성'}</span>
-                          </td>
-                          <td className="border border-gray-400 px-2 py-2 text-center align-middle">
-                            <span className="text-xs">{item.maxScore || 0}점</span>
-                          </td>
-                          <td className="border border-gray-400 px-2 py-2 text-center align-middle">
-                            <span className="text-xs">0점</span>
-                          </td>
-                        </tr>
-                      ));
-                    }).flat()}
+                            <td className="border border-gray-400 px-2 py-2 text-center align-middle">
+                              <span className="text-xs">{item.isQuantitative ? '정량' : '정성'}</span>
+                            </td>
+                            <td className="border border-gray-400 px-2 py-2 text-center align-middle">
+                              <span className="text-xs">{item.maxScore || 0}점</span>
+                            </td>
+                            <td className="border border-gray-400 px-2 py-2 text-center align-middle">
+                              <span className="text-xs">0점</span>
+                            </td>
+                          </tr>
+                        ));
+                      }).flat()
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="border border-gray-400 px-4 py-8 text-center text-gray-500">
+                          평가항목이 없습니다. 관리 모드에서 카테고리와 평가항목을 먼저 추가해주세요.
+                        </td>
+                      </tr>
+                    )}
                     <tr className="bg-yellow-50 font-bold">
                       <td className="border border-gray-400 px-4 py-3 text-center" colSpan={3}>
                         합계
