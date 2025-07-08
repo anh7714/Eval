@@ -205,6 +205,11 @@ This is a comprehensive evaluation management system built for government/profes
 - ✓ 템플릿 구조 기반 심사표 표 형태로 평가자 화면 완전 재구현
 - ✓ API 엔드포인트 추가: /api/admin/templates/default, 사전점수 관련 API들
 - ✓ 1초마다 템플릿 데이터 갱신하여 관리자 변경사항 즉시 반영
+- ✓ 사전점수 관리 모달 UI 개선 및 엑셀 업로드 기능 추가 (2025.07.08)
+- ✓ handlePresetScoreUpload 함수 구현으로 엑셀 일괄 업로드 기능 완성
+- ✓ candidate_preset_scores 테이블 전용 API 구조로 정리 (preset_scores 참조 제거)
+- ✓ 엑셀 템플릿 다운로드 기능 및 사용자 친화적인 모달 디자인 적용
+- ✓ 평가항목별 사전점수 개별 설정 및 적용/미적용 선택 기능 완성
 
 ## User Preferences
 
