@@ -1598,6 +1598,66 @@ export class SupabaseStorage {
       throw error;
     }
   }
+
+  // 평가자용 후보자별 사전점수 조회
+  async getPresetScoresByCandidateId(candidateId: number): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('candidate_preset_scores')
+        .select('*')
+        .eq('candidate_id', candidateId);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('getPresetScoresByCandidateId error:', error);
+      throw error;
+    }
+  }
+
+  // 전체 사전점수 조회
+  async getAllPresetScores(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('candidate_preset_scores')
+        .select('*');
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('getAllPresetScores error:', error);
+      throw error;
+    }
+  }
+
+  // 사전점수 등록/수정 (새로운 형식)
+  async upsertPresetScore(data: {
+    candidateId: number;
+    evaluationItemId: number;
+    presetScore: number;
+    applyPreset: boolean;
+  }): Promise<any> {
+    try {
+      const { data: result, error } = await supabase
+        .from('candidate_preset_scores')
+        .upsert({
+          candidate_id: data.candidateId,
+          evaluation_item_id: data.evaluationItemId,
+          preset_score: data.presetScore,
+          apply_preset: data.applyPreset
+        }, {
+          onConflict: 'candidate_id,evaluation_item_id'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    } catch (error) {
+      console.error('upsertPresetScore error:', error);
+      throw error;
+    }
+  }
 }
 
 // Initialize and export storage instance

@@ -48,6 +48,18 @@ export default function EvaluationForm() {
     queryKey: ["/api/evaluator/evaluation-items"],
   });
 
+  // 관리자 템플릿 데이터 가져오기 (실시간 반영)
+  const { data: adminTemplate, isLoading: templateLoading } = useQuery({
+    queryKey: ["/api/admin/templates/default"],
+    refetchInterval: 1000, // 1초마다 갱신하여 실시간 반영
+  });
+
+  // 사전점수 데이터 가져오기
+  const { data: presetScores = [], isLoading: presetLoading } = useQuery({
+    queryKey: ["/api/admin/candidate-preset-scores", candidateId],
+    enabled: !!candidateId,
+  });
+
   const { data: existingScores, isLoading: scoresLoading } = useQuery({
     queryKey: ["/api/evaluator/scores", candidateId],
     onSuccess: (data) => {
@@ -107,6 +119,23 @@ export default function EvaluationForm() {
   });
 
   const handleScoreChange = (itemId: number, field: 'score' | 'comments', value: string | number) => {
+    // 사전점수가 적용된 항목인지 확인
+    const presetScore = presetScores.find(ps => 
+      ps.evaluation_item_id === itemId && 
+      ps.candidate_id === parseInt(candidateId as string) && 
+      ps.apply_preset
+    );
+    
+    // 사전점수가 적용된 항목은 수정 불가
+    if (presetScore && field === 'score') {
+      toast({ 
+        title: "수정 불가", 
+        description: "사전점수가 적용된 항목은 수정할 수 없습니다.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     const newScore = {
       ...scores[itemId],
       itemId,
@@ -120,6 +149,25 @@ export default function EvaluationForm() {
 
     // 자동 저장
     saveScoreMutation.mutate(newScore);
+  };
+
+  // 사전점수가 적용된 항목인지 확인하는 함수
+  const isPresetApplied = (itemId: number) => {
+    return presetScores.some(ps => 
+      ps.evaluation_item_id === itemId && 
+      ps.candidate_id === parseInt(candidateId as string) && 
+      ps.apply_preset
+    );
+  };
+
+  // 사전점수 값 가져오기
+  const getPresetScore = (itemId: number) => {
+    const presetScore = presetScores.find(ps => 
+      ps.evaluation_item_id === itemId && 
+      ps.candidate_id === parseInt(candidateId as string) && 
+      ps.apply_preset
+    );
+    return presetScore?.preset_score || 0;
   };
 
   const handleSubmit = () => {
@@ -163,7 +211,26 @@ export default function EvaluationForm() {
     return { total, maxTotal };
   };
 
-  if (candidateLoading || itemsLoading || scoresLoading) {
+  // 사전점수가 설정된 항목들을 scores에 자동으로 추가
+  useEffect(() => {
+    if (presetScores && candidateId) {
+      const newScores = { ...scores };
+      
+      presetScores.forEach(ps => {
+        if (ps.apply_preset && ps.candidate_id === parseInt(candidateId as string)) {
+          newScores[ps.evaluation_item_id] = {
+            itemId: ps.evaluation_item_id,
+            score: ps.preset_score,
+            comments: scores[ps.evaluation_item_id]?.comments || ""
+          };
+        }
+      });
+      
+      setScores(newScores);
+    }
+  }, [presetScores, candidateId]);
+
+  if (candidateLoading || itemsLoading || scoresLoading || templateLoading || presetLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -176,14 +243,18 @@ export default function EvaluationForm() {
 
   const progress = getProgress();
   const { total, maxTotal } = getTotalScore();
-  const categorizedItems = items.reduce((acc: any, item: EvaluationItem) => {
-    const categoryName = item.category.categoryName;
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
-    }
-    acc[categoryName].push(item);
-    return acc;
-  }, {});
+  
+  // 관리자 템플릿이 있으면 템플릿 구조를 사용하고, 없으면 기존 방식 사용
+  const useTemplate = adminTemplate && adminTemplate.sections;
+  
+  // 템플릿 섹션별로 항목 ID 매핑
+  const getItemIdFromTemplate = (sectionId: string, itemIndex: number) => {
+    // 실제 항목 ID를 템플릿의 섹션과 항목 인덱스에서 찾기
+    const sectionItems = items.filter(item => 
+      item.category && item.category.categoryName === adminTemplate?.sections?.find(s => s.id === sectionId)?.title
+    );
+    return sectionItems[itemIndex]?.id;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -233,91 +304,157 @@ export default function EvaluationForm() {
           </CardContent>
         </Card>
 
-        {/* 평가 항목들 */}
+        {/* 평가 항목들 - 관리자 템플릿 구조 사용 */}
         <div className="space-y-8">
-          {Object.entries(categorizedItems).map(([categoryName, categoryItems]: [string, any]) => (
-            <Card key={categoryName}>
+          {useTemplate ? (
+            /* 관리자 템플릿을 사용한 심사표 구조 */
+            <Card>
               <CardHeader>
-                <CardTitle className="text-xl">{categoryName}</CardTitle>
-                <CardDescription>
-                  {categoryItems.length}개의 평가 항목
-                </CardDescription>
+                <CardTitle className="text-2xl text-center">{adminTemplate.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {categoryItems.map((item: EvaluationItem, index: number) => (
-                    <div key={item.id} className="space-y-4">
-                      {index > 0 && <Separator />}
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-lg">{item.itemName}</h4>
-                            <p className="text-sm text-gray-600 mb-2">
-                              {item.itemCode} · 최대 {item.maxScore}점 · 가중치 {item.weight}
-                            </p>
-                            {item.description && (
-                              <p className="text-sm text-gray-500">{item.description}</p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium mb-2 block">
-                              점수 (0 ~ {item.maxScore}점)
-                            </label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max={item.maxScore}
-                              value={scores[item.id]?.score || ""}
-                              onChange={(e) => handleScoreChange(
-                                item.id, 
-                                'score', 
-                                Math.min(Math.max(0, parseInt(e.target.value) || 0), item.maxScore)
-                              )}
-                              placeholder="점수 입력"
-                              disabled={submission?.isSubmitted}
-                            />
-                            <div className="flex mt-2">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-4 w-4 cursor-pointer ${
-                                    scores[item.id]?.score >= (star * item.maxScore / 5)
-                                      ? "text-yellow-400 fill-current"
-                                      : "text-gray-300"
-                                  }`}
-                                  onClick={() => !submission?.isSubmitted && handleScoreChange(
-                                    item.id, 
-                                    'score', 
-                                    Math.round(star * item.maxScore / 5)
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-300 px-4 py-2 text-center w-32">구분 ({adminTemplate.totalScore}점)</th>
+                        <th className="border border-gray-300 px-4 py-2 text-center flex-1">세부 항목</th>
+                        <th className="border border-gray-300 px-4 py-2 text-center w-16">유형</th>
+                        <th className="border border-gray-300 px-4 py-2 text-center w-16">배점</th>
+                        <th className="border border-gray-300 px-4 py-2 text-center w-20">평가점수</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminTemplate.sections?.map((section, sectionIndex) => 
+                        section.items?.map((templateItem, itemIndex) => {
+                          const actualItemId = getItemIdFromTemplate(section.id, itemIndex);
+                          const isPreset = actualItemId && isPresetApplied(actualItemId);
+                          const presetScore = actualItemId ? getPresetScore(actualItemId) : 0;
                           
-                          <div>
-                            <label className="text-sm font-medium mb-2 block">
-                              평가 의견
-                            </label>
-                            <Textarea
-                              value={scores[item.id]?.comments || ""}
-                              onChange={(e) => handleScoreChange(item.id, 'comments', e.target.value)}
-                              placeholder="평가에 대한 의견을 작성해주세요"
-                              rows={3}
-                              disabled={submission?.isSubmitted}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                          return (
+                            <tr key={`${section.id}-${itemIndex}`} className={isPreset ? "bg-gray-100" : ""}>
+                              {itemIndex === 0 && (
+                                <td 
+                                  className="border border-gray-300 px-4 py-2 text-center font-medium bg-gray-50"
+                                  rowSpan={section.items?.length || 1}
+                                >
+                                  {section.title}
+                                  <br />
+                                  <span className="text-sm text-gray-600">({section.totalPoints}점)</span>
+                                </td>
+                              )}
+                              <td className="border border-gray-300 px-4 py-2">
+                                {templateItem.text}
+                              </td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">
+                                {templateItem.type}
+                              </td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">
+                                {templateItem.points}점
+                              </td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">
+                                {actualItemId ? (
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max={templateItem.points}
+                                    value={isPreset ? presetScore : (scores[actualItemId]?.score || "")}
+                                    onChange={(e) => actualItemId && handleScoreChange(
+                                      actualItemId, 
+                                      'score', 
+                                      Math.min(Math.max(0, parseInt(e.target.value) || 0), templateItem.points)
+                                    )}
+                                    className={`w-16 text-center ${isPreset ? 'bg-gray-200 cursor-not-allowed' : ''}`}
+                                    disabled={submission?.isSubmitted || isPreset}
+                                    placeholder="점수"
+                                    title={isPreset ? "사전점수가 적용된 항목입니다" : "점수를 입력하세요"}
+                                  />
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                      <tr className="bg-yellow-50 font-bold">
+                        <td className="border border-gray-300 px-4 py-2 text-center" colSpan={3}>
+                          합계
+                        </td>
+                        <td className="border border-gray-300 px-2 py-2 text-center">
+                          {adminTemplate.totalScore}점
+                        </td>
+                        <td className="border border-gray-300 px-2 py-2 text-center">
+                          {total.toFixed(0)}점
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            /* 기존 방식의 평가 항목 표시 */
+            items.map((item: EvaluationItem) => {
+              const isPreset = isPresetApplied(item.id);
+              const presetScore = getPresetScore(item.id);
+              
+              return (
+                <Card key={item.id} className={isPreset ? "bg-gray-50 border-gray-300" : ""}>
+                  <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      {item.itemName}
+                      {isPreset && (
+                        <Badge variant="secondary" className="text-xs">
+                          사전점수 적용
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      {item.itemCode} · 최대 {item.maxScore}점 · 가중치 {item.weight}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          점수 (0 ~ {item.maxScore}점)
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max={item.maxScore}
+                          value={isPreset ? presetScore : (scores[item.id]?.score || "")}
+                          onChange={(e) => handleScoreChange(
+                            item.id, 
+                            'score', 
+                            Math.min(Math.max(0, parseInt(e.target.value) || 0), item.maxScore)
+                          )}
+                          placeholder="점수 입력"
+                          disabled={submission?.isSubmitted || isPreset}
+                          className={isPreset ? 'bg-gray-200 cursor-not-allowed' : ''}
+                          title={isPreset ? "사전점수가 적용된 항목입니다" : "점수를 입력하세요"}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          평가 의견
+                        </label>
+                        <Textarea
+                          value={scores[item.id]?.comments || ""}
+                          onChange={(e) => handleScoreChange(item.id, 'comments', e.target.value)}
+                          placeholder="평가에 대한 의견을 작성해주세요"
+                          rows={3}
+                          disabled={submission?.isSubmitted}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
 
         {/* 제출 버튼 */}

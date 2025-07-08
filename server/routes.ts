@@ -488,6 +488,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== TEMPLATE ROUTES =====
+  app.get("/api/admin/templates/default", requireAuth, async (req, res) => {
+    try {
+      // 기본 템플릿 또는 저장된 템플릿 반환
+      const template = {
+        title: "제공기관 선정 심의회 평가표",
+        totalScore: 100,
+        sections: [
+          {
+            id: 'A',
+            title: '기관수행능력',
+            totalPoints: 35,
+            items: [
+              { id: 1, text: '통계SOS 사업 운영 체계화 2단 완료', type: '정성', points: 20 },
+              { id: 2, text: '심의 및 승인 목적 확인', type: '정성', points: 5 },
+              { id: 3, text: '기관 운영 기간', type: '정성', points: 5 },
+              { id: 4, text: '조직구성', type: '정성', points: 5 }
+            ]
+          },
+          {
+            id: 'B',
+            title: '인력운영',
+            totalPoints: 15,
+            items: [
+              { id: 1, text: '시설(품질) 평가 결과', type: '정성', points: 15 }
+            ]
+          },
+          {
+            id: 'C',
+            title: '안전관리',
+            totalPoints: 10,
+            items: [
+              { id: 1, text: '배상책임보험', type: '정성', points: 5 },
+              { id: 2, text: '사고예방 및 개인정보', type: '정성', points: 5 }
+            ]
+          },
+          {
+            id: 'D',
+            title: '실적평가',
+            totalPoints: 20,
+            items: [
+              { id: 1, text: '서비스 제공건수', type: '정성', points: 15 },
+              { id: 2, text: '만족도조사결과', type: '정성', points: 5 }
+            ]
+          },
+          {
+            id: 'E',
+            title: '인력운영',
+            totalPoints: 20,
+            items: [
+              { id: 1, text: '사업 운영 총괄자 및 담당자의 전문성', type: '정성', points: 5 },
+              { id: 2, text: '향상업무 담당자 지정', type: '정성', points: 5 },
+              { id: 3, text: 'SOS서비스 수행 인력의 확보', type: '정성', points: 10 }
+            ]
+          }
+        ]
+      };
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch template" });
+    }
+  });
+
+  // ===== PRESET SCORES ROUTES =====
+  app.get("/api/admin/candidate-preset-scores/:candidateId?", requireAuth, async (req, res) => {
+    try {
+      const { candidateId } = req.params;
+      if (candidateId) {
+        const scores = await storage.getPresetScoresByCandidateId(parseInt(candidateId));
+        res.json(scores);
+      } else {
+        const scores = await storage.getAllPresetScores();
+        res.json(scores);
+      }
+    } catch (error) {
+      console.error("Error fetching preset scores:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/candidate-preset-scores", requireAuth, async (req, res) => {
+    try {
+      const { candidateId, evaluationItemId, presetScore, applyPreset } = req.body;
+      const score = await storage.upsertPresetScore({
+        candidateId,
+        evaluationItemId,
+        presetScore,
+        applyPreset
+      });
+      res.json(score);
+    } catch (error) {
+      console.error("Error saving preset score:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // ===== EVALUATION CATEGORY ROUTES =====
   app.get("/api/categories", async (req, res) => {
     try {
