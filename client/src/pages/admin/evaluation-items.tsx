@@ -23,12 +23,14 @@ function PresetScoreModal({
   items, 
   candidates, 
   onClose,
-  toast 
+  toast,
+  onUpload
 }: {
   items: any[];
   candidates: any[];
   onClose: () => void;
   toast: any;
+  onUpload?: (data: any[]) => void;
 }) {
   const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -160,13 +162,82 @@ function PresetScoreModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">사전 점수 관리</h2>
+          <div>
+            <h2 className="text-xl font-bold">사전 점수 관리</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              평가대상별로 사전 점수를 설정하거나 엑셀로 일괄 업로드하세요.
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 text-lg"
           >
             ✕
           </button>
+        </div>
+
+        {/* 엑셀 업로드 섹션 */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="flex gap-3">
+            <Button
+              onClick={() => {
+                const templateData = (safeCandidates || []).flatMap(candidate =>
+                  (quantitativeItems || []).map(item => ({
+                    '평가대상명': candidate.name,
+                    '평가항목명': item.itemName,
+                    '사전점수': '',
+                    '적용여부': '미적용'
+                  }))
+                );
+                
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(templateData);
+                XLSX.utils.book_append_sheet(wb, ws, '사전점수');
+                XLSX.writeFile(wb, '사전점수_템플릿.xlsx');
+                
+                toast({ title: "성공", description: "템플릿이 다운로드되었습니다." });
+              }}
+              variant="outline"
+              size="sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              템플릿 다운로드
+            </Button>
+            
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && onUpload) {
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    try {
+                      const data = event.target?.result;
+                      const workbook = XLSX.read(data, { type: 'binary' });
+                      const sheetName = workbook.SheetNames[0];
+                      const worksheet = workbook.Sheets[sheetName];
+                      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                      onUpload(jsonData);
+                    } catch (error) {
+                      console.error('엑셀 파일 읽기 오류:', error);
+                      toast({ title: "오류", description: "엑셀 파일을 읽는 중 오류가 발생했습니다.", variant: "destructive" });
+                    }
+                  };
+                  reader.readAsBinaryString(file);
+                }
+              }}
+              className="hidden"
+              id="preset-score-upload"
+            />
+            <Button 
+              size="sm" 
+              onClick={() => document.getElementById('preset-score-upload')?.click()}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              엑셀 업로드
+            </Button>
+          </div>
         </div>
 
         {loading ? (
