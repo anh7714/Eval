@@ -332,22 +332,26 @@ export default function EvaluationForm() {
                       </tr>
                     </thead>
                     <tbody>
-                      {adminTemplate.sections?.map((section, sectionIndex) => 
-                        section.items?.map((templateItem, itemIndex) => {
-                          const actualItemId = getItemIdFromTemplate(section.id, itemIndex);
+                      {(adminTemplate.sections || []).flatMap((section, sectionIndex) => 
+                        (section.items || []).map((templateItem, itemIndex) => {
+                          // 템플릿 항목과 실제 평가 항목 매칭 - 더 정확한 방법
+                          const globalItemIndex = (adminTemplate.sections || []).slice(0, sectionIndex).reduce((sum, s) => sum + (s.items?.length || 0), 0) + itemIndex;
+                          const matchingItem = items[globalItemIndex];
+                          const actualItemId = matchingItem?.id;
                           const isPreset = actualItemId && isPresetApplied(actualItemId);
                           const presetScore = actualItemId ? getPresetScore(actualItemId) : 0;
+                          const currentScore = actualItemId ? (scores[actualItemId]?.score || 0) : 0;
+                          const displayScore = isPreset ? presetScore : currentScore;
                           
                           return (
                             <tr key={`${section.id}-${itemIndex}`} className={isPreset ? "bg-gray-100" : ""}>
                               {itemIndex === 0 && (
                                 <td 
-                                  className="border border-gray-300 px-4 py-2 text-center font-medium bg-gray-50"
-                                  rowSpan={section.items?.length || 1}
+                                  className="border border-gray-300 px-4 py-2 text-center font-medium bg-gray-50 align-middle"
+                                  rowSpan={(section.items || []).length}
                                 >
-                                  {section.title}
-                                  <br />
-                                  <span className="text-sm text-gray-600">({section.totalPoints}점)</span>
+                                  <div className="font-bold">{section.title}</div>
+                                  <div className="text-sm text-gray-600 mt-1">({section.totalPoints || 0}점)</div>
                                 </td>
                               )}
                               <td className="border border-gray-300 px-4 py-2">
