@@ -15,6 +15,169 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+// 사전 점수 관리 모달 컴포넌트
+function PresetScoreModal({ 
+  items, 
+  candidates, 
+  onClose,
+  toast 
+}: {
+  items: any[];
+  candidates: any[];
+  onClose: () => void;
+  toast: any;
+}) {
+  const [candidatePresetScores, setCandidatePresetScores] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 안전한 데이터 확인
+  const safeItems = Array.isArray(items) ? items : [];
+  const safeCandidates = Array.isArray(candidates) ? candidates : [];
+  
+  // 정량 평가항목 필터링 - 모든 평가항목을 정량으로 처리 (임시)
+  const quantitativeItems = safeItems; // 모든 항목을 정량으로 처리
+  
+  console.log('🔍 모달 열림 - quantitativeItems:', quantitativeItems);
+  console.log('🔍 모달 열림 - candidates:', safeCandidates);
+  
+  // 사전 점수 데이터 로드
+  useEffect(() => {
+    const loadPresetScores = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/admin/candidate-preset-scores', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCandidatePresetScores(data);
+          console.log('🔍 로드된 사전점수 데이터:', data);
+        }
+      } catch (error) {
+        console.error('사전 점수 로드 오류:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPresetScores();
+  }, []);
+
+  // 사전 점수 저장
+  const savePresetScore = async (candidateId: number, itemId: number, score: number, applyPreset?: boolean) => {
+    try {
+      const response = await fetch('/api/admin/candidate-preset-scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          candidateId,
+          evaluationItemId: itemId,
+          presetScore: score,
+          applyPreset: applyPreset
+        })
+      });
+      
+      if (response.ok) {
+        toast({ title: "성공", description: "사전 점수가 저장되었습니다." });
+        // 데이터 다시 로드
+        const data = await response.json();
+        setCandidatePresetScores(prev => {
+          const filtered = prev.filter(item => 
+            !(item.candidate_id === candidateId && item.evaluation_item_id === itemId)
+          );
+          return [...filtered, data];
+        });
+      } else {
+        toast({ title: "오류", description: "사전 점수 저장에 실패했습니다.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('사전 점수 저장 오류:', error);
+      toast({ title: "오류", description: "사전 점수 저장 중 오류가 발생했습니다.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[80vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">사전 점수 관리</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-gray-600">로딩 중...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {quantitativeItems.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">평가항목이 없습니다.</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  먼저 평가항목을 추가해주세요.
+                </p>
+              </div>
+            ) : (
+              quantitativeItems.map((item, itemIndex) => (
+                <div key={item.id} className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-3">{item.name} (배점: {item.maxScore || 100}점)</h3>
+                  <div className="space-y-2">
+                    {safeCandidates.map((candidate) => {
+                      const existingScore = candidatePresetScores.find(
+                        score => score.candidate_id === candidate.id && score.evaluation_item_id === item.id
+                      );
+                      
+                      return (
+                        <div key={candidate.id} className="flex items-center gap-2">
+                          <span className="text-sm flex-1">{candidate.name}</span>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              max={item.maxScore || 100}
+                              defaultValue={existingScore?.preset_score || ''}
+                              placeholder="점수"
+                              className="w-20 text-center"
+                              onBlur={(e) => {
+                                const score = parseInt(e.target.value);
+                                if (!isNaN(score) && score >= 0 && score <= (item.maxScore || 100)) {
+                                  savePresetScore(candidate.id, item.id, score);
+                                }
+                              }}
+                            />
+                            <select 
+                              className="w-20 text-xs border rounded px-1 py-1 bg-white"
+                              defaultValue={existingScore?.apply_preset ? "yes" : "no"}
+                              onChange={(e) => {
+                                const applyPreset = e.target.value === "yes";
+                                const currentScore = existingScore?.preset_score || 0;
+                                savePresetScore(candidate.id, item.id, currentScore, applyPreset);
+                              }}
+                            >
+                              <option value="no">미적용</option>
+                              <option value="yes">적용</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function EvaluationItemManagement() {
   const [viewMode, setViewMode] = useState<'template' | 'management'>('template'); // 기본값을 템플릿 뷰로 설정
   const [isAddingCategory, setIsAddingCategory] = useState(false);
