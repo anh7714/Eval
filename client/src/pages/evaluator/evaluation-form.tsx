@@ -48,10 +48,13 @@ export default function EvaluationForm() {
     queryKey: ["/api/evaluator/evaluation-items"],
   });
 
-  // 관리자 템플릿 데이터 가져오기 (실시간 반영)
+  // 관리자 템플릿 데이터 가져오기 (실시간 반영 강화)
   const { data: adminTemplate, isLoading: templateLoading } = useQuery({
     queryKey: ["/api/admin/templates/default"],
-    refetchInterval: 1000, // 1초마다 갱신하여 실시간 반영
+    refetchInterval: 500, // 0.5초마다 갱신하여 실시간 반영
+    refetchIntervalInBackground: true,
+    staleTime: 0, // 항상 새로운 데이터로 취급
+    cacheTime: 0, // 캐시 사용 안 함
   });
 
   // 사전점수 데이터 가져오기
@@ -211,7 +214,7 @@ export default function EvaluationForm() {
     return { total, maxTotal };
   };
 
-  // 사전점수가 설정된 항목들을 scores에 자동으로 추가
+  // 사전점수 우선순위 로직 - 사전점수가 적용된 항목은 항상 사전점수가 우선
   useEffect(() => {
     if (presetScores && candidateId) {
       const newScores = { ...scores };
@@ -219,12 +222,13 @@ export default function EvaluationForm() {
       
       presetScores.forEach(ps => {
         if (ps.apply_preset && ps.candidate_id === parseInt(candidateId as string)) {
-          // 기존 scores에 해당 항목이 없거나, 사전점수와 다른 경우에만 업데이트
-          if (!newScores[ps.evaluation_item_id] || newScores[ps.evaluation_item_id].score !== ps.preset_score) {
+          // 사전점수가 적용된 항목은 항상 사전점수로 덮어씀 (임시저장된 점수보다 우선)
+          const currentScore = newScores[ps.evaluation_item_id];
+          if (!currentScore || currentScore.score !== ps.preset_score) {
             newScores[ps.evaluation_item_id] = {
               itemId: ps.evaluation_item_id,
               score: ps.preset_score,
-              comments: newScores[ps.evaluation_item_id]?.comments || ""
+              comments: currentScore?.comments || ""
             };
             updated = true;
           }
@@ -235,7 +239,7 @@ export default function EvaluationForm() {
         setScores(newScores);
       }
     }
-  }, [presetScores, candidateId]);
+  }, [presetScores, candidateId, scores]);
 
   if (candidateLoading || itemsLoading || scoresLoading || templateLoading || presetLoading) {
     return (
@@ -375,16 +379,24 @@ export default function EvaluationForm() {
                                     type="number"
                                     min="0"
                                     max={templateItem.points}
-                                    value={isPreset ? presetScore : (scores[actualItemId]?.score || "")}
-                                    onChange={(e) => actualItemId && handleScoreChange(
-                                      actualItemId, 
-                                      'score', 
-                                      Math.min(Math.max(0, parseInt(e.target.value) || 0), templateItem.points)
-                                    )}
-                                    className={`w-16 text-center ${isPreset ? 'bg-gray-200 cursor-not-allowed' : ''}`}
+                                    value={displayScore}
+                                    onChange={(e) => {
+                                      if (!isPreset && actualItemId) {
+                                        handleScoreChange(
+                                          actualItemId, 
+                                          'score', 
+                                          Math.min(Math.max(0, parseInt(e.target.value) || 0), templateItem.points)
+                                        );
+                                      }
+                                    }}
+                                    className={`w-16 text-center ${
+                                      isPreset 
+                                        ? 'bg-gray-200 text-gray-600 cursor-not-allowed border-gray-300' 
+                                        : 'bg-white focus:ring-2 focus:ring-blue-500 border-gray-300'
+                                    }`}
                                     disabled={submission?.isSubmitted || isPreset}
-                                    placeholder="점수"
-                                    title={isPreset ? "사전점수가 적용된 항목입니다" : "점수를 입력하세요"}
+                                    placeholder={isPreset ? "사전점수" : "점수"}
+                                    title={isPreset ? "사전점수가 적용된 항목입니다 (수정불가)" : "점수를 입력하세요"}
                                   />
                                 ) : (
                                   <span className="text-gray-400">-</span>
