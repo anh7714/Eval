@@ -750,7 +750,7 @@ export default function EvaluationItemManagement() {
     if (selectedCandidateInfo) {
       return `${selectedCandidateInfo.name} 심사표`;
     }
-    return currentTemplate.title;
+    return currentTemplate?.title || "제공기관 선정 심의회 평가표";
   };
 
   // 편집 관련 함수들
@@ -1103,7 +1103,7 @@ export default function EvaluationItemManagement() {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <CardTitle className="text-center text-2xl font-bold">
-                    {currentTemplate.title}
+                    {currentTemplate?.title || "제공기관 선정 심의회 평가표"}
                   </CardTitle>
                 </div>
                 <div className="flex flex-col gap-3 min-w-[300px]">
@@ -1396,12 +1396,12 @@ export default function EvaluationItemManagement() {
                     <div className="px-4 py-2 text-center border-b border-gray-400">
                       {isEditing ? (
                         <Input
-                          value={currentTemplate.title}
+                          value={currentTemplate?.title || ""}
                           onChange={(e) => setCurrentTemplate(prev => ({ ...prev, title: e.target.value }))}
                           className="text-center text-lg font-bold border-none shadow-none focus:ring-0"
                         />
                       ) : (
-                        <h2 className="text-lg font-bold">{currentTemplate.title}</h2>
+                        <h2 className="text-lg font-bold">{currentTemplate?.title || "제공기관 선정 심의회 평가표"}</h2>
                       )}
                     </div>
                   </div>
@@ -1970,7 +1970,7 @@ export default function EvaluationItemManagement() {
     const evaluationContent = generateEvaluationHTML(evaluatorInfo, candidateInfo);
 
     // 제목 결정
-    const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : currentTemplate.title;
+    const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : (currentTemplate?.title || "제공기관 선정 심의회 평가표");
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
