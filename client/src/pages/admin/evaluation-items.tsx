@@ -344,6 +344,78 @@ export default function EvaluationItemManagement() {
   const [batchPrintMode, setBatchPrintMode] = useState(false);
   const [showPresetScoreModal, setShowPresetScoreModal] = useState(false);
 
+  // 사전점수 엑셀 업로드 처리 함수
+  const handlePresetScoreUpload = async (data: any[]) => {
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const row of data) {
+        try {
+          const candidateName = row['평가대상명'];
+          const itemName = row['평가항목명'];
+          const presetScore = parseInt(row['사전점수']) || 0;
+          const applyPreset = row['적용여부'] === '적용';
+          
+          if (!candidateName || !itemName) {
+            errorCount++;
+            continue;
+          }
+          
+          // 평가대상 찾기
+          const candidate = candidates?.find(c => c.name === candidateName);
+          if (!candidate) {
+            console.warn(`평가대상을 찾을 수 없음: ${candidateName}`);
+            errorCount++;
+            continue;
+          }
+          
+          // 평가항목 찾기
+          const item = items?.find(i => i.itemName === itemName);
+          if (!item) {
+            console.warn(`평가항목을 찾을 수 없음: ${itemName}`);
+            errorCount++;
+            continue;
+          }
+          
+          // API 호출하여 사전점수 저장
+          const response = await fetch('/api/admin/candidate-preset-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              candidate_id: candidate.id,
+              evaluation_item_id: item.id,
+              preset_score: presetScore,
+              apply_preset: applyPreset
+            })
+          });
+          
+          if (response.ok) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          console.error('개별 사전점수 저장 오류:', error);
+          errorCount++;
+        }
+      }
+      
+      toast({ 
+        title: "업로드 완료", 
+        description: `성공: ${successCount}건, 실패: ${errorCount}건`,
+        variant: successCount > 0 ? "default" : "destructive"
+      });
+      
+      // 데이터 새로고침
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/candidate-preset-scores'] });
+      
+    } catch (error) {
+      console.error('사전점수 일괄 업로드 오류:', error);
+      toast({ title: "오류", description: "사전점수 업로드 중 오류가 발생했습니다.", variant: "destructive" });
+    }
+  };
+
   // 평가표 템플릿 상태
   const [currentTemplate, setCurrentTemplate] = useState({
     title: "제공기관 선정 심의회 평가표",
