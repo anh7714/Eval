@@ -731,11 +731,11 @@ export default function EvaluationItemManagement() {
   };
 
   const calculateTotalPoints = () => {
-    return currentTemplate.sections.reduce((sum, section) => sum + calculateSectionTotalPoints(section), 0);
+    return (currentTemplate?.sections || []).reduce((sum, section) => sum + calculateSectionTotalPoints(section), 0);
   };
 
   const calculateTotalScore = () => {
-    return currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0);
+    return (currentTemplate?.sections || []).reduce((sum, section) => sum + (section.items || []).reduce((itemSum, item) => itemSum + (item.score || 0), 0), 0);
   };
 
   // 보이는 컬럼들만 필터링
@@ -821,7 +821,7 @@ export default function EvaluationItemManagement() {
 
   // 추가 함수들
   const addSection = () => {
-    const newSectionId = String.fromCharCode(65 + currentTemplate.sections.length); // A, B, C...
+    const newSectionId = String.fromCharCode(65 + (currentTemplate?.sections || []).length); // A, B, C...
     const newSection = {
       id: newSectionId,
       title: '새구분',
@@ -1171,13 +1171,13 @@ export default function EvaluationItemManagement() {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentTemplate.sections.flatMap((section) => 
-                      section.items.map((item, itemIndex) => (
+                    {(currentTemplate?.sections || []).flatMap((section) => 
+                      (section.items || []).map((item, itemIndex) => (
                         <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
                           {itemIndex === 0 && (
                             <td 
                               className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-middle text-center"
-                              rowSpan={section.items.length}
+                              rowSpan={(section.items || []).length}
                             >
                               <div className="font-bold text-sm">{section.id}. {section.title}</div>
                               <div className="text-xs text-gray-600 mt-1">
@@ -1412,7 +1412,7 @@ export default function EvaluationItemManagement() {
                   <table className="w-full border-collapse border border-gray-400 text-sm">
                     <thead>
                       <tr className="bg-gray-100">
-                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({currentTemplate.sections.reduce((sum, section) => sum + section.items.reduce((itemSum, item) => itemSum + item.points, 0), 0)}점)</th>
+                        <th className="border border-gray-400 px-4 py-3 text-center font-bold">구분 ({(currentTemplate?.sections || []).reduce((sum, section) => sum + (section.items || []).reduce((itemSum, item) => itemSum + (item.points || 0), 0), 0)}점)</th>
                         <th className="border border-gray-400 px-4 py-3 text-center font-bold">세부 항목</th>
                         {columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => (
                           <th key={column.id} className="border border-gray-400 px-2 py-3 text-center font-bold w-16">
@@ -1423,13 +1423,13 @@ export default function EvaluationItemManagement() {
                       </tr>
                     </thead>
                     <tbody>
-                      {currentTemplate.sections.flatMap((section) => 
-                        section.items.map((item, itemIndex) => (
+                      {(currentTemplate?.sections || []).flatMap((section) => 
+                        (section.items || []).map((item, itemIndex) => (
                             <tr key={`${section.id}-${item.id}`} className="hover:bg-gray-50">
                               {itemIndex === 0 && (
                                 <td 
                                   className="border border-gray-400 px-4 py-3 font-medium bg-blue-50 align-top text-center"
-                                  rowSpan={section.items.length}
+                                  rowSpan={(section.items || []).length}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="w-full">
