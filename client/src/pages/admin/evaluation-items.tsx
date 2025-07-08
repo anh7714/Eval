@@ -1618,112 +1618,13 @@ export default function EvaluationItemManagement() {
 
         {/* 사전 점수 관리 모달 */}
         {showPresetScoreModal && (
-          <Dialog open={showPresetScoreModal} onOpenChange={setShowPresetScoreModal}>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-gray-900">
-                  사전 점수 관리
-                </DialogTitle>
-                <div className="text-sm text-gray-600">
-                  평가대상별로 사전 점수를 입력하거나 엑셀로 일괄 업로드할 수 있습니다.
-                </div>
-              </DialogHeader>
-              
-              <div className="space-y-6">
-                {/* 엑셀 업로드 섹션 */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">엑셀 일괄 업로드</CardTitle>
-                    <CardDescription>
-                      사전점수를 엑셀 파일로 한번에 업로드할 수 있습니다.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-4">
-                      <Button
-                        onClick={() => {
-                          // 사전점수 템플릿 다운로드
-                          const templateData = (candidates || []).flatMap(candidate =>
-                            (items || []).map(item => ({
-                              '평가대상명': candidate.name,
-                              '평가항목명': item.itemName,
-                              '사전점수': '',
-                              '적용여부': '미적용'
-                            }))
-                          );
-                          
-                          const wb = XLSX.utils.book_new();
-                          const ws = XLSX.utils.json_to_sheet(templateData);
-                          XLSX.utils.book_append_sheet(wb, ws, '사전점수');
-                          XLSX.writeFile(wb, '사전점수_업로드_템플릿.xlsx');
-                          
-                          toast({ title: "성공", description: "사전점수 템플릿이 다운로드되었습니다." });
-                        }}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        템플릿 다운로드
-                      </Button>
-                      
-                      <div className="flex-1">
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                try {
-                                  const data = event.target?.result;
-                                  const workbook = XLSX.read(data, { type: 'binary' });
-                                  const sheetName = workbook.SheetNames[0];
-                                  const worksheet = workbook.Sheets[sheetName];
-                                  const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                                  handlePresetScoreUpload(jsonData);
-                                } catch (error) {
-                                  console.error('엑셀 파일 읽기 오류:', error);
-                                  toast({ title: "오류", description: "엑셀 파일을 읽는 중 오류가 발생했습니다.", variant: "destructive" });
-                                }
-                              };
-                              reader.readAsBinaryString(file);
-                            }
-                          }}
-                          className="hidden"
-                          id="preset-score-upload"
-                        />
-                        <Button 
-                          size="sm" 
-                          className="w-full"
-                          onClick={() => document.getElementById('preset-score-upload')?.click()}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          엑셀 파일 업로드
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* 개별 입력 섹션 */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">개별 점수 입력</CardTitle>
-                    <CardDescription>평가대상별로 직접 사전점수를 입력합니다.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <PresetScoreModal 
-                      items={items || []}
-                      candidates={candidates || []}
-                      onClose={() => setShowPresetScoreModal(false)}
-                      toast={toast}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <PresetScoreModal 
+            items={items || []}
+            candidates={candidates || []}
+            onClose={() => setShowPresetScoreModal(false)}
+            toast={toast}
+            onUpload={handlePresetScoreUpload}
+          />
         )}
       </div>
     </div>
