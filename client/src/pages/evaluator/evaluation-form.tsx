@@ -254,13 +254,20 @@ export default function EvaluationForm() {
   // 관리자 템플릿이 있으면 템플릿 구조를 사용하고, 없으면 기존 방식 사용
   const useTemplate = adminTemplate && adminTemplate.sections;
   
-  // 템플릿 섹션별로 항목 ID 매핑
-  const getItemIdFromTemplate = (sectionId: string, itemIndex: number) => {
-    // 실제 항목 ID를 템플릿의 섹션과 항목 인덱스에서 찾기
-    const sectionItems = items.filter(item => 
-      item.category && item.category.categoryName === adminTemplate?.sections?.find(s => s.id === sectionId)?.title
-    );
-    return sectionItems[itemIndex]?.id;
+  // 템플릿과 실제 평가항목 매칭 개선
+  const getMatchingItem = (sectionIndex: number, itemIndex: number) => {
+    // 전체 항목 중에서 템플릿 순서와 매칭되는 항목 찾기
+    const globalItemIndex = (adminTemplate?.sections || []).slice(0, sectionIndex).reduce((sum, s) => sum + (s.items?.length || 0), 0) + itemIndex;
+    
+    // 카테고리별로 정렬된 items에서 해당 인덱스의 항목 반환
+    const sortedItems = [...items].sort((a, b) => {
+      if (a.category?.id !== b.category?.id) {
+        return (a.category?.id || 0) - (b.category?.id || 0);
+      }
+      return a.id - b.id;
+    });
+    
+    return sortedItems[globalItemIndex];
   };
 
   return (
@@ -334,9 +341,8 @@ export default function EvaluationForm() {
                     <tbody>
                       {(adminTemplate.sections || []).flatMap((section, sectionIndex) => 
                         (section.items || []).map((templateItem, itemIndex) => {
-                          // 템플릿 항목과 실제 평가 항목 매칭 - 더 정확한 방법
-                          const globalItemIndex = (adminTemplate.sections || []).slice(0, sectionIndex).reduce((sum, s) => sum + (s.items?.length || 0), 0) + itemIndex;
-                          const matchingItem = items[globalItemIndex];
+                          // 개선된 매칭 로직 사용
+                          const matchingItem = getMatchingItem(sectionIndex, itemIndex);
                           const actualItemId = matchingItem?.id;
                           const isPreset = actualItemId && isPresetApplied(actualItemId);
                           const presetScore = actualItemId ? getPresetScore(actualItemId) : 0;
