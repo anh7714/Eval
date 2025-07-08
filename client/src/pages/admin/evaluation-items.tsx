@@ -1395,7 +1395,12 @@ export default function EvaluationItemManagement() {
 
         {/* 사전 점수 관리 모달 */}
         {showPresetScoreModal && (
-          <PresetScoreModalComponent />
+          <PresetScoreModal 
+            items={items || []}
+            candidates={candidates || []}
+            onClose={() => setShowPresetScoreModal(false)}
+            toast={toast}
+          />
         )}
       </div>
     </div>
