@@ -491,7 +491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== TEMPLATE ROUTES =====
   app.get("/api/admin/templates/default", requireAuth, async (req, res) => {
     try {
-      // 기본 템플릿 또는 저장된 템플릿 반환
+      // 관리자 화면에서 사용 중인 실제 템플릿 반환 (두 번째 이미지와 동일)
       const template = {
         title: "제공기관 선정 심의회 평가표",
         totalScore: 100,
@@ -501,18 +501,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: '기관수행능력',
             totalPoints: 35,
             items: [
-              { id: 1, text: '통계SOS 사업 운영 체계화 2단 완료', type: '정성', points: 20 },
-              { id: 2, text: '심의 및 승인 목적 확인', type: '정성', points: 5 },
-              { id: 3, text: '기관 운영 기간', type: '정성', points: 5 },
-              { id: 4, text: '조직구성', type: '정성', points: 5 }
+              { id: 1, text: '통계SOS 사업 운영 체계화 점검', type: '정량', points: 20 },
+              { id: 2, text: '점검 및 운영 목적 확인', type: '정량', points: 5 },
+              { id: 3, text: '기관 운영 기간', type: '정량', points: 5 },
+              { id: 4, text: '조직구성', type: '정량', points: 5 }
             ]
           },
           {
             id: 'B',
             title: '인력운영',
-            totalPoints: 15,
+            totalPoints: 20,
             items: [
-              { id: 1, text: '시설(품질) 평가 결과', type: '정성', points: 15 }
+              { id: 1, text: '사업 운영 총괄자 및 담당자의 전문성', type: '정량', points: 5 },
+              { id: 2, text: '통계업무 담당자 지정', type: '정량', points: 5 },
+              { id: 3, text: 'SOS서비스 수행 인력의 확보', type: '정량', points: 10 }
             ]
           },
           {
@@ -520,27 +522,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: '안전관리',
             totalPoints: 10,
             items: [
-              { id: 1, text: '배상책임보험', type: '정성', points: 5 },
-              { id: 2, text: '사고예방 및 개인정보', type: '정성', points: 5 }
+              { id: 1, text: '배상책임보험', type: '정량', points: 5 },
+              { id: 2, text: '사고예방 및 개인정보', type: '정량', points: 5 }
             ]
           },
           {
             id: 'D',
-            title: '실적평가',
-            totalPoints: 20,
+            title: '품질관리',
+            totalPoints: 15,
             items: [
-              { id: 1, text: '서비스 제공건수', type: '정성', points: 15 },
-              { id: 2, text: '만족도조사결과', type: '정성', points: 5 }
+              { id: 1, text: '시설(품질) 평가 결과', type: '정량', points: 15 }
             ]
           },
           {
             id: 'E',
-            title: '인력운영',
+            title: '실적평가',
             totalPoints: 20,
             items: [
-              { id: 1, text: '사업 운영 총괄자 및 담당자의 전문성', type: '정성', points: 5 },
-              { id: 2, text: '향상업무 담당자 지정', type: '정성', points: 5 },
-              { id: 3, text: 'SOS서비스 수행 인력의 확보', type: '정성', points: 10 }
+              { id: 1, text: '서비스 제공건수', type: '정량', points: 15 },
+              { id: 2, text: '만족도조사결과', type: '정량', points: 5 }
             ]
           }
         ]

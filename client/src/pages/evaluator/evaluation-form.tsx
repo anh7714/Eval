@@ -215,18 +215,25 @@ export default function EvaluationForm() {
   useEffect(() => {
     if (presetScores && candidateId) {
       const newScores = { ...scores };
+      let updated = false;
       
       presetScores.forEach(ps => {
         if (ps.apply_preset && ps.candidate_id === parseInt(candidateId as string)) {
-          newScores[ps.evaluation_item_id] = {
-            itemId: ps.evaluation_item_id,
-            score: ps.preset_score,
-            comments: scores[ps.evaluation_item_id]?.comments || ""
-          };
+          // 기존 scores에 해당 항목이 없거나, 사전점수와 다른 경우에만 업데이트
+          if (!newScores[ps.evaluation_item_id] || newScores[ps.evaluation_item_id].score !== ps.preset_score) {
+            newScores[ps.evaluation_item_id] = {
+              itemId: ps.evaluation_item_id,
+              score: ps.preset_score,
+              comments: newScores[ps.evaluation_item_id]?.comments || ""
+            };
+            updated = true;
+          }
         }
       });
       
-      setScores(newScores);
+      if (updated) {
+        setScores(newScores);
+      }
     }
   }, [presetScores, candidateId]);
 

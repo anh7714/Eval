@@ -63,8 +63,10 @@ function PresetScoreModal({
   }, []);
 
   // 사전 점수 저장
-  const savePresetScore = async (candidateId: number, itemId: number, score: number, applyPreset?: boolean) => {
+  const savePresetScore = async (candidateId: number, itemId: number, score: number, applyPreset: boolean = true) => {
     try {
+      console.log('🔄 사전점수 저장 시도:', { candidateId, itemId, score, applyPreset });
+      
       const response = await fetch('/api/admin/candidate-preset-scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,9 +80,11 @@ function PresetScoreModal({
       });
       
       if (response.ok) {
-        toast({ title: "성공", description: "사전 점수가 저장되었습니다." });
-        // 데이터 다시 로드
         const data = await response.json();
+        console.log('✅ 사전점수 저장 성공:', data);
+        toast({ title: "성공", description: "사전 점수가 저장되었습니다." });
+        
+        // 데이터 다시 로드
         setCandidatePresetScores(prev => {
           const filtered = prev.filter(item => 
             !(item.candidate_id === candidateId && item.evaluation_item_id === itemId)
@@ -88,10 +92,12 @@ function PresetScoreModal({
           return [...filtered, data];
         });
       } else {
+        const errorData = await response.text();
+        console.error('❌ 사전점수 저장 실패:', errorData);
         toast({ title: "오류", description: "사전 점수 저장에 실패했습니다.", variant: "destructive" });
       }
     } catch (error) {
-      console.error('사전 점수 저장 오류:', error);
+      console.error('❌ 사전 점수 저장 중 오류:', error);
       toast({ title: "오류", description: "사전 점수 저장 중 오류가 발생했습니다.", variant: "destructive" });
     }
   };
