@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== TEMPLATE ROUTES =====
-  app.get("/api/admin/templates/default", requireAuth, async (req, res) => {
+  app.get("/api/admin/templates/default", async (req, res) => {
     try {
       // 관리자 화면에서 사용 중인 실제 템플릿 반환 (두 번째 이미지와 동일)
       const template = {
@@ -546,13 +546,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]
       };
       res.json(template);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ message: "Failed to fetch template" });
     }
   });
 
   // ===== PRESET SCORES ROUTES =====
-  app.get("/api/admin/candidate-preset-scores/:candidateId?", requireAuth, async (req, res) => {
+  app.get("/api/admin/candidate-preset-scores/:candidateId?", async (req, res) => {
     try {
       const { candidateId } = req.params;
       if (candidateId) {
@@ -562,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const scores = await storage.getAllPresetScores();
         res.json(scores);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching preset scores:", error);
       res.status(500).json({ message: "Internal server error" });
     }
@@ -935,7 +935,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemsWithCode = items.map(item => ({
         ...item,
         itemCode: item.code, // 템플릿과 매핑을 위한 필드
-        type: item.isQuantitative ? '정량' : '정성' // 유형 정보 추가
+        type: item.isQuantitative ? '정량' : '정성', // 유형 정보 추가
+        hasPresetScores: item.hasPresetScores || false // 사전점수 여부 추가
       }));
       res.json(itemsWithCode);
     } catch (error) {
