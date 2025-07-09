@@ -931,9 +931,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/evaluator/evaluation-items", requireEvaluatorAuth, async (req, res) => {
     try {
       const items = await storage.getAllEvaluationItems();
-      res.json(items);
+      // code 필드를 포함하여 반환 (1:1 매핑 보장)
+      const itemsWithCode = items.map(item => ({
+        ...item,
+        itemCode: item.code, // 템플릿과 매핑을 위한 필드
+        type: item.isQuantitative ? '정량' : '정성' // 유형 정보 추가
+      }));
+      res.json(itemsWithCode);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch evaluation items" });
+    }
+  });
+
+  // 평가위원 점수 저장 API (code 기반)
+  app.post("/api/evaluator/scores", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const evaluatorId = req.session.evaluator.id;
+      const { candidateId, itemId, itemCode, score, comments } = req.body;
+      
+      console.log('💾 점수 저장 요청:', { evaluatorId, candidateId, itemId, itemCode, score });
+      
+      // itemCode가 있으면 code로 평가항목 찾기, 없으면 itemId 사용
+      let targetItemId = itemId;
+      if (itemCode) {
+        const items = await storage.getAllEvaluationItems();
+        const targetItem = items.find(item => item.code === itemCode);
+        if (targetItem) {
+          targetItemId = targetItem.id;
+        }
+      }
+      
+      // 점수 저장 (기존 방식과 호환)
+      const result = await storage.saveTemporaryEvaluation({
+        evaluatorId,
+        candidateId,
+        scores: { [targetItemId]: score },
+        totalScore: score,
+        isCompleted: false
+      });
+      
+      console.log('✅ 점수 저장 성공:', result);
+      res.json({ 
+        message: "점수가 저장되었습니다.", 
+        result,
+        itemCode, // code 필드 반환
+        itemId: targetItemId
+      });
+    } catch (error) {
+      console.error('❌ 점수 저장 오류:', error);
+      res.status(500).json({ message: "점수 저장 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 평가위원 점수 조회 API (code 기반)
+  app.get("/api/evaluator/scores/:candidateId", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const evaluatorId = req.session.evaluator.id;
+      const candidateId = parseInt(req.params.candidateId);
+      
+      console.log('📖 점수 조회 요청:', { evaluatorId, candidateId });
+      
+      // 평가항목 정보와 함께 점수 조회
+      const items = await storage.getAllEvaluationItems();
+      const evaluationData = await storage.getEvaluationStatus(evaluatorId, candidateId);
+      
+      // code 필드를 포함한 점수 데이터 구성
+      const scoresWithCode = items.map(item => {
+        const score = evaluationData.scores?.[item.id] || 0;
+        return {
+          itemId: item.id,
+          itemCode: item.code, // 템플릿과 매핑을 위한 필드
+          score: score,
+          comments: evaluationData.comments?.[item.id] || "",
+          type: item.isQuantitative ? '정량' : '정성',
+          maxScore: item.maxScore,
+          weight: item.weight
+        };
+      });
+      
+      res.json(scoresWithCode);
+    } catch (error) {
+      console.error('❌ 점수 조회 오류:', error);
+      res.status(500).json({ message: "점수 조회 중 오류가 발생했습니다." });
     }
   });
 
@@ -1120,30 +1199,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 평가대상별 사전 점수 등록/수정 (upsert)
-  app.post("/api/admin/candidate-preset-scores", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/candidate-preset-scores", requireAdminAuth, async (req: Request, res: Response) => {
     try {
-      const validation = insertCandidatePresetScoreSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
+      const { candidateId, evaluationItemId, itemCode, presetScore, applyPreset, notes } = req.body;
+      
+      if (!candidateId || (!evaluationItemId && !itemCode) || presetScore === undefined) {
+        return res.status(400).json({ error: "Required fields missing" });
       }
       
-      const presetScore = await storage.upsertCandidatePresetScore(validation.data);
-      res.json(presetScore);
+      // itemCode가 있으면 code로 평가항목 찾기
+      let targetItemId = evaluationItemId;
+      if (itemCode && !evaluationItemId) {
+        const items = await storage.getAllEvaluationItems();
+        const targetItem = items.find(item => item.code === itemCode);
+        if (targetItem) {
+          targetItemId = targetItem.id;
+        } else {
+          return res.status(400).json({ error: "Invalid itemCode" });
+        }
+      }
+      
+      const result = await storage.upsertCandidatePresetScore({
+        candidateId,
+        evaluationItemId: targetItemId,
+        presetScore,
+        applyPreset: applyPreset !== undefined ? applyPreset : false,
+        notes
+      });
+      
+      // code 필드를 포함하여 반환
+      const items = await storage.getAllEvaluationItems();
+      const targetItem = items.find(item => item.id === targetItemId);
+      const resultWithCode = {
+        ...result,
+        itemCode: targetItem?.code || itemCode
+      };
+      
+      res.json(resultWithCode);
     } catch (error) {
-      console.error("Failed to upsert candidate preset score:", error);
-      res.status(500).json({ message: "Failed to save candidate preset score" });
+      console.error("Upsert candidate preset score error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // 평가대상별 사전 점수 삭제
-  app.delete("/api/admin/candidate-preset-scores/:id", requireAdminAuth, async (req, res) => {
+  app.delete("/api/admin/candidate-preset-scores/:id", requireAdminAuth, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteCandidatePresetScore(id);
-      res.json({ message: "Candidate preset score deleted successfully" });
+      res.json({ success: true });
     } catch (error) {
-      console.error("Failed to delete candidate preset score:", error);
-      res.status(500).json({ message: "Failed to delete candidate preset score" });
+      console.error("Delete candidate preset score error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1282,31 +1389,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/candidate-preset-scores", requireAdminAuth, async (req: Request, res: Response) => {
     try {
       const presetScores = await storage.getAllCandidatePresetScores();
-      res.json(presetScores);
+      // code 필드를 포함하여 반환
+      const items = await storage.getAllEvaluationItems();
+      const presetScoresWithCode = presetScores.map((ps: any) => {
+        const targetItem = items.find(item => item.id === ps.evaluation_item_id);
+        return {
+          ...ps,
+          itemCode: targetItem?.code || ps.item_code
+        };
+      });
+      res.json(presetScoresWithCode);
     } catch (error) {
       console.error("Get candidate preset scores error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
-
-  // 평가대상별 사전 점수 등록/수정
   app.post("/api/admin/candidate-preset-scores", requireAdminAuth, async (req: Request, res: Response) => {
     try {
-      const { candidateId, evaluationItemId, presetScore, applyPreset, notes } = req.body;
+      const { candidateId, evaluationItemId, itemCode, presetScore, applyPreset, notes } = req.body;
       
-      if (!candidateId || !evaluationItemId || presetScore === undefined) {
+      if (!candidateId || (!evaluationItemId && !itemCode) || presetScore === undefined) {
         return res.status(400).json({ error: "Required fields missing" });
+      }
+      
+      // itemCode가 있으면 code로 평가항목 찾기
+      let targetItemId = evaluationItemId;
+      if (itemCode && !evaluationItemId) {
+        const items = await storage.getAllEvaluationItems();
+        const targetItem = items.find(item => item.code === itemCode);
+        if (targetItem) {
+          targetItemId = targetItem.id;
+        } else {
+          return res.status(400).json({ error: "Invalid itemCode" });
+        }
       }
       
       const result = await storage.upsertCandidatePresetScore({
         candidateId,
-        evaluationItemId,
+        evaluationItemId: targetItemId,
         presetScore,
         applyPreset: applyPreset !== undefined ? applyPreset : false,
         notes
       });
       
-      res.json(result);
+      // code 필드를 포함하여 반환
+      const items = await storage.getAllEvaluationItems();
+      const targetItem = items.find(item => item.id === targetItemId);
+      const resultWithCode = {
+        ...result,
+        itemCode: targetItem?.code || itemCode
+      };
+      
+      res.json(resultWithCode);
     } catch (error) {
       console.error("Upsert candidate preset score error:", error);
       res.status(500).json({ error: "Internal server error" });

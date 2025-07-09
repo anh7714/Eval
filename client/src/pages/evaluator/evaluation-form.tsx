@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Save, Send, ArrowLeft, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { UseQueryOptions } from "@tanstack/react-query";
+import React from "react"; // Added missing import
 
 interface EvaluationItem {
   id: number;
@@ -40,29 +42,36 @@ export default function EvaluationForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: candidate, isLoading: candidateLoading } = useQuery({
+  const { data: candidateRaw, isLoading: candidateLoading } = useQuery({
     queryKey: ["/api/evaluator/candidate", candidateId],
   });
+  const candidate = (candidateRaw as any) || {};
 
-  const { data: items = [], isLoading: itemsLoading } = useQuery({
+  const { data: items = [], isLoading: itemsLoading } = useQuery<any[]>({
     queryKey: ["/api/evaluator/evaluation-items"],
-  });
+  } as UseQueryOptions<any[], Error>);
+
+  // 1. items에 type(정량/정성) 필드 동기화
+  const itemsWithType = items.map((item: any) => ({
+    ...item,
+    type: item.isQuantitative ? '정량' : '정성',
+  }));
 
   // 관리자 템플릿 데이터 가져오기 (실시간 반영)
-  const { data: adminTemplate, isLoading: templateLoading } = useQuery({
+  const { data: adminTemplate, isLoading: templateLoading } = useQuery<any>({
     queryKey: ["/api/admin/templates/default"],
     refetchInterval: 1000, // 1초마다 갱신하여 실시간 반영
-  });
+  } as UseQueryOptions<any, Error>);
 
   // 사전점수 데이터 가져오기
-  const { data: presetScores = [], isLoading: presetLoading } = useQuery({
+  const { data: presetScores = [], isLoading: presetLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/candidate-preset-scores", candidateId],
     enabled: !!candidateId,
-  });
+  } as UseQueryOptions<any[], Error>);
 
-  const { data: existingScores, isLoading: scoresLoading } = useQuery({
+  const { data: existingScores, isLoading: scoresLoading } = useQuery<any[]>({
     queryKey: ["/api/evaluator/scores", candidateId],
-    onSuccess: (data) => {
+    onSuccess: (data: any[]) => {
       if (data && data.length > 0) {
         const scoresMap: { [key: number]: Score } = {};
         data.forEach((score: any) => {
@@ -75,11 +84,12 @@ export default function EvaluationForm() {
         setScores(scoresMap);
       }
     },
-  });
+  } as UseQueryOptions<any[], Error>);
 
-  const { data: submission } = useQuery({
+  const { data: submissionRaw, isLoading: submissionLoading } = useQuery({
     queryKey: ["/api/evaluator/submission", candidateId],
   });
+  const submission = (submissionRaw as any) || {};
 
   const saveScoreMutation = useMutation({
     mutationFn: async (scoreData: Score) => {
@@ -201,7 +211,7 @@ export default function EvaluationForm() {
     let total = 0;
     let maxTotal = 0;
     
-    items.forEach((item: EvaluationItem) => {
+    items.forEach((item: any) => {
       maxTotal += item.maxScore * item.weight;
       if (scores[item.id] && scores[item.id].score !== undefined) {
         total += scores[item.id].score * item.weight;
@@ -251,16 +261,100 @@ export default function EvaluationForm() {
   const progress = getProgress();
   const { total, maxTotal } = getTotalScore();
   
-  // 관리자 템플릿이 있으면 템플릿 구조를 사용하고, 없으면 기존 방식 사용
-  const useTemplate = adminTemplate && adminTemplate.sections;
+  // 점수 매핑을 위한 code→score 맵 생성 (강화된 버전)
+  const scoreByCode: { [code: string]: any } = {};
+  scores && Object.values(scores).forEach((s: any) => {
+    if (s && s.itemCode) {
+      scoreByCode[s.itemCode] = s;
+    } else if (s && s.itemId) {
+      // itemId로 평가항목 찾아서 code 매핑
+      const item = items.find((item: any) => item.id === s.itemId);
+      if (item && item.code) {
+        scoreByCode[item.code] = { ...s, itemCode: item.code };
+      }
+    }
+  });
   
-  // 템플릿 섹션별로 항목 ID 매핑
-  const getItemIdFromTemplate = (sectionId: string, itemIndex: number) => {
-    // 실제 항목 ID를 템플릿의 섹션과 항목 인덱스에서 찾기
-    const sectionItems = items.filter(item => 
-      item.category && item.category.categoryName === adminTemplate?.sections?.find(s => s.id === sectionId)?.title
+  // 사전점수도 code로 매핑 (강화된 버전)
+  const presetScoreByCode: { [code: string]: any } = {};
+  presetScores && presetScores.forEach((ps: any) => {
+    if (ps && ps.item_code) {
+      presetScoreByCode[ps.item_code] = ps;
+    } else if (ps && ps.evaluation_item_id) {
+      // evaluation_item_id로 평가항목 찾아서 code 매핑
+      const item = items.find((item: any) => item.id === ps.evaluation_item_id);
+      if (item && item.code) {
+        presetScoreByCode[item.code] = { ...ps, item_code: item.code };
+      }
+    }
+  });
+
+  // 1. 템플릿 구조만으로 렌더링 (구분, 합계 포함)
+  const renderTable = () => {
+    if (!adminTemplate || !adminTemplate.sections) return null;
+    let sectionAlpha = 'A'.charCodeAt(0);
+    let totalScore = 0;
+    return (
+      <table className="w-full border mb-4">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border px-2 py-1">구분</th>
+            <th className="border px-2 py-1">세부 항목</th>
+            <th className="border px-2 py-1">유형</th>
+            <th className="border px-2 py-1">배점</th>
+            <th className="border px-2 py-1">평가점수</th>
+          </tr>
+        </thead>
+        <tbody>
+          {adminTemplate.sections.map((section: any, sectionIdx: number) => {
+            const sectionLabel = section.label || String.fromCharCode(sectionAlpha + sectionIdx);
+            return (
+              <React.Fragment key={section.id || sectionIdx}>
+                {section.items.map((item: any, idx: number) => {
+                  const code = item.code;
+                  const scoreObj = scoreByCode[code];
+                  const presetObj = presetScoreByCode[code];
+                  const isPreset = !!(presetObj && presetObj.preset_score !== undefined && presetObj.apply_preset);
+                  const displayScore = isPreset ? presetObj.preset_score : (scoreObj ? scoreObj.score : '');
+                  totalScore += Number(displayScore) || 0;
+                  return (
+                    <tr key={code}>
+                      {idx === 0 && (
+                        <td className="border px-2 py-1 text-center font-bold bg-gray-50 align-middle" rowSpan={section.items.length}>
+                          {sectionLabel}. {section.title}<br />({section.totalPoints}점)
+                        </td>
+                      )}
+                      <td className="border px-2 py-1">{item.text}</td>
+                      <td className="border px-2 py-1 text-center">{item.type}</td>
+                      <td className="border px-2 py-1 text-center">{item.points}점</td>
+                      <td className="border px-2 py-1 text-center">
+                        <input
+                          type="number"
+                          min={0}
+                          max={item.points}
+                          value={displayScore}
+                          onChange={e => {
+                            if (isPreset) return;
+                            handleScoreChange(code, 'score', Math.min(Math.max(0, parseInt(e.target.value) || 0), item.points));
+                          }}
+                          className={`w-16 text-center ${isPreset ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : ''}`}
+                          disabled={isPreset}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </React.Fragment>
+            );
+          })}
+          {/* 합계 행 */}
+          <tr className="bg-yellow-50 font-bold">
+            <td className="border px-2 py-2 text-center" colSpan={4}>총계</td>
+            <td className="border px-2 py-2 text-center">{adminTemplate.totalScore}점</td>
+          </tr>
+        </tbody>
+      </table>
     );
-    return sectionItems[itemIndex]?.id;
   };
 
   return (
@@ -313,159 +407,19 @@ export default function EvaluationForm() {
 
         {/* 평가 항목들 - 관리자 템플릿 구조 사용 */}
         <div className="space-y-8">
-          {useTemplate ? (
-            /* 관리자 템플릿을 사용한 심사표 구조 */
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl text-center">{adminTemplate.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl text-center">평가위원 심사표</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4">
+                <h2 className="font-bold text-xl mb-4">평가위원 심사표</h2>
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-4 py-2 text-center w-32">구분 ({adminTemplate.totalScore}점)</th>
-                        <th className="border border-gray-300 px-4 py-2 text-center flex-1">세부 항목</th>
-                        <th className="border border-gray-300 px-4 py-2 text-center w-16">유형</th>
-                        <th className="border border-gray-300 px-4 py-2 text-center w-16">배점</th>
-                        <th className="border border-gray-300 px-4 py-2 text-center w-20">평가점수</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(adminTemplate.sections || []).flatMap((section, sectionIndex) => 
-                        (section.items || []).map((templateItem, itemIndex) => {
-                          // 템플릿 항목과 실제 평가 항목 매칭 - 더 정확한 방법
-                          const globalItemIndex = (adminTemplate.sections || []).slice(0, sectionIndex).reduce((sum, s) => sum + (s.items?.length || 0), 0) + itemIndex;
-                          const matchingItem = items[globalItemIndex];
-                          const actualItemId = matchingItem?.id;
-                          const isPreset = actualItemId && isPresetApplied(actualItemId);
-                          const presetScore = actualItemId ? getPresetScore(actualItemId) : 0;
-                          const currentScore = actualItemId ? (scores[actualItemId]?.score || 0) : 0;
-                          const displayScore = isPreset ? presetScore : currentScore;
-                          
-                          return (
-                            <tr key={`${section.id}-${itemIndex}`} className={isPreset ? "bg-gray-100" : ""}>
-                              {itemIndex === 0 && (
-                                <td 
-                                  className="border border-gray-300 px-4 py-2 text-center font-medium bg-gray-50 align-middle"
-                                  rowSpan={(section.items || []).length}
-                                >
-                                  <div className="font-bold">{section.title}</div>
-                                  <div className="text-sm text-gray-600 mt-1">({section.totalPoints || 0}점)</div>
-                                </td>
-                              )}
-                              <td className="border border-gray-300 px-4 py-2">
-                                {templateItem.text}
-                              </td>
-                              <td className="border border-gray-300 px-2 py-2 text-center">
-                                {templateItem.type}
-                              </td>
-                              <td className="border border-gray-300 px-2 py-2 text-center">
-                                {templateItem.points}점
-                              </td>
-                              <td className="border border-gray-300 px-2 py-2 text-center">
-                                {actualItemId ? (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max={templateItem.points}
-                                    value={isPreset ? presetScore : (scores[actualItemId]?.score || "")}
-                                    onChange={(e) => actualItemId && handleScoreChange(
-                                      actualItemId, 
-                                      'score', 
-                                      Math.min(Math.max(0, parseInt(e.target.value) || 0), templateItem.points)
-                                    )}
-                                    className={`w-16 text-center ${isPreset ? 'bg-gray-200 cursor-not-allowed' : ''}`}
-                                    disabled={submission?.isSubmitted || isPreset}
-                                    placeholder="점수"
-                                    title={isPreset ? "사전점수가 적용된 항목입니다" : "점수를 입력하세요"}
-                                  />
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                      <tr className="bg-yellow-50 font-bold">
-                        <td className="border border-gray-300 px-4 py-2 text-center" colSpan={3}>
-                          합계
-                        </td>
-                        <td className="border border-gray-300 px-2 py-2 text-center">
-                          {adminTemplate.totalScore}점
-                        </td>
-                        <td className="border border-gray-300 px-2 py-2 text-center">
-                          {total.toFixed(0)}점
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  {renderTable()}
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            /* 기존 방식의 평가 항목 표시 */
-            items.map((item: EvaluationItem) => {
-              const isPreset = isPresetApplied(item.id);
-              const presetScore = getPresetScore(item.id);
-              
-              return (
-                <Card key={item.id} className={isPreset ? "bg-gray-50 border-gray-300" : ""}>
-                  <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2">
-                      {item.itemName}
-                      {isPreset && (
-                        <Badge variant="secondary" className="text-xs">
-                          사전점수 적용
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription>
-                      {item.itemCode} · 최대 {item.maxScore}점 · 가중치 {item.weight}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          점수 (0 ~ {item.maxScore}점)
-                        </label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max={item.maxScore}
-                          value={isPreset ? presetScore : (scores[item.id]?.score || "")}
-                          onChange={(e) => handleScoreChange(
-                            item.id, 
-                            'score', 
-                            Math.min(Math.max(0, parseInt(e.target.value) || 0), item.maxScore)
-                          )}
-                          placeholder="점수 입력"
-                          disabled={submission?.isSubmitted || isPreset}
-                          className={isPreset ? 'bg-gray-200 cursor-not-allowed' : ''}
-                          title={isPreset ? "사전점수가 적용된 항목입니다" : "점수를 입력하세요"}
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          평가 의견
-                        </label>
-                        <Textarea
-                          value={scores[item.id]?.comments || ""}
-                          onChange={(e) => handleScoreChange(item.id, 'comments', e.target.value)}
-                          placeholder="평가에 대한 의견을 작성해주세요"
-                          rows={3}
-                          disabled={submission?.isSubmitted}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* 제출 버튼 */}
