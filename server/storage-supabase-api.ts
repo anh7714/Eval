@@ -923,7 +923,120 @@ export class SupabaseStorage {
   }
 
   async getEvaluationResults(): Promise<any[]> {
-    return [];
+    try {
+      console.log('📊 평가 결과 집계 시작...');
+      
+      // 1. 모든 완료된 평가 제출 데이터 가져오기
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('evaluation_submissions')
+        .select(`
+          *,
+          candidates:candidate_id (id, name, department, position, category),
+          evaluators:evaluator_id (id, name)
+        `)
+        .eq('is_completed', true);
+
+      if (submissionsError) {
+        console.error('❌ 평가 제출 데이터 조회 오류:', submissionsError);
+        throw submissionsError;
+      }
+
+      if (!submissions || submissions.length === 0) {
+        console.log('📝 완료된 평가 데이터가 없습니다.');
+        return [];
+      }
+
+      console.log('📊 완료된 평가 데이터:', submissions.length, '건');
+
+      // 2. 후보자별로 데이터 집계
+      const candidateScores = new Map<number, {
+        candidate: any;
+        scores: number[];
+        totalScores: number[];
+        evaluatorCount: number;
+        maxPossibleScore: number;
+      }>();
+
+      // 3. 최대 가능 점수 계산 (evaluation_items 테이블에서)
+      const { data: evaluationItems, error: itemsError } = await supabase
+        .from('evaluation_items')
+        .select('max_score')
+        .eq('is_active', true);
+
+      if (itemsError) {
+        console.error('❌ 평가 항목 조회 오류:', itemsError);
+        throw itemsError;
+      }
+
+      const maxPossibleScore = evaluationItems?.reduce((sum, item) => sum + (item.max_score || 0), 0) || 100;
+      console.log('📊 최대 가능 점수:', maxPossibleScore);
+
+      // 4. 각 평가 제출에서 데이터 집계
+      for (const submission of submissions) {
+        const candidateId = submission.candidate_id;
+        const candidate = submission.candidates;
+        const totalScore = submission.total_score || 0;
+
+        if (!candidateScores.has(candidateId)) {
+          candidateScores.set(candidateId, {
+            candidate: candidate,
+            scores: [],
+            totalScores: [],
+            evaluatorCount: 0,
+            maxPossibleScore: maxPossibleScore
+          });
+        }
+
+        const candidateData = candidateScores.get(candidateId)!;
+        candidateData.totalScores.push(totalScore);
+        candidateData.evaluatorCount++;
+      }
+
+      // 5. 후보자별 평균 점수 계산 및 결과 배열 생성
+      const results: any[] = [];
+      
+      for (const [candidateId, data] of candidateScores) {
+        const averageScore = data.totalScores.reduce((sum, score) => sum + score, 0) / data.totalScores.length;
+        const percentage = (averageScore / data.maxPossibleScore) * 100;
+
+        results.push({
+          candidate: {
+            id: data.candidate.id,
+            name: data.candidate.name,
+            department: data.candidate.department || '',
+            position: data.candidate.position || '',
+            category: data.candidate.category || '일반'
+          },
+          totalScore: Math.round(averageScore * 100) / 100, // 소수점 2자리까지
+          maxPossibleScore: data.maxPossibleScore,
+          percentage: Math.round(percentage * 100) / 100, // 소수점 2자리까지
+          evaluatorCount: data.evaluatorCount,
+          completedEvaluations: data.evaluatorCount,
+          averageScore: Math.round(averageScore * 100) / 100,
+          rank: 0 // 아래에서 순위 계산
+        });
+      }
+
+      // 6. 점수순으로 정렬하고 순위 부여
+      results.sort((a, b) => b.percentage - a.percentage);
+      
+      let currentRank = 1;
+      for (let i = 0; i < results.length; i++) {
+        if (i > 0 && results[i].percentage < results[i-1].percentage) {
+          currentRank = i + 1;
+        }
+        results[i].rank = currentRank;
+      }
+
+      console.log('✅ 평가 결과 집계 완료:', results.length, '명');
+      console.log('📊 결과 미리보기:', results.slice(0, 3));
+
+      return results;
+
+    } catch (error) {
+      console.error('❌ 평가 결과 조회 오류:', error);
+      return [];
+    }
   }
 
   async getSystemStatistics(): Promise<{
