@@ -165,6 +165,15 @@ export default function AdminDashboard() {
     enabled: showIncompleteModal,
   });
 
+  // 미완료 상세 데이터 로깅
+  React.useEffect(() => {
+    if (incompleteDetails) {
+      console.log('🔍 미완료 상세 데이터:', incompleteDetails);
+      console.log('📊 평가대상 목록:', incompleteDetails?.candidates?.length || 0, '건');
+      console.log('📊 평가위원 목록:', incompleteDetails?.evaluators?.length || 0, '건');
+    }
+  }, [incompleteDetails]);
+
   // 필터링 및 정렬 로직
   const filterIncompleteData = (data: any[], type: string) => {
     if (!data) return [];
@@ -302,11 +311,17 @@ export default function AdminDashboard() {
                 <FileText className="w-7 h-7 text-gray-600 dark:text-gray-400" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-                {(stats as any)?.totalCandidates || 0}
+                {(() => {
+                  const total = (stats as any)?.totalCandidates || 0;
+                  const completed = (stats as any)?.completed || 0;
+                  // 미완료 = 전체 - 완료 (진행중 + 미시작)
+                  const incomplete = Math.max(0, total - completed);
+                  return incomplete;
+                })()}
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-1">미완료</p>
               <Badge variant="secondary" className="text-xs">
-                총 평가대상
+                미평가
               </Badge>
               <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
                 클릭하여 상세보기
@@ -332,71 +347,75 @@ export default function AdminDashboard() {
 
         {/* 미완료 상세 모달 */}
         <Dialog open={showIncompleteModal} onOpenChange={setShowIncompleteModal}>
-          <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden bg-gradient-to-br from-slate-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-2xl">
-            <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
-              <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
-                <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                  <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+          <DialogContent className="max-w-6xl max-h-[90vh] bg-white dark:bg-gray-900 border shadow-xl">
+            <div className="flex flex-col h-full max-h-[85vh]">
+              <div className="flex items-center justify-between pb-4 border-b">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-6 w-6 text-orange-500" />
+                  <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+                    미완료 평가 상세 현황
+                  </h2>
                 </div>
-                미완료 평가 상세 현황
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="flex-1 overflow-y-auto py-4">
-              {incompleteLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
-                  <p className="ml-3 text-gray-600">데이터를 불러오는 중...</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* 검색 및 필터 영역 */}
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* 검색 */}
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        placeholder="이름, 부서, 구분으로 검색..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    
-                    {/* 상태 필터 */}
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[140px]">
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue placeholder="상태" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">전체 상태</SelectItem>
-                        <SelectItem value="notStarted">미시작</SelectItem>
-                        <SelectItem value="inProgress">진행중</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <Button variant="outline" size="sm" onClick={resetFilters}>
+                  필터 초기화
+                </Button>
+              </div>
 
-                    {/* 필터 리셋 */}
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={resetFilters}
-                      className="px-4"
-                    >
-                      필터 초기화
-                    </Button>
+              <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                {/* 검색 및 필터 영역 */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* 검색 */}
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="이름, 부서, 구분으로 검색..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
+                  
+                  {/* 상태 필터 */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="상태" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="notStarted">미시작</SelectItem>
+                      <SelectItem value="inProgress">진행중</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {/* 탭 */}
-                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                {/* 로딩 상태 */}
+                {incompleteLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+                    <p className="ml-3 text-gray-600 dark:text-gray-300">데이터를 불러오는 중...</p>
+                  </div>
+                ) : (
+                  <Tabs defaultValue="candidates" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="candidates" className="flex items-center gap-2">
                         <UserX className="h-4 w-4" />
-                        미완료 평가대상 ({filteredIncompleteCandidates.length}명)
+                        {(() => {
+                          const getTabTitle = () => {
+                            if (statusFilter === "notStarted") {
+                              return `미시작 평가대상 (${filteredIncompleteCandidates.length}명)`;
+                            } else if (statusFilter === "inProgress") {
+                              return `진행중 평가대상 (${filteredIncompleteCandidates.length}명)`;
+                            } else {
+                              return `미완료 평가대상 (${filteredIncompleteCandidates.length}명)`;
+                            }
+                          };
+                          return getTabTitle();
+                        })()}
                       </TabsTrigger>
                       <TabsTrigger value="evaluators" className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        미평가 평가위원 ({filteredIncompleteEvaluators.length}명)
+                        평가위원 현황 ({filteredIncompleteEvaluators.length}명)
                       </TabsTrigger>
                     </TabsList>
 
@@ -409,7 +428,7 @@ export default function AdminDashboard() {
                               <TableHead>소속/부서</TableHead>
                               <TableHead>구분</TableHead>
                               <TableHead>상태</TableHead>
-                              <TableHead>미평가 평가위원</TableHead>
+                              <TableHead>평가위원 현황</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -434,21 +453,48 @@ export default function AdminDashboard() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="text-sm">
-                                    {candidate.pendingEvaluators?.length > 0 ? (
-                                      <div className="space-y-1">
-                                        {candidate.pendingEvaluators.slice(0, 2).map((evaluator: any) => (
-                                          <div key={evaluator.id} className="text-gray-600">
-                                            {evaluator.name}
-                                          </div>
-                                        ))}
-                                        {candidate.pendingEvaluators.length > 2 && (
-                                          <div className="text-xs text-gray-500">
-                                            외 {candidate.pendingEvaluators.length - 2}명
-                                          </div>
-                                        )}
+                                  <div className="text-sm space-y-2">
+                                    {/* 진행중 평가위원 */}
+                                    {candidate.inProgressEvaluators?.length > 0 && (
+                                      <div>
+                                        <div className="text-xs font-medium text-blue-600 mb-1">진행중 평가위원</div>
+                                        <div className="space-y-1">
+                                          {candidate.inProgressEvaluators.slice(0, 2).map((evaluator: any) => (
+                                            <div key={evaluator.id} className="text-blue-600">
+                                              {evaluator.name}
+                                            </div>
+                                          ))}
+                                          {candidate.inProgressEvaluators.length > 2 && (
+                                            <div className="text-xs text-blue-500">
+                                              외 {candidate.inProgressEvaluators.length - 2}명
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    ) : (
+                                    )}
+
+                                    {/* 미평가 평가위원 */}
+                                    {candidate.pendingEvaluators?.length > 0 && (
+                                      <div>
+                                        <div className="text-xs font-medium text-gray-600 mb-1">미평가 평가위원</div>
+                                        <div className="space-y-1">
+                                          {candidate.pendingEvaluators.slice(0, 2).map((evaluator: any) => (
+                                            <div key={evaluator.id} className="text-gray-600">
+                                              {evaluator.name}
+                                            </div>
+                                          ))}
+                                          {candidate.pendingEvaluators.length > 2 && (
+                                            <div className="text-xs text-gray-500">
+                                              외 {candidate.pendingEvaluators.length - 2}명
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* 모든 평가위원이 완료한 경우 */}
+                                    {(!candidate.inProgressEvaluators || candidate.inProgressEvaluators.length === 0) && 
+                                     (!candidate.pendingEvaluators || candidate.pendingEvaluators.length === 0) && (
                                       <span className="text-gray-400">-</span>
                                     )}
                                   </div>
@@ -461,7 +507,7 @@ export default function AdminDashboard() {
 
                       {/* 페이지네이션 */}
                       {candidatePages > 1 && (
-                        <div className="flex justify-center">
+                        <div className="flex justify-center pt-4 pb-2">
                           <Pagination>
                             <PaginationContent>
                               <PaginationItem>
@@ -495,16 +541,19 @@ export default function AdminDashboard() {
                       )}
 
                       {/* 빈 상태 */}
-                      {paginatedCandidates.length === 0 && (
+                      {!incompleteLoading && paginatedCandidates.length === 0 && (
                         <div className="text-center py-12">
                           <UserX className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            {filteredIncompleteCandidates.length === 0 ? "검색 결과가 없습니다" : "미완료 평가대상이 없습니다"}
+                            {searchTerm || statusFilter !== "all" 
+                              ? "검색 결과가 없습니다"
+                              : "평가대상 데이터를 불러오는 중입니다"
+                            }
                           </h3>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {filteredIncompleteCandidates.length === 0 
+                            {searchTerm || statusFilter !== "all"
                               ? "다른 검색어나 필터를 시도해보세요."
-                              : "모든 평가가 완료되었습니다."
+                              : "잠시만 기다려주세요."
                             }
                           </p>
                         </div>
@@ -528,7 +577,7 @@ export default function AdminDashboard() {
                               <TableRow key={evaluator.id}>
                                 <TableCell className="font-medium">
                                   <div>
-                                    <div className="font-semibold">{evaluator.evaluatorName}</div>
+                                    <div className="font-semibold">{evaluator.name}</div>
                                     {evaluator.position && (
                                       <div className="text-sm text-gray-500">{evaluator.position}</div>
                                     )}
@@ -551,13 +600,13 @@ export default function AdminDashboard() {
                                         )}
                                       </div>
                                     ) : (
-                                      <span className="text-gray-400">-</span>
+                                      <span className="text-green-600 font-medium">모두 완료</span>
                                     )}
                                   </div>
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm">
-                                    <div className="font-medium">{evaluator.progress || 0}%</div>
+                                    <div className="font-medium">{evaluator.progress || 100}%</div>
                                     <div className="text-xs text-gray-500">
                                       {evaluator.completedCount || 0}/{evaluator.totalCount || 0} 완료
                                     </div>
@@ -565,10 +614,10 @@ export default function AdminDashboard() {
                                 </TableCell>
                                 <TableCell>
                                   <Badge 
-                                    variant={evaluator.status === "notStarted" ? "destructive" : "secondary"}
+                                    variant={evaluator.pendingCandidates?.length > 0 ? "secondary" : "default"}
                                     className="px-2 py-1"
                                   >
-                                    {evaluator.status === "notStarted" ? "미시작" : "진행중"}
+                                    {evaluator.pendingCandidates?.length > 0 ? "진행중" : "완료"}
                                   </Badge>
                                 </TableCell>
                               </TableRow>
@@ -579,7 +628,7 @@ export default function AdminDashboard() {
 
                       {/* 페이지네이션 */}
                       {evaluatorPages > 1 && (
-                        <div className="flex justify-center">
+                        <div className="flex justify-center pt-4 pb-2">
                           <Pagination>
                             <PaginationContent>
                               <PaginationItem>
@@ -613,28 +662,31 @@ export default function AdminDashboard() {
                       )}
 
                       {/* 빈 상태 */}
-                      {paginatedEvaluators.length === 0 && (
+                      {!incompleteLoading && paginatedEvaluators.length === 0 && (
                         <div className="text-center py-12">
                           <Clock className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            {filteredIncompleteEvaluators.length === 0 ? "검색 결과가 없습니다" : "미평가 평가위원이 없습니다"}
+                            {searchTerm || statusFilter !== "all"
+                              ? "검색 결과가 없습니다"
+                              : "평가위원 데이터를 불러오는 중입니다"
+                            }
                           </h3>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {filteredIncompleteEvaluators.length === 0 
+                            {searchTerm || statusFilter !== "all"
                               ? "다른 검색어나 필터를 시도해보세요."
-                              : "모든 평가위원이 평가를 완료했습니다."
+                              : "잠시만 기다려주세요."
                             }
                           </p>
                         </div>
                       )}
                     </TabsContent>
                   </Tabs>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

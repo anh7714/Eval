@@ -960,40 +960,35 @@ export class SupabaseStorage {
       // 4. 카테고리 수 (구현되지 않았으므로 0으로 설정)
       const totalCategories = 0;
 
-      // 5. 평가 진행 상태 분석
+      // 5. 평가 진행 상태 분석 (평가위원과 동일한 로직 사용)
       let inProgress = 0;
       let completed = 0;
       let completionRate = 0;
 
-      if (totalCandidates > 0) {
-        // 완료된 평가대상 수 (evaluation_submissions에서 unique candidate_id 조회)
+      if (totalCandidates > 0 && activeEvaluators > 0) {
+        // 완료된 평가 수 (is_completed = true인 evaluation_submissions 조회)
         const { data: completedSubmissions, error: completedError } = await supabase
           .from('evaluation_submissions')
           .select('candidate_id')
-          .not('candidate_id', 'is', null);
+          .eq('is_completed', true);
         
         if (!completedError && completedSubmissions) {
-          const uniqueCompletedCandidates = new Set(completedSubmissions.map(s => s.candidate_id));
-          completed = uniqueCompletedCandidates.size;
+          completed = completedSubmissions.length;
         }
 
-        // 진행 중인 평가대상 수 (evaluations에 데이터가 있지만 submissions에 없는 경우)
-        const { data: evaluationsData, error: evaluationsError } = await supabase
-          .from('evaluations')
+        // 진행 중인 평가 수 (is_completed = false인 evaluation_submissions 조회)
+        const { data: inProgressSubmissions, error: inProgressError } = await supabase
+          .from('evaluation_submissions')
           .select('candidate_id')
-          .not('score', 'is', null);
+          .eq('is_completed', false);
 
-        if (!evaluationsError && evaluationsData) {
-          const uniqueEvaluatedCandidates = new Set(evaluationsData.map(e => e.candidate_id));
-          const uniqueCompletedCandidates = new Set(completedSubmissions?.map(s => s.candidate_id) || []);
-          
-          // 평가는 시작했지만 완료되지 않은 평가대상
-          inProgress = uniqueEvaluatedCandidates.size - uniqueCompletedCandidates.size;
-          inProgress = Math.max(0, inProgress);
+        if (!inProgressError && inProgressSubmissions) {
+          inProgress = inProgressSubmissions.length;
         }
 
-        // 완료율 계산
-        completionRate = Math.round((completed / totalCandidates) * 100);
+        // 완료율 계산 (총 가능한 평가 수 대비)
+        const totalPossibleEvaluations = totalCandidates * activeEvaluators;
+        completionRate = totalPossibleEvaluations > 0 ? Math.round((completed / totalPossibleEvaluations) * 100) : 0;
       }
 
       console.log('📊 서버 통계 데이터:', {
@@ -1159,7 +1154,44 @@ export class SupabaseStorage {
     return { success: true, message: '평가가 완료되었습니다.' };
   }
 
-  // 평가 상태 확인 메서드
+  async getEvaluationSubmissionsByCandidate(candidateId: number): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_submissions')
+        .select(`
+          *,
+          evaluator:evaluators!inner(id, name),
+          candidate:candidates!inner(id, name)
+        `)
+        .eq('candidate_id', candidateId);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching evaluation submissions by candidate:', error);
+      return [];
+    }
+  }
+
+  async getEvaluationSubmissionsByEvaluator(evaluatorId: number): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('evaluation_submissions')
+        .select(`
+          *,
+          evaluator:evaluators!inner(id, name),
+          candidate:candidates!inner(id, name)
+        `)
+        .eq('evaluator_id', evaluatorId);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching evaluation submissions by evaluator:', error);
+      return [];
+    }
+  }
+
   async getEvaluationStatus(evaluatorId: number, candidateId: number): Promise<any> {
     const { data, error } = await supabase
       .from('evaluation_submissions')

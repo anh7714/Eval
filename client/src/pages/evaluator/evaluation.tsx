@@ -1064,9 +1064,6 @@ export default function EvaluatorEvaluationPage() {
                                               <span className="text-lg font-bold text-red-700">
                                                 {currentScore !== undefined ? currentScore : 0}점
                                               </span>
-                                              <div className="text-xs text-red-500 mt-1 font-semibold">
-                                                ⚡ 사전점수
-                                              </div>
                                             </div>
                                           );
                                         } else {
@@ -1194,9 +1191,6 @@ export default function EvaluatorEvaluationPage() {
                                             <span className="text-lg font-bold text-red-700">
                                               {currentScore !== undefined ? currentScore : 0}점
                                             </span>
-                                            <div className="text-xs text-red-500 mt-1 font-semibold">
-                                              ⚡ 사전점수
-                                            </div>
                                           </div>
                                         );
                                       } else {
