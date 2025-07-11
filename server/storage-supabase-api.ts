@@ -532,7 +532,7 @@ export class SupabaseStorage {
           evaluation_categories(name)
         `)
         .eq('is_active', true)
-        .order('sort_order');
+        .order('id');
 
       if (error) {
         console.error('Supabase getAllEvaluationItems error:', error);
@@ -663,13 +663,50 @@ export class SupabaseStorage {
   }
 
   async createCandidate(candidate: InsertCandidate): Promise<Candidate> {
-    const { data, error } = await supabase
-      .from('candidates')
-      .insert(candidate)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    try {
+      // Map camelCase to snake_case for database
+      const mappedData: any = {
+        name: candidate.name,
+        department: candidate.department,
+        position: candidate.position,
+        category: candidate.category,
+        main_category: candidate.mainCategory,
+        sub_category: candidate.subCategory,
+        description: candidate.description,
+        sort_order: candidate.sortOrder || 0,
+        is_active: candidate.isActive !== undefined ? candidate.isActive : true,
+      };
+
+      const { data, error } = await supabase
+        .from('candidates')
+        .insert([mappedData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating candidate:', error);
+        throw error;
+      }
+
+      // Map back to camelCase for frontend
+      return {
+        id: data.id,
+        name: data.name,
+        department: data.department,
+        position: data.position,
+        category: data.category,
+        mainCategory: data.main_category,
+        subCategory: data.sub_category,
+        description: data.description,
+        sortOrder: data.sort_order,
+        isActive: data.is_active,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    } catch (error) {
+      console.error('Error in createCandidate:', error);
+      throw error;
+    }
   }
 
   async createManyCandidates(candidateList: InsertCandidate[]): Promise<Candidate[]> {

@@ -98,6 +98,11 @@ export default function ResultsPage() {
     queryKey: ["/api/admin/candidates"],
   });
 
+  // 실제 평가 항목 데이터 가져오기
+  const { data: evaluationItems = [] } = useQuery({
+    queryKey: ["/api/admin/evaluation-items"],
+  });
+
   // 타입 안전한 결과 데이터
   const resultsData = results as CandidateResult[];
   const categoriesData = categories as any[];

@@ -206,6 +206,7 @@ export const insertCategoryOptionSchema = createInsertSchema(categoryOptions).om
 export const insertCandidateSchema = createInsertSchema(candidates).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({

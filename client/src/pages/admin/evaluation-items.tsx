@@ -456,13 +456,15 @@ export default function EvaluationItemManagement() {
   const { data: categories = [], isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories, isFetching: categoriesFetching } = useQuery({
     queryKey: ["/api/admin/categories"],
     retry: 2,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30초 동안 데이터를 신선하다고 간주
   });
 
   const { data: items = [], isLoading: itemsLoading, error: itemsError, refetch: refetchItems, isFetching: itemsFetching } = useQuery({
     queryKey: ["/api/admin/evaluation-items"],
     retry: 2,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30초 동안 데이터를 신선하다고 간주
   });
 
   // 에러 상태 로깅
@@ -485,9 +487,16 @@ export default function EvaluationItemManagement() {
     }
   }, [categories, items]);
 
-  // 기본 템플릿 로드
+  // 기본 템플릿 로드 (초기 로드 시에만, 데이터베이스 데이터가 없는 경우에만)
   useEffect(() => {
     const loadDefaultTemplate = async () => {
+      // 이미 데이터베이스에서 카테고리나 아이템이 로드된 경우는 스킵
+      if ((Array.isArray(categories) && categories.length > 0) || 
+          (Array.isArray(items) && items.length > 0)) {
+        console.log('ℹ️ 데이터베이스 데이터가 있으므로 기본 템플릿 로드를 스킵합니다.');
+        return;
+      }
+
       try {
         const response = await fetch('/api/admin/templates/default', {
           credentials: 'include'
@@ -505,8 +514,11 @@ export default function EvaluationItemManagement() {
       }
     };
 
-    loadDefaultTemplate();
-  }, []);
+    // 카테고리와 아이템 로딩이 완료된 후에 템플릿 로드 여부 결정
+    if (!categoriesLoading && !itemsLoading) {
+      loadDefaultTemplate();
+    }
+  }, [categoriesLoading, itemsLoading, categories, items]);
 
   // 실시간 구독 + 폴링 백업 시스템 (카테고리용)
   useEffect(() => {
@@ -664,11 +676,17 @@ export default function EvaluationItemManagement() {
   // 후보자 목록 가져오기
   const { data: candidates = [] } = useQuery({
     queryKey: ["/api/admin/candidates"],
+    retry: 2,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   // 시스템 설정 가져오기
   const { data: systemConfig = {} } = useQuery({
     queryKey: ["/api/system/config"],
+    retry: 2,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   // 템플릿 저장 뮤테이션 (덮어쓰기 방식)
@@ -850,9 +868,19 @@ export default function EvaluationItemManagement() {
 
   // 데이터베이스 데이터를 템플릿 구조로 변환
   const convertDataToTemplate = () => {
-    if (!categories || !items || !Array.isArray(categories) || !Array.isArray(items) || categories.length === 0 || items.length === 0) {
-      return currentTemplate; // 데이터가 없으면 기본 템플릿 반환
+    // 데이터가 유효하지 않은 경우 현재 템플릿 반환
+    if (!Array.isArray(categories) || !Array.isArray(items)) {
+      console.log('❌ 데이터가 배열이 아님. 현재 템플릿 유지.');
+      return currentTemplate;
     }
+    
+    // 빈 데이터인 경우 현재 템플릿 유지
+    if (categories.length === 0 || items.length === 0) {
+      console.log('⚠️ 데이터가 비어있음. 현재 템플릿 유지.');
+      return currentTemplate;
+    }
+
+    console.log('🔧 템플릿 변환 중...', { categoriesLength: categories.length, itemsLength: items.length });
 
     const sections = (categories as any[]).map((category: any, categoryIndex: number) => ({
       id: String.fromCharCode(65 + categoryIndex), // A, B, C...
@@ -880,22 +908,42 @@ export default function EvaluationItemManagement() {
 
   // 데이터베이스 데이터가 로드되면 템플릿 업데이트
   useEffect(() => {
-    console.log('✅ 데이터 로드 상태:', { 
-      categoriesCount: categories.length, 
-      itemsCount: items.length,
+    console.log('✅ 데이터 로드 상태 체크:', { 
+      categoriesLoading,
+      itemsLoading,
+      categoriesFetching,
+      itemsFetching,
+      categoriesCount: Array.isArray(categories) ? categories.length : 0, 
+      itemsCount: Array.isArray(items) ? items.length : 0,
+      hasSystemConfig: !!systemConfig,
       categories,
-      items 
+      items,
+      systemConfig
     });
+
+    // 초기 로딩이 완료되었는지 확인 (fetching은 제외하고 loading만 체크)
+    if (categoriesLoading || itemsLoading) {
+      console.log('⏳ 아직 초기 로딩 중...');
+      return;
+    }
     
-    if (categories && items && Array.isArray(categories) && Array.isArray(items) && categories.length > 0 && items.length > 0) {
+    // 데이터가 모두 로드되었고 유효한 경우에만 템플릿 업데이트
+    if (Array.isArray(categories) && Array.isArray(items) && categories.length > 0 && items.length > 0) {
       console.log('🔄 템플릿 변환 시작...');
       const convertedTemplate = convertDataToTemplate();
       console.log('📋 변환된 템플릿:', convertedTemplate);
       setCurrentTemplate(convertedTemplate);
-    } else if ((categories && Array.isArray(categories) && categories.length > 0) || (items && Array.isArray(items) && items.length > 0)) {
-      console.log('⚠️ 부분 데이터만 로드됨');
+    } else if (Array.isArray(categories) && Array.isArray(items)) {
+      console.log('⚠️ 데이터가 로드되었지만 비어있음 - 기존 템플릿 유지');
+      // 데이터가 비어있는 경우 기존 템플릿을 유지하고 제목만 업데이트
+      if (systemConfig && (systemConfig as any)?.evaluationTitle) {
+        setCurrentTemplate(prev => ({
+          ...prev,
+          title: (systemConfig as any).evaluationTitle
+        }));
+      }
     }
-  }, [categories, items, systemConfig]);
+  }, [categories, items, systemConfig, categoriesLoading, itemsLoading]);
 
   // 컬럼 설정 변경 시 기존 데이터 동기화
   useEffect(() => {
