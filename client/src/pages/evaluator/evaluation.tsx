@@ -76,229 +76,94 @@ export default function EvaluatorEvaluationPage() {
     try {
       console.log('🚀 평가 모달 열기 시작:', candidate);
       
-      // 1. 관리자 템플릿 데이터 가져오기
-      const [templateResponse, existingDataResponse, presetScoresResponse, evaluationItemsResponse] = await Promise.all([
-        fetch('/api/admin/templates/default'),
+      // 🎯 평가결과 조회와 동일한 방식으로 데이터 가져오기
+      const [existingDataResponse, presetScoresResponse, categoriesResponse, evaluationItemsResponse, systemConfigResponse] = await Promise.all([
         fetch(`/api/evaluator/evaluation/${candidate.id}`),
         fetch(`/api/admin/candidate-preset-scores/${candidate.id}`),
-        fetch('/api/evaluator/evaluation-items')
+        fetch('/api/admin/categories'), // 평가결과 조회와 동일
+        fetch('/api/admin/evaluation-items'), // 평가결과 조회와 동일 
+        fetch('/api/system/config') // 평가결과 조회와 동일
       ]);
 
-      // 2. 관리자 템플릿 데이터 처리
-      let adminTemplate = null;
-      if (templateResponse.ok) {
-        adminTemplate = await templateResponse.json();
-        console.log('📋 관리자 템플릿 로드:', adminTemplate);
-      } else {
-        console.error('❌ 관리자 템플릿 로드 실패:', templateResponse.status);
+      // 1. 카테고리와 평가항목 데이터 가져오기
+      let categories: any[] = [];
+      let evaluationItems: any[] = [];
+      let systemConfig: any = {};
+      
+      if (categoriesResponse.ok) {
+        categories = await categoriesResponse.json();
+        console.log('📋 카테고리 데이터:', categories);
       }
-
-      // 3. 실제 평가 항목 데이터 가져오기
-      let realEvaluationItems: any[] = [];
+      
       if (evaluationItemsResponse.ok) {
-        realEvaluationItems = await evaluationItemsResponse.json();
-        console.log('📝 실제 평가 항목 데이터:', realEvaluationItems);
-      } else {
-        console.error('❌ 평가 항목 데이터 로드 실패:', evaluationItemsResponse.status);
+        evaluationItems = await evaluationItemsResponse.json();
+        console.log('📝 평가항목 데이터:', evaluationItems);
+      }
+      
+      if (systemConfigResponse.ok) {
+        systemConfig = await systemConfigResponse.json();
+        console.log('⚙️ 시스템 설정:', systemConfig);
       }
 
-      // 4. 기존 평가 데이터 처리
+      // 2. 기존 평가 데이터 처리 (평가결과 조회와 동일한 방식)
       let initialScores: any = {};
       if (existingDataResponse.ok) {
         const existingData = await existingDataResponse.json();
-        console.log('📖 기존 평가 데이터 원본:', JSON.stringify(existingData, null, 2));
-        console.log('📖 기존 평가 데이터 타입:', typeof existingData);
-        console.log('📖 scores 필드 존재:', existingData && 'scores' in existingData);
-        console.log('📖 scores 필드 값:', existingData?.scores);
-        console.log('📖 scores 필드 타입:', typeof existingData?.scores);
+        console.log('📖 기존 평가 데이터:', existingData);
         
         // evaluation_submissions 테이블의 scores 필드는 JSONB 형태
         if (existingData && existingData.scores && typeof existingData.scores === 'object') {
           initialScores = existingData.scores;
-          console.log('✅ 기존 평가점수 매핑 성공:', initialScores);
-          console.log('✅ 기존 평가점수 키 목록:', Object.keys(initialScores));
-        } else {
-          console.log('ℹ️ 기존 평가점수 없음');
+          console.log('✅ 기존 평가점수:', Object.keys(initialScores).length, '개');
         }
-      } else {
-        console.error('❌ 기존 평가 데이터 로드 실패:', existingDataResponse.status);
       }
 
-      // 5. 사전점수 데이터 처리 (우선순위 적용)
+      // 3. 사전점수 데이터 처리 (기존 점수보다 우선 적용)
       let presetMap: { [key: string]: boolean } = {};
       if (presetScoresResponse.ok) {
         const presetScores = await presetScoresResponse.json();
-        console.log('🎯 사전점수 원본 데이터:', presetScores);
-        console.log('🎯 사전점수 개수:', Array.isArray(presetScores) ? presetScores.length : 'Array가 아님');
+        console.log('🎯 사전점수 데이터:', presetScores?.length || 0, '개');
         
-        // 사전점수가 있으면 기존 점수보다 우선 적용
         if (Array.isArray(presetScores) && presetScores.length > 0) {
-          console.log('🔍 사전점수 처리 시작:', presetScores.length, '개');
-          
-          presetScores.forEach((preset: any, index: number) => {
-            console.log(`🔍 사전점수 항목 ${index + 1}:`, JSON.stringify(preset, null, 2));
-            
-            // API에서 반환하는 실제 필드명 사용: evaluation_item_id와 preset_score
+          presetScores.forEach((preset: any) => {
             const itemId = preset.evaluation_item_id;
             const score = preset.preset_score;
             
             if (itemId && score !== null && score !== undefined) {
-              // 실제 평가 항목 ID를 문자열로 변환하여 사용
               const stringItemId = itemId.toString();
               initialScores[stringItemId] = score;
               presetMap[stringItemId] = true;
-              console.log(`✅ 사전점수 매핑 성공: ID ${stringItemId} = ${score}점`);
-            } else {
-              console.warn(`⚠️ 사전점수 매핑 실패: itemId=${itemId}, score=${score}`);
+              console.log(`✅ 사전점수: ID ${stringItemId} = ${score}점`);
             }
           });
-          
-          console.log('✅ 사전점수 매핑 완료:', Object.keys(presetMap).length, '개');
-        } else {
-          console.log('ℹ️ 사전점수 없음 - 배열이 아니거나 빈 배열');
         }
-      } else {
-        console.error('❌ 사전점수 데이터 로드 실패:', presetScoresResponse.status);
       }
 
-      // 6. 기존 점수를 새로운 템플릿 ID로 매핑 (관리자 템플릿이 있을 때)
-      if (adminTemplate && adminTemplate.sections && realEvaluationItems.length > 0) {
-        console.log('🔄 기존 점수 ID 매핑 시작');
-        const sortedRealItems = realEvaluationItems.slice().sort((a: any, b: any) => a.id - b.id);
-        const existingScoreKeys = Object.keys(initialScores).filter(key => !presetMap[key]); // 사전점수가 아닌 기존 점수만
-        
-        console.log('📋 기존 점수 키들:', existingScoreKeys);
-        console.log('🆔 새로운 평가 항목 ID들:', sortedRealItems.map(item => item.id));
-        
-        const newMappedScores: { [key: string]: number } = {};
-        
-        // 사전점수 유지
-        Object.keys(presetMap).forEach(presetId => {
-          newMappedScores[presetId] = initialScores[presetId];
+      // 4. 평가결과 조회와 동일한 템플릿 생성 방식 적용
+      console.log('🔍 convertDataToTemplate 입력 데이터:');
+      console.log('  📋 categories:', categories);
+      console.log('  📝 evaluationItems:', evaluationItems);
+      console.log('  ⚙️ systemConfig:', systemConfig);
+      
+      const convertedTemplate = convertDataToTemplate(categories, evaluationItems, systemConfig);
+      console.log('🎯 변환된 템플릿:', convertedTemplate);
+      console.log('🎯 템플릿 섹션 수:', convertedTemplate?.sections?.length || 0);
+      
+      if (convertedTemplate?.sections) {
+        convertedTemplate.sections.forEach((section: any, index: number) => {
+          console.log(`🎯 섹션 ${index + 1}: "${section.title}" (${section.items?.length || 0}개 항목)`);
+          section.items?.forEach((item: any, itemIndex: number) => {
+            console.log(`   - 항목 ${itemIndex + 1}: "${item.text}" (ID: ${item.evaluationItemId}, 유형: ${item.type})`);
+          });
         });
-        
-        // 기존 점수를 순서대로 새로운 ID로 매핑
-        existingScoreKeys.forEach((oldKey, index) => {
-          if (index < sortedRealItems.length) {
-            const newId = sortedRealItems[index].id.toString();
-            // 사전점수가 없는 항목만 매핑
-            if (!presetMap[newId]) {
-              newMappedScores[newId] = initialScores[oldKey];
-              console.log(`🔄 점수 ID 매핑: ${oldKey} → ${newId} (점수: ${initialScores[oldKey]})`);
-            }
-          }
-        });
-        
-        initialScores = newMappedScores;
-        console.log('✅ ID 매핑 완료:', initialScores);
       }
 
-      // 7. 초기 점수 상태 설정
+      // 5. 초기 점수 상태 설정
       setEvaluationScores(initialScores);
       setPresetScoresMap(presetMap);
       
-      console.log('🎯 최종 설정할 초기 점수:', JSON.stringify(initialScores, null, 2));
-      console.log('🎯 최종 설정할 사전점수 맵:', JSON.stringify(presetMap, null, 2));
-      console.log('✅ 상태 설정 완료 - 모달 열기');
-
-      // 8. 관리자 템플릿이 있으면 변환하여 사용, 없으면 기본 템플릿 사용
-      let convertedCategories: any = categories;
-      
-      if (adminTemplate && adminTemplate.sections && realEvaluationItems.length > 0) {
-        console.log('🔄 관리자 템플릿 변환 시작');
-        console.log('🔄 원본 관리자 템플릿:', JSON.stringify(adminTemplate, null, 2));
-        
-        // 실제 평가 항목 데이터를 카테고리별로 그룹화
-        console.log('🔍 실제 평가 항목 상세 분석:', realEvaluationItems.map(item => ({
-          id: item.id,
-          name: item.itemName,
-          categoryId: item.categoryId,
-          category: item.category,
-          categoryName: item.category?.name || '알 수 없음'
-        })));
-        
-        const itemsByCategory = realEvaluationItems.reduce((acc: any, item: any) => {
-          const categoryName = item.category?.name || '기타';
-          if (!acc[categoryName]) {
-            acc[categoryName] = [];
-          }
-          acc[categoryName].push(item);
-          return acc;
-        }, {});
-        
-        console.log('📝 카테고리별 실제 평가 항목:', itemsByCategory);
-        
-        console.log('📋 관리자 템플릿 총 섹션 수:', adminTemplate.sections.length);
-        console.log('📋 관리자 템플릿 총 항목 수:', adminTemplate.sections.reduce((sum: number, section: any) => sum + (section.items?.length || 0), 0));
-        
-        // 관리자 템플릿의 sections를 categories 형태로 변환하되, 실제 평가 항목 ID를 순서대로 매핑
-        convertedCategories = {};
-        
-        // 모든 실제 평가 항목을 ID 순서대로 정렬
-        const realItemsArray: any[] = Array.isArray(realEvaluationItems) ? realEvaluationItems : [];
-        const sortedRealItems = realItemsArray.slice().sort((a: any, b: any) => a.id - b.id);
-        console.log('🔢 ID 순서대로 정렬된 실제 평가 항목:', sortedRealItems.map((item: any) => ({ 
-          id: item.id, 
-          name: item.itemName 
-        })));
-        
-        let itemIndex = 0; // 실제 평가 항목의 인덱스 추적
-        
-        const sectionsArray: any[] = Array.isArray(adminTemplate.sections) ? adminTemplate.sections : [];
-        sectionsArray.forEach((section: any, sectionIndex: number) => {
-          console.log('🔄 섹션 처리:', section);
-          console.log(`📍 현재 itemIndex: ${itemIndex}`);
-          
-          // 이 섹션에 할당할 실제 평가 항목들을 순서대로 가져오기
-          const sectionItemCount = Array.isArray(section.items) ? section.items.length : 0;
-          const assignedItems: any[] = [];
-          
-          for (let i = 0; i < sectionItemCount && itemIndex < sortedRealItems.length; i++) {
-            const realItem = sortedRealItems[itemIndex];
-            const sectionItem = section.items[i];
-            
-            assignedItems.push({
-              // 관리자 템플릿의 항목 정보와 실제 평가 항목 ID 결합
-              id: realItem.id.toString(), // 실제 평가 항목 ID 사용
-              itemName: sectionItem?.text || realItem.itemName, // 관리자 템플릿의 항목명 사용
-              name: sectionItem?.text || realItem.itemName,
-              description: sectionItem?.text || realItem.itemName,
-              type: realItem.type || (realItem.isQuantitative ? '정량' : '정성'), // 실제 DB의 정량/정성 정보 사용
-              maxScore: sectionItem?.points || realItem.maxScore,
-              points: sectionItem?.points || realItem.maxScore,
-              hasPresetScores: realItem.hasPresetScores || false, // 실제 DB의 사전점수 여부 추가
-              isQuantitative: realItem.isQuantitative || false, // 실제 DB의 정량평가 여부 추가
-              // 실제 DB 정보도 참조용으로 보관
-              realItemName: realItem.itemName,
-              realMaxScore: realItem.maxScore
-            });
-            itemIndex++;
-          }
-          
-          console.log(`📝 섹션 "${section.title}"에 할당된 평가 항목:`, assignedItems);
-          
-          convertedCategories[section.title] = {
-            name: section.title,
-            totalPoints: section.totalPoints,
-            items: assignedItems
-          };
-          
-          console.log(`✅ 섹션 "${section.title}" 변환 완료:`, convertedCategories[section.title]);
-        });
-        
-        console.log('🔄 변환된 카테고리 전체:', JSON.stringify(convertedCategories, null, 2));
-        
-        // 생성된 아이템 ID들 로그
-        const allItemIds = Object.values(convertedCategories).flatMap((cat: any) => 
-          cat.items.map((item: any) => item.id)
-        );
-        console.log('🆔 실제 평가 항목 ID 목록:', allItemIds);
-      }
-
-      console.log('📊 점수 상태 초기화 완료:', initialScores);
-
-      // 9. 심사표 템플릿 생성 (관리자 템플릿 사용)
-      const template = createEvaluationTemplate(candidate, convertedCategories, evaluationItems as any[], systemConfig, adminTemplate);
+      // 6. 심사표 템플릿 생성
+      const template = createEvaluationTemplate(candidate, convertedTemplate, systemConfig);
       setEvaluationTemplate(template);
       setIsEvaluationModalOpen(true);
       
@@ -308,53 +173,73 @@ export default function EvaluatorEvaluationPage() {
       console.error('❌ 평가 모달 열기 중 오류:', error);
       
       // 오류가 있어도 기본 템플릿으로 진행
-      const template = createEvaluationTemplate(candidate, categories as any[], evaluationItems as any[], systemConfig);
+      const fallbackTemplate = convertDataToTemplate([], [], {});
+      const template = createEvaluationTemplate(candidate, fallbackTemplate, {});
       setEvaluationTemplate(template);
       setIsEvaluationModalOpen(true);
     }
   };
 
-  // 심사표 템플릿 생성 함수
-  const createEvaluationTemplate = (candidate: any, categories: any[] = [], items: any[] = [], config: any = {}, adminTemplate: any = null) => {
-    // 관리자 템플릿이 있으면 우선 사용 (이미 openEvaluationModal에서 실제 ID로 변환됨)
-    if (adminTemplate && adminTemplate.sections && typeof categories === 'object' && !Array.isArray(categories)) {
-      console.log('🎨 관리자 템플릿 사용 (실제 ID 변환됨):', adminTemplate);
-      
-      const candidateName = candidate?.name || "평가대상";
-      const candidateCategory = candidate?.category || candidate?.mainCategory || "기타";
-      
-      return {
-        title: adminTemplate?.title || `${candidateName} 심사표`,
-        subtitle: `구분 · ${candidateCategory} · ${adminTemplate?.title || "종합평가시스템"}`,
-        candidate: candidate,
-        categories: categories, // 이미 실제 ID로 변환된 categories 사용
-        totalScore: adminTemplate?.totalScore || 100,
-        isAdminTemplate: true
-      };
+  // 🎯 평가결과 조회와 동일한 템플릿 변환 함수
+  const convertDataToTemplate = (categories: any[], evaluationItems: any[], systemConfig: any) => {
+    if (!Array.isArray(categories) || !Array.isArray(evaluationItems)) {
+      console.log('❌ 데이터가 배열이 아님. 기본 템플릿 반환.');
+      return { title: "심사표", totalScore: 100, sections: [] };
     }
     
-    // 관리자 템플릿이 없으면 기존 로직 사용
-    const evaluationTitle = config?.evaluationTitle || config?.systemName || "종합평가시스템";
+    if (categories.length === 0 || evaluationItems.length === 0) {
+      console.log('⚠️ 데이터가 비어있음. 기본 템플릿 반환.');
+      return { title: "심사표", totalScore: 100, sections: [] };
+    }
+
+    console.log('🔧 평가위원 심사표 템플릿 변환 중...', { categoriesLength: categories.length, itemsLength: evaluationItems.length });
+
+    const sections = categories.map((category: any, categoryIndex: number) => ({
+      id: String.fromCharCode(65 + categoryIndex), // A, B, C...
+      title: category.name,
+      totalPoints: evaluationItems
+        .filter((item: any) => item.categoryId === category.id)
+        .reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0),
+      items: evaluationItems
+        .filter((item: any) => item.categoryId === category.id)
+        .map((item: any, index: number) => ({
+          id: index + 1, // 템플릿 내 순서 ID
+          evaluationItemId: item.id, // 실제 evaluation_item.id 추가
+          code: item.code, // evaluation_item.code 추가
+          text: item.name,
+          type: item.isQuantitative ? '정량' : '정성', // 데이터베이스 값 기반 매핑
+          points: item.maxScore || 0,
+          score: 0
+        }))
+    }));
+
+    return {
+      title: systemConfig?.evaluationTitle || "심사표",
+      totalScore: sections.reduce((sum: number, section: any) => sum + section.totalPoints, 0),
+      sections
+    };
+  };
+
+  // 🎯 평가결과 조회와 동일한 방식의 심사표 템플릿 생성 함수
+  const createEvaluationTemplate = (candidate: any, templateData: any, config: any = {}) => {
     const candidateName = candidate?.name || "평가대상";
     const candidateCategory = candidate?.category || candidate?.mainCategory || "기타";
+    const evaluationTitle = config?.evaluationTitle || "종합평가시스템";
     
-    // 카테고리별로 평가항목 정리
-    const categoryGroups = (categories as any[] || []).reduce((groups: any, category: any) => {
-      if (category?.type === 'evaluation') {
-        groups[category.name] = {
-          name: category.name,
-          items: (items as any[] || []).filter((item: any) => item?.category === category.name)
-        };
-      }
-      return groups;
-    }, {} as any);
+    console.log('🎨 평가위원 심사표 템플릿 생성:', {
+      candidateName,
+      candidateCategory,
+      sectionsCount: templateData?.sections?.length || 0,
+      totalScore: templateData?.totalScore || 0
+    });
 
     return {
       title: `${candidateName} 심사표`,
       subtitle: `구분 · ${candidateCategory} · ${evaluationTitle}`,
       candidate: candidate,
-      categories: categoryGroups,
-      isAdminTemplate: false
+      sections: templateData?.sections || [],
+      totalScore: templateData?.totalScore || 100,
+      isDataTemplate: true // 데이터베이스 기반 템플릿임을 표시
     };
   };
 
@@ -372,6 +257,63 @@ export default function EvaluatorEvaluationPage() {
       ...prev,
       [itemId]: score
     }));
+  };
+
+  // 평가 점수 저장 (CODE 기반)
+  const handleScoreSubmit = async (candidateId: number, scores: Record<string, number>) => {
+    try {
+      // 🎯 CODE 기반 점수 저장을 위한 변환
+      const codeBasedScores: Record<string, number> = {};
+      
+      // 현재 템플릿에서 ID->CODE 매핑 생성
+      const idToCodeMap = new Map<string, string>();
+      if (evaluationTemplate?.sections) {
+        evaluationTemplate.sections.forEach(section => {
+          section.items.forEach(item => {
+            idToCodeMap.set(item.evaluationItemId?.toString() || '', item.code);
+          });
+        });
+      }
+      
+      // 점수를 CODE 기반으로 변환
+      for (const [itemId, score] of Object.entries(scores)) {
+        const itemCode = idToCodeMap.get(itemId);
+        if (itemCode) {
+          codeBasedScores[itemCode] = score;
+          console.log(`🔄 점수 변환: ID(${itemId}) -> CODE(${itemCode}) = ${score}`);
+        } else {
+          console.warn(`⚠️ 평가항목 ID ${itemId}에 대한 코드를 찾을 수 없습니다.`);
+          // 호환성을 위해 ID도 유지
+          codeBasedScores[itemId] = score;
+        }
+      }
+      
+      console.log('💾 CODE 기반 점수 저장:', { candidateId, codeBasedScores });
+      
+      const totalScore = Object.values(codeBasedScores).reduce((sum, score) => sum + score, 0);
+      
+      const response = await fetch('/api/evaluator/evaluation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          candidateId,
+          scores: codeBasedScores, // 🎯 CODE 기반 점수 전송
+          totalScore,
+          isCompleted: true
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ CODE 기반 점수 저장 성공');
+        await loadEvaluationData();
+        setIsEvaluationModalOpen(false);
+      } else {
+        console.error('❌ CODE 기반 점수 저장 실패');
+      }
+    } catch (error) {
+      console.error('❌ CODE 기반 점수 저장 오류:', error);
+    }
   };
 
   // 임시 저장 뮤테이션
@@ -700,27 +642,78 @@ export default function EvaluatorEvaluationPage() {
     try {
       console.log('🔍 미리보기 모달 열기:', candidate);
       
-      // 평가 데이터 가져오기
-      const response = await fetch(`/api/evaluator/evaluation/${candidate.id}`, {
-        method: 'GET',
-        credentials: 'include'
-      });
+      // 🎯 평가 모달과 동일한 방식으로 데이터 가져오기 (관리자 심사표 동기화)
+      const [evaluationResponse, categoriesResponse, evaluationItemsResponse, systemConfigResponse] = await Promise.all([
+        fetch(`/api/evaluator/evaluation/${candidate.id}`, {
+          method: 'GET',
+          credentials: 'include'
+        }),
+        fetch('/api/admin/categories'), // 관리자 심사표와 동기화
+        fetch('/api/admin/evaluation-items'), // 관리자 심사표와 동기화
+        fetch('/api/system/config') // 관리자 심사표와 동기화
+      ]);
       
-      if (response.ok) {
-        const data = await response.json();
+      // 평가 점수 데이터
+      let previewScores: any = {};
+      if (evaluationResponse.ok) {
+        const data = await evaluationResponse.json();
         console.log('📄 미리보기 데이터:', data);
-        
-        setPreviewCandidate(candidate);
-        setPreviewScores(data.scores || {});
-        setIsPreviewModalOpen(true);
-      } else {
-        console.error('❌ 미리보기 데이터 로딩 실패');
-        toast({
-          title: "오류",
-          description: "평가 결과를 불러올 수 없습니다.",
-          variant: "destructive",
-        });
+        console.log('📊 미리보기 점수 원본:', data.scores);
+        console.log('📊 미리보기 점수 키들:', Object.keys(data.scores || {}));
+        console.log('📊 미리보기 점수 값들:', Object.values(data.scores || {}));
+        previewScores = data.scores || {};
       }
+
+      // 관리자 심사표 데이터
+      let categories: any[] = [];
+      let evaluationItems: any[] = [];
+      let systemConfig: any = {};
+      
+      if (categoriesResponse.ok) {
+        categories = await categoriesResponse.json();
+        console.log('📋 관리자 카테고리 데이터:', categories);
+      }
+      
+      if (evaluationItemsResponse.ok) {
+        evaluationItems = await evaluationItemsResponse.json();
+        console.log('📝 관리자 평가항목 데이터:', evaluationItems);
+        console.log('📝 평가항목 ID들:', evaluationItems.map(item => ({ id: item.id, name: item.name })));
+      }
+      
+      if (systemConfigResponse.ok) {
+        systemConfig = await systemConfigResponse.json();
+        console.log('⚙️ 시스템 설정:', systemConfig);
+      }
+
+      // 관리자 심사표로 템플릿 생성 (평가 모달과 동일)
+      const template = convertDataToTemplate(categories, evaluationItems, systemConfig);
+      console.log('🎯 결과확인 모달 - 관리자 심사표 템플릿:', template);
+      console.log('🎯 템플릿 항목들의 evaluationItemId:', template.sections?.map((section: any) => ({
+        sectionTitle: section.title,
+        items: section.items?.map((item: any) => ({
+          text: item.text,
+          evaluationItemId: item.evaluationItemId,
+          type: item.type
+        }))
+      })));
+        
+      setPreviewCandidate(candidate);
+      setPreviewScores(previewScores);
+      
+      // 템플릿도 상태로 저장
+      setEvaluationTemplate(template);
+      setIsPreviewModalOpen(true);
+
+      // 🔍 키 매핑 디버깅
+      console.log('🔍 점수 매핑 디버깅:');
+      template.sections?.forEach((section: any) => {
+        section.items?.forEach((item: any) => {
+          const key = item.evaluationItemId;
+          const score = previewScores[key];
+          console.log(`   "${item.text}" - 키: ${key} (타입: ${typeof key}) -> 점수: ${score}`);
+        });
+      });
+        
     } catch (error) {
       console.error('❌ 미리보기 모달 오류:', error);
       toast({
@@ -1002,51 +995,51 @@ export default function EvaluatorEvaluationPage() {
                         </thead>
                         <tbody>
                           {(() => {
-                            // 관리자 템플릿 사용 여부에 따라 다른 로직 적용
-                            if (evaluationTemplate.isAdminTemplate && evaluationTemplate.categories) {
-                              // 관리자 템플릿 사용
-                              console.log('🎨 관리자 템플릿으로 렌더링:', evaluationTemplate.categories);
+                            // 데이터베이스 템플릿 사용 여부에 따라 다른 로직 적용
+                            if (evaluationTemplate.isDataTemplate && evaluationTemplate.sections) {
+                              // 데이터베이스 기반 템플릿 사용
+                              console.log('🎨 데이터베이스 템플릿으로 렌더링:', evaluationTemplate.sections);
                               
                               let totalPoints = 0;
-                              return Object.entries(evaluationTemplate.categories).map(([categoryName, categoryData]: [string, any]) => {
-                                if (!categoryData?.items || !Array.isArray(categoryData.items)) {
+                              return evaluationTemplate.sections.map((section: any) => {
+                                if (!section?.items || !Array.isArray(section.items)) {
                                   return null;
                                 }
                                 
-                                const categoryTotal = categoryData.items.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
-                                totalPoints += categoryTotal;
+                                const sectionTotal = section.items.reduce((sum: number, item: any) => sum + (item.points || item.maxScore || 0), 0);
+                                totalPoints += sectionTotal;
                                 
-                                return categoryData.items.map((item: any, itemIndex: number) => (
-                                  <tr key={`${categoryName}-${itemIndex}`} className="hover:bg-gray-50">
+                                return section.items.map((item: any, itemIndex: number) => (
+                                  <tr key={`${section.title}-${itemIndex}`} className="hover:bg-gray-50">
                                     {itemIndex === 0 && (
                                       <td 
                                         className="border border-black px-2 py-2 text-center font-bold bg-gray-50 align-middle"
-                                        rowSpan={categoryData.items.length}
+                                        rowSpan={section.items.length}
                                       >
-                                        <div className="text-base font-bold text-gray-900">{categoryName}</div>
-                                        <div className="text-sm text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
+                                        <div className="text-base font-bold text-gray-900">{section.title}</div>
+                                        <div className="text-sm text-gray-600 mt-1 font-normal">({sectionTotal}점)</div>
                                       </td>
                                     )}
                                     <td className="border border-black px-2 py-2 text-base text-gray-900">
-                                      {itemIndex + 1}. {item.itemName || item.name || item.description}
+                                      {itemIndex + 1}. {item.text || item.name}
                                     </td>
                                     <td className="border border-black px-2 py-2 text-center text-base text-gray-900">
-                                      <span className={`font-medium ${item.isQuantitative ? 'text-blue-600' : 'text-green-600'}`}>
-                                        {item.isQuantitative ? '정량' : '정성'}
+                                      <span className={`font-medium ${item.type === '정량' ? 'text-blue-600' : 'text-green-600'}`}>
+                                        {item.type}
                                       </span>
                                     </td>
                                     <td className="border border-black px-2 py-2 text-center text-base font-medium text-gray-900">
-                                      {item.maxScore}점
+                                      {item.points}점
                                     </td>
                                     <td className={`border border-black px-2 py-2 text-center ${
                                       // 사전점수가 있으면 빨간 배경, 없으면 파란 배경
-                                      (presetScoresMap[item.id.toString()] || presetScoresMap[item.id]) ? 'bg-red-50' : 'bg-blue-50'
+                                      (presetScoresMap[item.evaluationItemId?.toString()] || presetScoresMap[item.evaluationItemId]) ? 'bg-red-50' : 'bg-blue-50'
                                     }`}>
                                       {(() => {
-                                        // 평가 항목 ID 기준으로 확인
-                                        const itemKey = item.id.toString();
-                                        const hasPresetScore = presetScoresMap[itemKey] || presetScoresMap[item.id]; // candidate_preset_scores에서 가져온 사전점수
-                                        const currentScore = evaluationScores[itemKey] !== undefined ? evaluationScores[itemKey] : evaluationScores[item.id];
+                                        // 실제 evaluation_item.id 기준으로 확인
+                                        const itemKey = item.evaluationItemId?.toString() || item.id?.toString();
+                                        const hasPresetScore = presetScoresMap[itemKey]; 
+                                        const currentScore = evaluationScores[itemKey];
                                         
                                         console.log(`🎯 평가항목 ${item.id} 점수 확인:`, {
                                           itemId: item.id,
@@ -1072,12 +1065,12 @@ export default function EvaluatorEvaluationPage() {
                                             <Input
                                               type="number"
                                               min="0"
-                                              max={item.maxScore}
+                                              max={item.points}
                                               placeholder=""
                                               value={currentScore !== undefined ? currentScore : ""}
                                               onChange={(e) => {
                                                 const value = e.target.value === "" ? 0 : parseInt(e.target.value) || 0;
-                                                handleScoreChange(itemKey, value, item.maxScore);
+                                                handleScoreChange(itemKey, value, item.points);
                                               }}
                                               onFocus={(e) => {
                                                 if (e.target.value === "0") {
@@ -1087,7 +1080,7 @@ export default function EvaluatorEvaluationPage() {
                                               onBlur={(e) => {
                                                 if (e.target.value === "") {
                                                   const value = 0;
-                                                  handleScoreChange(itemKey, value, item.maxScore);
+                                                  handleScoreChange(itemKey, value, item.points);
                                                 }
                                               }}
                                               className="w-20 text-center text-base mx-auto bg-white border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -1116,8 +1109,8 @@ export default function EvaluatorEvaluationPage() {
                                     <span className="text-xl font-bold text-blue-800">
                                       {(() => {
                                         // 현재 템플릿에 표시되는 항목들의 점수만 합산
-                                        const templateItemIds = Object.values(evaluationTemplate.categories || {}).flatMap((cat: any) => 
-                                          cat.items?.map((item: any) => item.id) || []
+                                        const templateItemIds = (evaluationTemplate.sections || []).flatMap((section: any) => 
+                                          section.items?.map((item: any) => item.evaluationItemId?.toString() || item.id?.toString()) || []
                                         );
                                         const currentTotal = templateItemIds.reduce((sum: number, itemId: string) => {
                                           const score = evaluationScores[itemId] || 0;
@@ -1243,9 +1236,9 @@ export default function EvaluatorEvaluationPage() {
                                   <span className="text-xl font-bold text-blue-800">
                                     {(() => {
                                       // 현재 템플릿에 표시되는 항목들의 점수만 합산
-                                      const templateItemIds = Object.values(evaluationTemplate.categories || {}).flatMap((cat: any) => 
-                                        cat.items?.map((item: any) => item.id) || []
-                                      );
+                                                                                                                      const templateItemIds = (evaluationTemplate.sections || []).flatMap((section: any) => 
+                                          section.items?.map((item: any) => item.evaluationItemId?.toString() || item.id?.toString()) || []
+                                        );
                                       const currentTotal = templateItemIds.reduce((sum: number, itemId: string) => {
                                         const score = evaluationScores[itemId] || 0;
                                         return sum + score;
@@ -1363,45 +1356,110 @@ export default function EvaluatorEvaluationPage() {
                         </thead>
                         <tbody>
                           {(() => {
-                            const categoryGroups: { [key: string]: any[] } = {};
-                            
-                            if (Array.isArray(evaluationItems) && Array.isArray(categories)) {
-                              evaluationItems.forEach((item: any) => {
-                                const category = categories.find((cat: any) => cat.id === item.categoryId);
-                                const categoryName = category?.name || '기타';
-                                
-                                if (!categoryGroups[categoryName]) {
-                                  categoryGroups[categoryName] = [];
-                                }
-                                categoryGroups[categoryName].push(item);
-                              });
+                            // 🎯 관리자 심사표 템플릿 사용 (전역 상태 대신)
+                            if (!evaluationTemplate || !evaluationTemplate.sections) {
+                              return (
+                                <tr>
+                                  <td colSpan={5} className="text-center py-4 text-gray-500">
+                                    심사표 데이터를 불러오는 중...
+                                  </td>
+                                </tr>
+                              );
                             }
 
-                            return Object.entries(categoryGroups).map(([categoryName, items]) => {
-                              const categoryTotal = items.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0);
-                              
-                              return items.map((item: any, itemIndex: number) => (
-                                <tr key={`${categoryName}-${itemIndex}`} className="hover:bg-gray-50">
+                            return evaluationTemplate.sections.map((section: any) => {
+                              return section.items.map((item: any, itemIndex: number) => (
+                                <tr key={`${section.id}-${itemIndex}`} className="hover:bg-gray-50">
                                   {itemIndex === 0 && (
                                     <td 
                                       className="border border-black px-3 py-4 text-center font-bold bg-gray-50 align-middle"
-                                      rowSpan={items.length}
+                                      rowSpan={section.items.length}
                                     >
-                                      <div className="text-sm font-bold text-gray-900">{categoryName}</div>
-                                      <div className="text-xs text-gray-600 mt-1 font-normal">({categoryTotal}점)</div>
+                                      <div className="text-sm font-bold text-gray-900">{section.title}</div>
+                                      <div className="text-xs text-gray-600 mt-1 font-normal">({section.totalPoints}점)</div>
                                     </td>
                                   )}
                                   <td className="border border-black px-4 py-3 text-sm text-gray-900">
-                                    {itemIndex + 1}. {item.itemName || item.description}
+                                    {itemIndex + 1}. {item.text}
                                   </td>
                                   <td className="border border-black px-3 py-3 text-center text-sm text-gray-900">
-                                    정성
+                                    {item.type}
                                   </td>
                                   <td className="border border-black px-3 py-3 text-center text-sm font-medium text-gray-900">
-                                    {item.maxScore}점
+                                    {item.points}점
                                   </td>
                                   <td className="border border-black px-3 py-3 text-center text-sm font-medium text-blue-600">
-                                    {previewScores[item.id] || 0}점
+                                    {(() => {
+                                      // 🚨 긴급 디버깅: 실제 데이터 구조 완전 분석
+                                      const itemId = item.evaluationItemId;
+                                      const itemCode = item.code;
+                                      
+                                      console.log(`🚨 긴급 디버깅 - 항목: "${item.text}"`);
+                                      console.log(`   📝 템플릿 항목 정보:`, {
+                                        evaluationItemId: itemId,
+                                        evaluationItemIdType: typeof itemId,
+                                        code: itemCode,
+                                        codeType: typeof itemCode,
+                                        전체항목: item
+                                      });
+                                      
+                                      console.log(`   📊 실제 점수 객체 완전 분석:`);
+                                      console.log(`   - 점수 객체:`, previewScores);
+                                      console.log(`   - 점수 객체 타입:`, typeof previewScores);
+                                      console.log(`   - 키 목록:`, Object.keys(previewScores));
+                                      console.log(`   - 키 타입들:`, Object.keys(previewScores).map(k => `${k}(${typeof k})`));
+                                      console.log(`   - 값 목록:`, Object.values(previewScores));
+                                      
+                                      // 모든 가능한 키 형태 시도
+                                      const allPossibleKeys = [
+                                        itemCode,
+                                        itemId,
+                                        String(itemId),
+                                        Number(itemId),
+                                        parseInt(itemId),
+                                        `${itemId}`,
+                                        `"${itemId}"`,
+                                        itemId?.toString(),
+                                      ];
+                                      
+                                      console.log(`   🔑 시도할 모든 키:`, allPossibleKeys);
+                                      
+                                      let foundScore = 0;
+                                      let foundKey = null;
+                                      
+                                      // 각 키 하나씩 상세 테스트
+                                      for (const testKey of allPossibleKeys) {
+                                        const testResult = previewScores[testKey];
+                                        console.log(`   🧪 키 테스트: ${testKey} (타입: ${typeof testKey}) → 결과: ${testResult}`);
+                                        
+                                        if (testResult !== undefined && testResult !== null && testResult !== 0) {
+                                          foundScore = testResult;
+                                          foundKey = testKey;
+                                          console.log(`   ✅ 성공! 키: ${foundKey}, 점수: ${foundScore}`);
+                                          break;
+                                        }
+                                      }
+                                      
+                                      // 직접 키 매칭 시도
+                                      console.log(`   🔄 직접 매칭 시도:`);
+                                      Object.keys(previewScores).forEach(scoreKey => {
+                                        const scoreValue = previewScores[scoreKey];
+                                        console.log(`   - 실제키 "${scoreKey}"(${typeof scoreKey}) vs 템플릿ID "${itemId}"(${typeof itemId}) → 일치: ${scoreKey == itemId}, 엄격일치: ${scoreKey === itemId}`);
+                                        
+                                        if (scoreKey == itemId || scoreKey === String(itemId) || scoreKey === itemCode) {
+                                          console.log(`   🎯 매칭 발견! 키: ${scoreKey}, 값: ${scoreValue}`);
+                                          if (!foundScore) {
+                                            foundScore = scoreValue;
+                                            foundKey = scoreKey;
+                                          }
+                                        }
+                                      });
+                                      
+                                      console.log(`   🏁 최종 결과: 키=${foundKey}, 점수=${foundScore}`);
+                                      console.log(`   =====================================`);
+                                      
+                                      return foundScore || 0;
+                                    })()}점
                                   </td>
                                 </tr>
                               ));
@@ -1412,7 +1470,7 @@ export default function EvaluatorEvaluationPage() {
                                 <td className="border border-black px-4 py-3 text-center text-sm"></td>
                                 <td className="border border-black px-3 py-3 text-center text-sm"></td>
                                 <td className="border border-black px-3 py-3 text-center text-sm font-medium">
-                                  {Array.isArray(evaluationItems) ? evaluationItems.reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0) : 0}점
+                                  {evaluationTemplate.totalScore}점
                                 </td>
                                 <td className="border border-black px-3 py-3 text-center text-sm font-bold text-blue-600">
                                   {Object.values(previewScores).reduce((sum: number, score: any) => sum + (score || 0), 0)}점

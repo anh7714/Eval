@@ -44,26 +44,8 @@ function requireEvaluatorAuth(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize default admin if not exists
-  try {
-    console.log("Checking for existing admin...");
-    const existingAdmin = await storage.getAdminByUsername("admin");
-    console.log("Existing admin check result:", existingAdmin);
-    
-    if (!existingAdmin) {
-      console.log("Creating default admin account...");
-      const newAdmin = await storage.createAdmin({
-        username: "admin",
-        password: "admin123",
-        name: "시스템 관리자"
-      });
-      console.log("Default admin account created:", newAdmin);
-    } else {
-      console.log("Admin account already exists:", existingAdmin.username);
-    }
-  } catch (error) {
-    console.log("Admin initialization error:", error);
-  }
+  // 🎯 index.ts에서 이미 초기화했으므로 중복 초기화 제거
+  console.log("📝 Setting up routes...");
 
   // Session middleware
   app.use(session({
@@ -892,11 +874,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const evaluatorId = req.session.evaluator.id;
       const candidates = await storage.getActiveCandidates();
       
-      // 각 후보자의 평가 상태 확인
+      // 각 후보자의 평가 상태 확인 (새로운 시스템 사용)
       const candidatesWithStatus = await Promise.all(
         candidates.map(async (candidate) => {
           try {
-            const evaluationStatus = await storage.getEvaluationStatus(evaluatorId, candidate.id);
+            const evaluationStatus = await storage.getEvaluationStatusNew(evaluatorId, candidate.id);
             return {
               ...candidate,
               evaluationStatus: evaluationStatus || { isCompleted: false, hasTemporarySave: false, totalScore: 0 }
@@ -962,8 +944,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // 점수 저장 (기존 방식과 호환)
-      const result = await storage.saveTemporaryEvaluation({
+      // 점수 저장 (새로운 시스템 사용)
+      const result = await storage.saveTemporaryEvaluationNew({
         evaluatorId,
         candidateId,
         scores: { [targetItemId]: score },
@@ -992,9 +974,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📖 점수 조회 요청:', { evaluatorId, candidateId });
       
-      // 평가항목 정보와 함께 점수 조회
+      // 평가항목 정보와 함께 점수 조회 (새로운 시스템 사용)
       const items = await storage.getAllEvaluationItems();
-      const evaluationData = await storage.getEvaluationStatus(evaluatorId, candidateId);
+      const evaluationData = await storage.getEvaluationStatusNew(evaluatorId, candidateId);
       
       // code 필드를 포함한 점수 데이터 구성
       const scoresWithCode = items.map(item => {
@@ -1025,8 +1007,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📝 임시저장 요청:', { evaluatorId, candidateId, scores, totalScore });
       
-      // Supabase에 임시저장 데이터 저장
-      const result = await storage.saveTemporaryEvaluation({
+      // 새로운 시스템에 임시저장 데이터 저장
+      const result = await storage.saveTemporaryEvaluationNew({
         evaluatorId,
         candidateId,
         scores,
@@ -1050,8 +1032,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('🎯 평가완료 요청:', { evaluatorId, candidateId, scores, totalScore });
       
-      // Supabase에 평가완료 데이터 저장
-      const result = await storage.completeEvaluation({
+      // 새로운 시스템에 평가완료 데이터 저장
+      const result = await storage.saveTemporaryEvaluationNew({
         evaluatorId,
         candidateId,
         scores,
@@ -1067,19 +1049,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 기존 평가 데이터 조회 API
+  // 🎯 평가위원 평가 데이터 조회 API (새 시스템 사용)
   app.get("/api/evaluator/evaluation/:candidateId", requireEvaluatorAuth, async (req, res) => {
     try {
       const evaluatorId = req.session.evaluator.id;
       const candidateId = parseInt(req.params.candidateId);
       
-      console.log('📖 기존 평가 데이터 조회:', { evaluatorId, candidateId });
+      console.log('📖 새 시스템으로 평가 데이터 조회:', { evaluatorId, candidateId });
       
-      const evaluationData = await storage.getEvaluationStatus(evaluatorId, candidateId);
-      res.json(evaluationData);
+      // 🎯 새 시스템 사용 (기존 인터페이스 유지)
+      const result = await storage.getEvaluationStatusNew(evaluatorId, candidateId);
+      
+      console.log('✅ 새 시스템 평가 데이터 조회 성공:', result);
+      res.json(result);
     } catch (error) {
-      console.error('❌ 기존 평가 데이터 조회 오류:', error);
-      res.status(500).json({ message: "기존 평가 데이터 조회 중 오류가 발생했습니다." });
+      console.error('❌ 새 시스템 평가 데이터 조회 실패:', error);
+      res.status(500).json({ message: "평가 데이터 조회 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 🎯 평가위원 평가 저장 API (새 시스템 사용)
+  app.post("/api/evaluator/evaluation", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const evaluatorId = req.session.evaluator.id;
+      const { candidateId, scores, totalScore, isCompleted } = req.body;
+
+      console.log('💾 새 시스템으로 평가 저장:', { evaluatorId, candidateId, scores, totalScore, isCompleted });
+
+      // 🎯 새 시스템 사용 (기존 인터페이스 유지)
+      const result = await storage.saveTemporaryEvaluationNew({
+        evaluatorId,
+        candidateId,
+        scores,
+        totalScore,
+        isCompleted
+      });
+
+      console.log('✅ 새 시스템 평가 저장 성공:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('❌ 새 시스템 평가 저장 실패:', error);
+      res.status(500).json({ message: "평가 저장 중 오류가 발생했습니다." });
     }
   });
 
@@ -1129,6 +1139,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(results);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch results" });
+    }
+  });
+
+  // 🎯 관리자용 특정 평가위원-평가대상 평가 데이터 조회 API (평가위원도 접근 가능)
+  app.get("/api/admin/evaluation/:evaluatorId/:candidateId", (req, res, next) => {
+    // admin 또는 evaluator 권한 모두 허용
+    if (!req.session?.user && !req.session?.evaluator) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    next();
+  }, async (req, res) => {
+    try {
+      const evaluatorId = parseInt(req.params.evaluatorId);
+      const candidateId = parseInt(req.params.candidateId);
+      
+      console.log('📖 관리자용 새 시스템 평가 데이터 조회:', { evaluatorId, candidateId });
+
+      // 🎯 새 시스템 사용 (기존 인터페이스 유지)
+      const result = await storage.getEvaluationStatusNew(evaluatorId, candidateId);
+
+      console.log('✅ 관리자용 새 시스템 조회 성공:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('❌ 관리자용 새 시스템 조회 실패:', error);
+      res.status(500).json({ message: "평가 데이터 조회 중 오류가 발생했습니다." });
     }
   });
 
@@ -1582,6 +1617,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to clear evaluation data:", error);
       res.status(500).json({ message: "Failed to clear evaluation data", error: String(error) });
+    }
+  });
+
+  // ===== 데이터 정리 및 마이그레이션 API =====
+  
+  // 중복 평가 데이터 정리 API
+  app.post("/api/admin/cleanup-duplicates", requireAuth, async (req, res) => {
+    try {
+      console.log('🧹 중복 데이터 정리 요청 받음');
+      await storage.cleanupDuplicateEvaluations();
+      res.json({ message: "중복 데이터 정리가 완료되었습니다." });
+    } catch (error) {
+      console.error('❌ 중복 데이터 정리 실패:', error);
+      res.status(500).json({ message: "중복 데이터 정리 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 기존 평가 데이터 마이그레이션 API
+  app.post("/api/admin/migrate-old-data", requireAuth, async (req, res) => {
+    try {
+      console.log('🔄 기존 데이터 마이그레이션 요청 받음');
+      await storage.migrateOldEvaluations();
+      res.json({ message: "기존 데이터 마이그레이션이 완료되었습니다." });
+    } catch (error) {
+      console.error('❌ 기존 데이터 마이그레이션 실패:', error);
+      res.status(500).json({ message: "기존 데이터 마이그레이션 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 전체 데이터 정리 (중복 제거 + 마이그레이션) API
+  app.post("/api/admin/full-data-cleanup", requireAuth, async (req, res) => {
+    try {
+      console.log('🔧 전체 데이터 정리 요청 받음');
+      
+      // 1. 기존 데이터 마이그레이션
+      console.log('1️⃣ 기존 데이터 마이그레이션 시작...');
+      await storage.migrateOldEvaluations();
+      
+      // 2. 중복 데이터 정리
+      console.log('2️⃣ 중복 데이터 정리 시작...');
+      await storage.cleanupDuplicateEvaluations();
+      
+      console.log('✅ 전체 데이터 정리 완료');
+      res.json({ 
+        message: "전체 데이터 정리가 완료되었습니다. (기존 데이터 마이그레이션 + 중복 제거)",
+        steps: [
+          "기존 evaluations 테이블 데이터 마이그레이션",
+          "evaluation_sessions 테이블 중복 데이터 제거"
+        ]
+      });
+    } catch (error) {
+      console.error('❌ 전체 데이터 정리 실패:', error);
+      res.status(500).json({ message: "전체 데이터 정리 중 오류가 발생했습니다." });
     }
   });
 

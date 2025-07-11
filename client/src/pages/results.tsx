@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,9 @@ interface CandidateResult {
 }
 
 export default function ResultsPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("ranking");
   
@@ -36,7 +39,16 @@ export default function ResultsPage() {
   const [selectedEvaluator, setSelectedEvaluator] = useState<number | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   
+  // 🎯 평가항목관리와 동일한 컬럼 설정
+  const [columnConfig] = useState([
+    { id: 'section', title: '구분', type: 'section', visible: true, required: true, width: 'w-32' },
+    { id: 'item', title: '세부 항목', type: 'text', visible: true, required: true, width: 'flex-1' },
+    { id: 'type', title: '유형', type: 'select', visible: true, required: false, width: 'w-16', options: ['정량', '정성'] },
+    { id: 'points', title: '배점', type: 'number', visible: true, required: true, width: 'w-16' },
+    { id: 'score', title: '평가점수', type: 'number', visible: true, required: true, width: 'w-20' },
+  ]);
 
+  // 🎯 평가항목관리와 동일한 템플릿 초기값 (데이터베이스 데이터로 대체될 예정)
   const [currentTemplate, setCurrentTemplate] = useState({
     title: "제공기관 선정 심의회 평가표",
     totalScore: 100,
@@ -76,7 +88,7 @@ export default function ResultsPage() {
     };
   }, []);
 
-  // Admin API를 사용하여 데이터 가져오기 (public API가 비활성화되어 있을 수 있음)
+  // Admin API를 사용하여 데이터 가져오기
   const { data: results = [], isLoading: resultsLoading } = useQuery({
     queryKey: ["/api/admin/results"],
   });
@@ -98,10 +110,134 @@ export default function ResultsPage() {
     queryKey: ["/api/admin/candidates"],
   });
 
-  // 실제 평가 항목 데이터 가져오기
-  const { data: evaluationItems = [] } = useQuery({
+  // 🎯 실제 평가 항목 데이터 가져오기
+  const { data: evaluationItems = [], isLoading: itemsLoading } = useQuery({
     queryKey: ["/api/admin/evaluation-items"],
   });
+
+  // 🎯 시스템 설정 가져오기
+  const { data: systemConfig } = useQuery({
+    queryKey: ["/api/system/config"],
+  });
+
+  // 🎯 평가항목관리와 동일한 데이터베이스 데이터를 템플릿 구조로 변환 (기존)
+  const convertDataToTemplateOld = () => {
+    // 데이터가 유효하지 않은 경우 현재 템플릿 반환
+    if (!Array.isArray(categories) || !Array.isArray(evaluationItems)) {
+      console.log('❌ 데이터가 배열이 아님. 현재 템플릿 유지.');
+      return currentTemplate;
+    }
+    
+    // 빈 데이터인 경우 현재 템플릿 유지
+    if (categories.length === 0 || evaluationItems.length === 0) {
+      console.log('⚠️ 데이터가 비어있음. 현재 템플릿 유지.');
+      return currentTemplate;
+    }
+
+    console.log('🔧 평가결과조회 템플릿 변환 중...', { categoriesLength: categories.length, itemsLength: evaluationItems.length });
+
+    const sections = (categories as any[]).map((category: any, categoryIndex: number) => ({
+      id: String.fromCharCode(65 + categoryIndex), // A, B, C...
+      title: category.name,
+      totalPoints: (evaluationItems as any[])
+        .filter((item: any) => item.categoryId === category.id)
+        .reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0),
+      items: (evaluationItems as any[])
+        .filter((item: any) => item.categoryId === category.id)
+        .map((item: any, index: number) => ({
+          id: index + 1, // 템플릿 내 순서 ID
+          evaluationItemId: item.id, // 실제 evaluation_item.id 추가
+          code: item.code, // evaluation_item.code 추가
+          text: item.name,
+          type: item.isQuantitative ? '정량' : '정성', // 데이터베이스 값 기반 매핑
+          points: item.maxScore || 0,
+          score: 0
+        }))
+    }));
+
+    return {
+      title: (systemConfig as any)?.evaluationTitle || "제공기관 선정 심의회 평가표",
+      totalScore: sections.reduce((sum: number, section: any) => sum + section.totalPoints, 0),
+      sections
+    };
+  };
+
+  // 🎯 평가위원 모달과 동일한 템플릿 변환 함수
+  const convertDataToTemplate = (categories: any[], evaluationItems: any[], systemConfig: any) => {
+    if (!Array.isArray(categories) || !Array.isArray(evaluationItems)) {
+      console.log('❌ 데이터가 배열이 아님. 기본 템플릿 반환.');
+      return { title: "심사표", totalScore: 100, sections: [] };
+    }
+    
+    if (categories.length === 0 || evaluationItems.length === 0) {
+      console.log('⚠️ 데이터가 비어있음. 기본 템플릿 반환.');
+      return { title: "심사표", totalScore: 100, sections: [] };
+    }
+
+    console.log('🔧 결과 조회 심사표 템플릿 변환 중...', { categoriesLength: categories.length, itemsLength: evaluationItems.length });
+
+    const sections = categories.map((category: any, categoryIndex: number) => ({
+      id: String.fromCharCode(65 + categoryIndex), // A, B, C...
+      title: category.name,
+      totalPoints: evaluationItems
+        .filter((item: any) => item.categoryId === category.id)
+        .reduce((sum: number, item: any) => sum + (item.maxScore || 0), 0),
+      items: evaluationItems
+        .filter((item: any) => item.categoryId === category.id)
+        .map((item: any, index: number) => ({
+          id: index + 1, // 템플릿 내 순서 ID
+          evaluationItemId: item.id, // 실제 evaluation_item.id 추가
+          code: item.code, // evaluation_item.code 추가
+          text: item.name,
+          type: item.isQuantitative ? '정량' : '정성', // 데이터베이스 값 기반 매핑
+          points: item.maxScore || 0,
+          score: 0
+        }))
+    }));
+
+    return {
+      title: systemConfig?.evaluationTitle || "심사표",
+      totalScore: sections.reduce((sum: number, section: any) => sum + section.totalPoints, 0),
+      sections
+    };
+  };
+
+  // 🎯 데이터베이스 데이터가 로드되면 템플릿 업데이트
+  useEffect(() => {
+    console.log('✅ 평가결과조회 데이터 로드 상태 체크:', { 
+      categoriesLoading,
+      itemsLoading,
+      categoriesCount: Array.isArray(categories) ? categories.length : 0, 
+      itemsCount: Array.isArray(evaluationItems) ? evaluationItems.length : 0,
+      hasSystemConfig: !!systemConfig,
+      categories,
+      evaluationItems,
+      systemConfig
+    });
+
+    // 초기 로딩이 완료되었는지 확인
+    if (categoriesLoading || itemsLoading) {
+      console.log('⏳ 아직 초기 로딩 중...');
+      return;
+    }
+    
+    // 데이터가 모두 로드되었고 유효한 경우에만 템플릿 업데이트
+    if (Array.isArray(categories) && Array.isArray(evaluationItems) && categories.length > 0 && evaluationItems.length > 0) {
+      console.log('🔄 평가결과조회 템플릿 변환 시작...');
+      const convertedTemplate = convertDataToTemplateOld();
+      console.log('📋 변환된 템플릿:', convertedTemplate);
+      setCurrentTemplate(convertedTemplate);
+    } else if (Array.isArray(categories) && Array.isArray(evaluationItems)) {
+      console.log('⚠️ 데이터가 로드되었지만 비어있음 - 기존 템플릿 유지');
+      // 데이터가 비어있는 경우 기존 템플릿을 유지하고 제목만 업데이트
+      if (systemConfig && (systemConfig as any)?.evaluationTitle) {
+        setCurrentTemplate(prev => ({
+          ...prev,
+          title: (systemConfig as any).evaluationTitle
+        }));
+      }
+    }
+  }, [categories, evaluationItems, systemConfig, categoriesLoading, itemsLoading]);
 
   // 타입 안전한 결과 데이터
   const resultsData = results as CandidateResult[];
@@ -109,7 +245,7 @@ export default function ResultsPage() {
   const candidatesData = candidates as any[];
   const evaluatorsData = evaluators as any[];
 
-  if (resultsLoading || categoriesLoading) {
+  if (resultsLoading || categoriesLoading || itemsLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
@@ -132,72 +268,553 @@ export default function ResultsPage() {
   const averageScore = resultsData.reduce((sum: number, result: CandidateResult) => 
     sum + result.percentage, 0) / resultsData.length || 0;
 
-
-
-  // 보고서 출력용 함수들
-  const printTemplate = () => {
-    const printContents = document.getElementById('print-area')?.innerHTML;
-    if (!printContents) return;
-
-    const originalContents = document.body.innerHTML;
-    const printStyles = `
+  // 🎯 평가항목관리와 동일한 통합 인쇄 스타일
+  const getPrintStyle = () => {
+    return `
       <style>
+        @media print {
         @page { 
-          size: A4; 
-          margin: 25mm 20mm 15mm 20mm; 
+            margin: 0 !important;
+            size: A4 !important;
         }
         body { 
-          font-family: 'PT Sans', sans-serif; 
-          font-size: 12px; 
-          line-height: 1.4;
-          color: #000;
-        }
-        .template-container { 
-          width: 100% !important; 
+            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .evaluation-page {
+            padding: 95px 50px 50px 50px !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            min-height: 100vh !important;
+            box-sizing: border-box !important;
+          }
+          .evaluation-page:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          .title {
+            text-align: center !important;
+            font-size: 24px !important;
+            font-weight: bold !important;
+            margin-bottom: 15px !important;
+            color: black !important;
+          }
+          .evaluator-info {
+            text-align: right !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+            padding: 0 10px;
+            text-decoration: underline !important;
+          }
+          .evaluation-date {
+            text-align: center !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
         }
         table { 
-          width: 100% !important; 
           border-collapse: collapse !important;
-          margin-bottom: 20px !important;
+            width: 100% !important;
+            margin-bottom: 30px !important;
+            font-size: 13px !important;
+            border: 2px solid #666 !important;
         }
         th, td { 
-          border: 1px solid #000 !important; 
-          padding: 8px !important; 
-          text-align: left !important;
+            border: 1px solid #666 !important;
+            padding: 12px 10px !important;
           vertical-align: middle !important;
         }
-        .text-center { 
+          th {
+            background-color: #e8e8e8 !important;
           text-align: center !important; 
-        }
-        .bg-gray-50 { 
-          background-color: #f9f9f9 !important; 
-        }
-        .font-bold { 
-          font-weight: bold !important; 
-        }
-        .text-lg { 
-          font-size: 14px !important; 
-        }
-        .text-sm { 
-          font-size: 11px !important; 
-        }
-        .mb-4 { 
-          margin-bottom: 16px !important; 
-        }
-        .text-right { 
-          text-align: right !important; 
-        }
-        @media print {
-          body { margin: 0; }
-          .template-container { width: 100% !important; }
+            font-weight: bold !important;
+          }
+          .evaluation-page table:nth-of-type(1),
+          .evaluation-page table:nth-of-type(2) {
+            border-left: none !important;
+            border-right: none !important;
+          }
+          .evaluation-page table:nth-of-type(1) td:first-child,
+          .evaluation-page table:nth-of-type(1) th:first-child,
+          .evaluation-page table:nth-of-type(2) td:first-child,
+          .evaluation-page table:nth-of-type(2) th:first-child {
+            border-left: none !important;
+          }
+          .evaluation-page table:nth-of-type(1) td:last-child,
+          .evaluation-page table:nth-of-type(1) th:last-child,
+          .evaluation-page table:nth-of-type(2) td:last-child,
+          .evaluation-page table:nth-of-type(2) th:last-child {
+            border-right: none !important;
+          }
+          .type-cell,
+          .points-cell,
+          .score-cell,
+          .custom-cell {
+            text-align: center !important;
+          }
+          .section-cell {
+            background-color: #f8f9fa !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            vertical-align: top !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          input, select {
+            border: none !important;
+            background: transparent !important;
+            font-size: inherit !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
         }
       </style>
     `;
+  };
 
-    document.body.innerHTML = printStyles + printContents;
-    window.print();
-    document.body.innerHTML = originalContents;
-    window.location.reload();
+  // 🎯 평가위원 모달과 동일한 방식으로 심사표 생성
+  async function generateEvaluationHTML(evaluatorInfo: any, candidateInfo: any) {
+    const today = new Date().toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    // 🎯 평가위원 모달과 동일한 데이터 가져오기
+    let actualScores: Record<string, number> = {};
+    let actualTotalScore = 0;
+    let actualTemplate: any = null;
+    
+    try {
+      // 1. 실제 평가 데이터, 카테고리, 평가항목, 시스템 설정 가져오기
+      const [evaluationResponse, categoriesResponse, itemsResponse, configResponse] = await Promise.all([
+        fetch(`/api/admin/evaluation/${evaluatorInfo.id}/${candidateInfo.id}`, {
+          method: 'GET',
+          credentials: 'include'
+        }),
+        fetch('/api/admin/categories'),
+        fetch('/api/admin/evaluation-items'),
+        fetch('/api/system/config')
+      ]);
+
+      // 2. 실제 평가 점수 데이터
+      if (evaluationResponse.ok) {
+        const evaluationData = await evaluationResponse.json();
+        console.log('📊 결과확인 모달 실제 평가 데이터:', evaluationData);
+        console.log('📊 결과확인 모달 평가 점수 (scores):', evaluationData.scores);
+        console.log('📊 결과확인 모달 총점 (totalScore):', evaluationData.totalScore);
+        
+        if (evaluationData.scores) {
+          actualScores = evaluationData.scores;
+          actualTotalScore = evaluationData.totalScore || 0;
+        }
+      } else {
+        console.error('❌ 평가 데이터 조회 실패:', evaluationResponse.status, evaluationResponse.statusText);
+      }
+
+      // 3. 카테고리와 평가항목 데이터
+      let categoriesData: any[] = [];
+      let itemsData: any[] = [];
+      let configData: any = {};
+
+      if (categoriesResponse.ok) {
+        categoriesData = await categoriesResponse.json();
+      }
+      
+      if (itemsResponse.ok) {
+        itemsData = await itemsResponse.json();
+      }
+      
+      if (configResponse.ok) {
+        configData = await configResponse.json();
+      }
+
+      // 4. 평가위원 모달과 동일한 템플릿 생성
+      actualTemplate = convertDataToTemplate(categoriesData, itemsData, configData);
+      console.log('🎯 결과확인 모달 생성된 템플릿:', actualTemplate);
+      console.log('🎯 결과확인 모달 템플릿 항목들:', actualTemplate.sections.map((s: any) => ({
+        title: s.title,
+        items: s.items.map((i: any) => ({
+          id: i.id,
+          evaluationItemId: i.evaluationItemId,
+          text: i.text,
+          type: i.type,
+          points: i.points
+        }))
+      })));
+
+    } catch (error) {
+      console.error('❌ 심사표 데이터 조회 오류:', error);
+      // 오류 시 기본 템플릿 사용
+      actualTemplate = currentTemplate;
+    }
+
+    // 5. 템플릿에 실제 점수 반영 (평가위원 모달과 동일한 방식)
+    const templateWithActualScores = {
+      ...actualTemplate,
+      sections: actualTemplate.sections.map((section: any) => ({
+        ...section,
+        items: section.items.map((item: any) => {
+          // 🎯 모든 가능한 키 형태로 점수 찾기 (평가위원 결과확인과 동일)
+          const itemId = item.evaluationItemId;
+          const itemCode = item.code;
+          
+          // 가능한 모든 키 형태로 점수 검색
+          const possibleKeys = [
+            itemCode,                    // CODE 기반
+            itemId,                      // ID 기반 (숫자)
+            itemId?.toString(),          // ID 기반 (문자열)
+            `${itemId}`,                 // ID 기반 (템플릿 리터럴)
+            parseInt(itemId),            // ID 기반 (정수 변환)
+          ].filter(key => key !== undefined && key !== null);
+          
+          let actualScore = 0;
+          let foundKey = null;
+          
+          // 각 키로 점수 찾기
+          for (const key of possibleKeys) {
+            if (actualScores[key] !== undefined && actualScores[key] !== null) {
+              actualScore = actualScores[key];
+              foundKey = key;
+              break;
+            }
+          }
+          
+          console.log(`🔍 보고서 출력 점수 매핑: "${item.text}"`);
+          console.log(`   📝 평가항목 정보: ID=${itemId}, CODE=${itemCode}`);
+          console.log(`   🔑 시도한 키들:`, possibleKeys);
+          console.log(`   📊 전체 점수 객체 키들:`, Object.keys(actualScores));
+          console.log(`   ✅ 찾은 키: ${foundKey}, 점수: ${actualScore}`);
+          console.log(`   ---`);
+          
+          return {
+            ...item,
+            score: actualScore
+          };
+        })
+      }))
+    };
+
+    console.log('🎯 결과확인 모달 최종 템플릿 (점수 반영 후):', templateWithActualScores);
+
+    // 제목 및 카테고리 정보 결정
+    const candidateTitle = `${candidateInfo.name} 심사표`;
+    const categoryInfo = candidateInfo.category || candidateInfo.department || '';
+    const positionText = evaluatorInfo.position ? ` (${evaluatorInfo.position})` : '';
+
+    // 총 배점 계산
+    const totalPoints = templateWithActualScores.sections.reduce((sum: number, section: any) => 
+      sum + section.items.reduce((itemSum: number, item: any) => itemSum + (item.points || 0), 0), 0
+    );
+
+    // 총 점수 계산 (실제 점수 사용)
+    const totalScore = actualTotalScore || templateWithActualScores.sections.reduce((sum: number, section: any) => 
+      sum + section.items.reduce((itemSum: number, item: any) => itemSum + (item.score || 0), 0), 0
+    );
+
+    console.log('📊 최종 점수 정보:', { totalPoints, totalScore, actualTotalScore });
+
+    return `
+      <!-- 제목과 구분 정보 표 -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
+        <tr>
+          <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
+            <span>구분 : ${categoryInfo}</span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
+            ${candidateTitle}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 평가 항목 표 -->
+      <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">구분 (${totalPoints}점)</th>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">세부 항목</th>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">유형</th>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">배점</th>
+            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">평가점수</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${templateWithActualScores.sections.map((section: any) => {
+            return section.items.map((item: any, itemIndex: number) => {
+              return `
+                <tr>
+                  ${itemIndex === 0 ? `
+                    <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top; font-size: 12px;">
+                      ${section.id}. ${section.title}<br>
+                      <span style="font-size: 10px; color: #666;">(${section.items.reduce((sum: number, sectionItem: any) => sum + (sectionItem.points || 0), 0)}점)</span>
+                    </td>
+                  ` : ''}
+                  <td style="border: 1px solid #666; padding: 8px; font-size: 12px;">
+                    ${itemIndex + 1}. ${item.text}
+                  </td>
+                  <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px; vertical-align: middle;">
+                    ${item.type}
+                  </td>
+                  <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px; vertical-align: middle;">
+                    ${item.points}점
+                  </td>
+                  <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px; vertical-align: middle; background-color: #e3f2fd;">
+                    <strong>${item.score || 0}점</strong>
+                  </td>
+                </tr>
+              `;
+            }).join('');
+          }).join('')}
+          <!-- 합계 행 -->
+          <tr style="background-color: #e8e8e8; font-weight: bold;">
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle; font-size: 13px;">합계</td>
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px; vertical-align: middle;">
+              ${totalPoints}점
+            </td>
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e3f2fd; font-size: 14px; vertical-align: middle;">
+              <strong>${totalScore}점</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="evaluation-date">
+        평가일: ${today}
+      </div>
+      <div class="evaluator-info">
+        평가위원 : ${evaluatorInfo.name}${positionText} (서명)
+      </div>
+    `;
+  }
+
+  // 🎯 알림 함수
+  function showNotification(message: string, type: 'success' | 'error' | 'info' = 'success') {
+    toast({
+      title: type === 'success' ? "성공" : type === 'error' ? "오류" : "알림",
+      description: message,
+      variant: type === 'error' ? "destructive" : "default"
+    });
+  }
+
+  // 🎯 개별 인쇄 기능 (평가항목관리와 동일)
+  async function printEvaluationSheet() {
+    if (!selectedEvaluator || !selectedCandidate) {
+      showNotification('평가위원과 평가대상을 선택해주세요.', 'error');
+      return;
+    }
+
+    const evaluatorInfo = (evaluators as any[]).find((e: any) => e.id === selectedEvaluator);
+    const candidateInfo = (candidates as any[]).find((c: any) => c.id === selectedCandidate);
+
+    if (!evaluatorInfo || !candidateInfo) {
+      showNotification('선택한 평가위원 또는 평가대상 정보를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    try {
+      // 🎯 비동기 HTML 생성
+      const evaluationContent = await generateEvaluationHTML(evaluatorInfo, candidateInfo);
+      
+      // 제목 결정
+      const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : (currentTemplate?.title || "제공기관 선정 심의회 평가표");
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>평가표 출력 - ${dynamicTitle}</title>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
+            <div class="evaluation-page">
+              ${evaluationContent}
+            </div>
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.print();
+      showNotification('인쇄 미리보기가 열렸습니다!', 'info');
+    } catch (error) {
+      console.error('❌ 인쇄 오류:', error);
+      showNotification('인쇄 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  // 🎯 배치 인쇄 기능 (평가항목관리와 동일)
+  async function printAllCombinations() {
+    if ((candidates as any[]).length === 0 || (evaluators as any[]).length === 0) {
+      showNotification('평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.', 'error');
+      return;
+    }
+
+    try {
+      let allPrintContent = '';
+      const totalPages = (candidates as any[]).length * (evaluators as any[]).length;
+
+      // 🎯 모든 조합의 HTML을 순차적으로 생성
+      for (const candidate of candidates as any[]) {
+        for (const evaluator of evaluators as any[]) {
+          const evaluationContent = await generateEvaluationHTML(evaluator, candidate);
+          allPrintContent += `
+            <div class="evaluation-page">
+              ${evaluationContent}
+            </div>
+          `;
+        }
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>전체 평가표 배치 인쇄 (${totalPages}페이지)</title>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
+            ${allPrintContent}
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.print();
+      showNotification(`${totalPages}페이지 배치 인쇄 미리보기가 열렸습니다!`, 'success');
+    } catch (error) {
+      console.error('❌ 배치 인쇄 오류:', error);
+      showNotification('배치 인쇄 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  // 🎯 평가위원별 인쇄 기능 (평가항목관리와 동일)
+  const printByEvaluator = async (evaluatorId: number) => {
+    if ((candidates as any[]).length === 0) {
+      showNotification('평가대상이 등록되어야 인쇄가 가능합니다.', 'error');
+      return;
+    }
+
+    const evaluator = (evaluators as any[]).find((e: any) => e.id === evaluatorId);
+    if (!evaluator) {
+      showNotification('평가위원 정보를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    try {
+      let printContent = '';
+      for (const candidate of candidates as any[]) {
+        const evaluationContent = await generateEvaluationHTML(evaluator, candidate);
+        printContent += `
+          <div class="evaluation-page">
+            ${evaluationContent}
+          </div>
+        `;
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${evaluator.name} 평가위원 - 전체 평가표 (${(candidates as any[]).length}페이지)</title>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.print();
+      showNotification(`${evaluator.name} 평가위원 전체 평가표 인쇄 미리보기가 열렸습니다!`, 'success');
+    } catch (error) {
+      console.error('❌ 평가위원별 인쇄 오류:', error);
+      showNotification('평가위원별 인쇄 중 오류가 발생했습니다.', 'error');
+    }
+  };
+
+  // 🎯 평가대상별 인쇄 기능 (평가항목관리와 동일)
+  const printByCandidate = async (candidateId: number) => {
+    if ((evaluators as any[]).length === 0) {
+      showNotification('평가위원이 등록되어야 인쇄가 가능합니다.', 'error');
+      return;
+    }
+
+    const candidate = (candidates as any[]).find((c: any) => c.id === candidateId);
+    if (!candidate) {
+      showNotification('평가대상 정보를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    try {
+      let printContent = '';
+      for (const evaluator of evaluators as any[]) {
+        const evaluationContent = await generateEvaluationHTML(evaluator, candidate);
+        printContent += `
+          <div class="evaluation-page">
+            ${evaluationContent}
+          </div>
+        `;
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'error');
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${candidate.name} 평가대상 - 전체 평가표 (${(evaluators as any[]).length}페이지)</title>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.print();
+      showNotification(`${candidate.name} 평가대상 전체 평가표 인쇄 미리보기가 열렸습니다!`, 'success');
+    } catch (error) {
+      console.error('❌ 평가대상별 인쇄 오류:', error);
+      showNotification('평가대상별 인쇄 중 오류가 발생했습니다.', 'error');
+    }
   };
 
   const calculateTotalPoints = () => {
@@ -215,56 +832,206 @@ export default function ResultsPage() {
   const selectedCandidateInfo = (candidates as any[]).find((c: any) => c.id === selectedCandidate);
   const selectedEvaluatorInfo = (evaluators as any[]).find((e: any) => e.id === selectedEvaluator);
 
-  // 동적 제목 생성 함수
   const getDynamicTitle = () => {
-    if (selectedCandidateInfo && selectedEvaluatorInfo) {
-      return `${currentTemplate.title} - ${selectedCandidateInfo.name} (평가위원: ${selectedEvaluatorInfo.name})`;
-    } else if (selectedCandidateInfo) {
+    if (selectedCandidateInfo) {
       return `${selectedCandidateInfo.name} 심사표`;
     }
-    return currentTemplate.title;
+    return currentTemplate?.title || "제공기관 선정 심의회 평가표";
   };
 
   const handleExportResults = () => {
-    const exportData = filteredResults.map((result: CandidateResult) => ({
-      순위: result.rank,
-      "기관명(성명)": result.candidate.name,
-      "소속(부서)": result.candidate.department,
-      "직책(직급)": result.candidate.position,
-      구분: result.candidate.category,
-      총점: result.totalScore,
-      만점: result.maxPossibleScore,
-      득점률: `${result.percentage.toFixed(1)}%`,
-      평가완료수: result.completedEvaluations,
-      총평가자수: result.evaluatorCount
+    if (filteredResults.length === 0) {
+      toast({
+        title: "데이터 없음",
+        description: "내보낼 결과가 없습니다.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const exportData = filteredResults.map(result => ({
+      "순위": result.rank,
+      "이름": result.candidate.name,
+      "부서": result.candidate.department,
+      "직책": result.candidate.position,
+      "카테고리": result.candidate.category,
+      "총점": result.totalScore,
+      "최대점수": result.maxPossibleScore,
+      "백분율": `${result.percentage}%`,
+      "평가위원수": result.evaluatorCount,
+      "완료된평가수": result.completedEvaluations,
+      "평균점수": result.averageScore
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "평가결과");
-
-    const fileName = selectedCategory === "all" 
-      ? "전체_평가결과.xlsx" 
-      : `${selectedCategory}_평가결과.xlsx`;
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "평가결과");
+    XLSX.writeFile(wb, "평가결과.xlsx");
     
-    XLSX.writeFile(workbook, fileName);
+    toast({
+      title: "내보내기 완료",
+      description: "Excel 파일이 다운로드되었습니다.",
+      variant: "default"
+    });
   };
 
-  // 순위 관련 데이터 처리 (타입 안전한 결과 사용)
-  const passThreshold = 70; // 기준점수 70%
-  const topPerformers = resultsData.slice(0, 10); // 상위 10명
-  const failedCandidates = resultsData.filter((result: CandidateResult) => result.percentage < passThreshold);
-  const passedCandidates = resultsData.filter((result: CandidateResult) => result.percentage >= passThreshold);
-  
-  // 동점자 처리
-  const tieGroups = resultsData.reduce((groups: any, result: CandidateResult) => {
-    const key = result.percentage.toFixed(1);
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(result);
-    return groups;
-  }, {});
-  
-  const tiedCandidates = Object.values(tieGroups).filter((group: any) => group.length > 1);
+  // 🎯 보고서 출력 섹션 (평가항목관리와 동일한 출력 방식)
+  const renderReportSection = () => (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <FileText className="h-5 w-5 text-blue-600" />
+        <h3 className="text-lg font-semibold">심사표 보고서 출력</h3>
+      </div>
+      <div className="text-sm text-gray-600 mb-3">
+        실제 데이터베이스 평가항목을 기반으로 심사표를 출력합니다.
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium mb-1">평가위원 선택</label>
+          <Select value={selectedEvaluator?.toString() || ""} onValueChange={(value) => setSelectedEvaluator(Number(value))}>
+            <SelectTrigger>
+              <SelectValue placeholder="평가위원을 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {evaluatorsData.map((evaluator: any) => (
+                <SelectItem key={evaluator.id} value={evaluator.id.toString()}>
+                  {evaluator.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">평가대상 선택</label>
+          <Select value={selectedCandidate?.toString() || ""} onValueChange={(value) => setSelectedCandidate(Number(value))}>
+            <SelectTrigger>
+              <SelectValue placeholder="평가대상을 선택하세요" />
+            </SelectTrigger>
+            <SelectContent>
+              {candidatesData.map((candidate: any) => (
+                <SelectItem key={candidate.id} value={candidate.id.toString()}>
+                  {candidate.name} ({candidate.category})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button 
+          onClick={printEvaluationSheet}
+          className="flex items-center gap-2"
+          disabled={!selectedEvaluator || !selectedCandidate}
+        >
+          <FileText className="h-4 w-4" />
+          개별 심사표 출력
+        </Button>
+        
+        <Button 
+          onClick={printAllCombinations}
+          variant="outline"
+          className="flex items-center gap-2"
+          disabled={candidatesData.length === 0 || evaluatorsData.length === 0}
+        >
+          <FileText className="h-4 w-4" />
+          전체 배치 출력
+        </Button>
+      </div>
+
+      <div className="bg-gray-50 p-3 rounded-lg">
+        <h4 className="font-medium mb-3 text-sm">일괄 출력</h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">평가위원별 출력</span>
+              <span className="text-xs text-gray-500">({evaluatorsData.length}명)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              {evaluatorsData.slice(0, 4).map((evaluator: any) => (
+                <Button
+                  key={evaluator.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => printByEvaluator(evaluator.id)}
+                  className="text-xs h-8"
+                >
+                  {evaluator.name}
+                </Button>
+              ))}
+              {evaluatorsData.length > 4 && (
+                <div className="col-span-2">
+                  <Select onValueChange={(value) => printByEvaluator(Number(value))}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder={`+${evaluatorsData.length - 4}명 더보기`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {evaluatorsData.slice(4).map((evaluator: any) => (
+                        <SelectItem key={evaluator.id} value={evaluator.id.toString()}>
+                          {evaluator.name} ({candidatesData.length}페이지)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">평가대상별 출력</span>
+              <span className="text-xs text-gray-500">({candidatesData.length}명)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              {candidatesData.slice(0, 4).map((candidate: any) => (
+                <Button
+                  key={candidate.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => printByCandidate(candidate.id)}
+                  className="text-xs h-8 truncate"
+                  title={candidate.name}
+                >
+                  {candidate.name}
+                </Button>
+              ))}
+              {candidatesData.length > 4 && (
+                <div className="col-span-2">
+                  <Select onValueChange={(value) => printByCandidate(Number(value))}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder={`+${candidatesData.length - 4}명 더보기`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {candidatesData.slice(4).map((candidate: any) => (
+                        <SelectItem key={candidate.id} value={candidate.id.toString()}>
+                          {candidate.name} ({evaluatorsData.length}페이지)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {selectedEvaluatorInfo && selectedCandidateInfo && (
+        <div className="p-3 bg-blue-50 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-1 text-sm">선택된 정보</h4>
+          <div className="text-xs text-blue-800 space-y-1">
+            <p><strong>평가위원:</strong> {selectedEvaluatorInfo.name}</p>
+            <p><strong>평가대상:</strong> {selectedCandidateInfo.name} ({selectedCandidateInfo.category})</p>
+            <p><strong>출력 제목:</strong> {getDynamicTitle()}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   // 🏆 순위 섹션
   const renderRankingSection = () => (
@@ -346,8 +1113,8 @@ export default function ResultsPage() {
                           {result.totalScore}/{result.maxPossibleScore}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-center">
-                          <Badge variant={result.percentage >= passThreshold ? "default" : "destructive"}>
-                            {result.percentage >= passThreshold ? "합격" : "불합격"}
+                          <Badge variant={result.percentage >= 70 ? "default" : "destructive"}>
+                            {result.percentage >= 70 ? "합격" : "불합격"}
                           </Badge>
                         </td>
                       </tr>
@@ -493,7 +1260,7 @@ export default function ResultsPage() {
                 기준점수 미달 현황
               </CardTitle>
               <CardDescription>
-                기준점수 {passThreshold}% 미달자: {failedCandidates.length}명
+                기준점수 70% 미달자: {failedCandidates.length}명
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -528,7 +1295,7 @@ export default function ResultsPage() {
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-center">
                             <span className="text-red-600">
-                              -{(passThreshold - result.percentage).toFixed(1)}%
+                              -{(70 - result.percentage).toFixed(1)}%
                             </span>
                           </td>
                         </tr>
@@ -803,596 +1570,21 @@ export default function ResultsPage() {
     </div>
   );
 
-  // 🎯 통합 인쇄 스타일 (evaluation-items.tsx와 동일)
-  const getPrintStyle = () => {
-    return `
-      <style>
-        @media print {
-          @page {
-            margin: 0 !important;
-            size: A4 !important;
-          }
-          body {
-            font-family: "맑은 고딕", "Malgun Gothic", Arial, sans-serif !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            font-size: 14px !important;
-            line-height: 1.5 !important;
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          .evaluation-page {
-            padding: 95px 50px 50px 50px !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            min-height: 100vh !important;
-            box-sizing: border-box !important;
-          }
-          .evaluation-page:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-          }
-          .title {
-            text-align: center !important;
-            font-size: 24px !important;
-            font-weight: bold !important;
-            margin-bottom: 15px !important;
-            color: black !important;
-          }
-          .evaluator-info {
-            text-align: right !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-            margin-top: 20px !important;
-            margin-bottom: 20px !important;
-            padding: 0 10px;
-            text-decoration: underline !important;
-          }
-          .evaluation-date {
-            text-align: center !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-            margin-top: 20px !important;
-            margin-bottom: 20px !important;
-          }
-          table {
-            border-collapse: collapse !important;
-            width: 100% !important;
-            margin-bottom: 30px !important;
-            font-size: 13px !important;
-            border: 2px solid #666 !important;
-          }
-          th, td {
-            border: 1px solid #666 !important;
-            padding: 12px 10px !important;
-            vertical-align: middle !important;
-          }
-          th {
-            background-color: #e8e8e8 !important;
-            text-align: center !important;
-            font-weight: bold !important;
-          }
-          .type-cell,
-          .points-cell,
-          .score-cell {
-            text-align: center !important;
-          }
-          .section-cell {
-            background-color: #f8f9fa !important;
-            font-weight: bold !important;
-            text-align: center !important;
-            vertical-align: top !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          input, select {
-            border: none !important;
-            background: transparent !important;
-            font-size: inherit !important;
-            text-align: center !important;
-            width: 100% !important;
-          }
-        }
-      </style>
-    `;
-  };
-
-  // 🎯 평가표 HTML 생성 (evaluation-items.tsx와 동일한 구조)
-  const generateEvaluationHTML = (evaluatorInfo: any, candidateInfo: any) => {
-    if (!currentTemplate || !currentTemplate.sections) return '';
-
-    const today = new Date().toLocaleDateString('ko-KR');
-    
-    // 제목 및 카테고리 정보 결정
-    const candidateTitle = candidateInfo ? `${candidateInfo.name} 심사표` : currentTemplate.title;
-    const categoryInfo = candidateInfo ? (candidateInfo.category || candidateInfo.department || '') : '';
-    
-    // 평가위원 정보 결정
-    const positionText = evaluatorInfo?.position ? ` (${evaluatorInfo.position})` : '';
-    
-    // 총 배점 계산
-    const totalPoints = currentTemplate.sections.reduce((sum: number, section: any) => 
-      sum + section.items.reduce((itemSum: number, item: any) => itemSum + (item.points || 0), 0), 0
-    );
-
-    return `
-      <!-- 제목과 구분 정보 표 -->
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #666;">
-        <tr>
-          <td colspan="2" style="border: 1px solid #666; padding: 8px; text-align: right; font-size: 12px;">
-            <span>구분 : ${categoryInfo}</span>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2" style="border: 1px solid #666; padding: 16px; text-align: center; font-size: 18px; font-weight: bold;">
-            ${candidateTitle}
-          </td>
-        </tr>
-      </table>
-
-      <!-- 평가 항목 표 -->
-      <table style="width: 100%; border-collapse: collapse; border: 2px solid #666;">
-        <thead>
-          <tr>
-            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">구분 (${totalPoints}점)</th>
-            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">세부 항목</th>
-            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">유형</th>
-            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">배점</th>
-            <th style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; font-weight: bold; font-size: 13px;">평가점수</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${currentTemplate.sections.map((section: any) => {
-            return section.items.map((item: any, itemIndex: number) => {
-              return `
-                <tr>
-                  ${itemIndex === 0 ? `
-                    <td rowspan="${section.items.length}" style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f8f9fa; font-weight: bold; vertical-align: top; font-size: 12px;">
-                      ${section.id}. ${section.title}<br>
-                      <span style="font-size: 10px; color: #666;">(${section.items.reduce((sum: number, sectionItem: any) => sum + (sectionItem.points || 0), 0)}점)</span>
-                    </td>
-                  ` : ''}
-                  <td style="border: 1px solid #666; padding: 8px; font-size: 12px;">
-                    ${itemIndex + 1}. ${item.text}
-                  </td>
-                  <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px;">
-                    ${item.type || ''}
-                  </td>
-                  <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px;">
-                    ${item.points || 0}점
-                  </td>
-                  <td style="border: 1px solid #666; padding: 8px; text-align: center; font-size: 12px;">
-                    ${item.score || 0}점
-                  </td>
-                </tr>
-              `;
-            }).join('');
-          }).join('')}
-          <!-- 합계 행 -->
-          <tr style="background-color: #e8e8e8; font-weight: bold;">
-            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle; font-size: 13px;">합계</td>
-            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
-            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px;"></td>
-            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px;">${totalPoints}점</td>
-            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px;">점</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="evaluation-date">
-        평가일: ${today}
-      </div>
-      <div class="evaluator-info">
-        평가위원 : ${evaluatorInfo?.name || ''}${positionText} (서명)
-      </div>
-    `;
-  };
-
-  // 🎯 개별 인쇄 기능
-  const printEvaluationSheet = () => {
-    if (!selectedEvaluator || !selectedCandidate) {
-      toast({
-        title: "선택 필요",
-        description: "평가위원과 평가대상을 선택해주세요.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const evaluatorInfo = evaluators.find((e: any) => e.id === selectedEvaluator);
-    const candidateInfo = candidates.find((c: any) => c.id === selectedCandidate);
-
-    if (!evaluatorInfo || !candidateInfo) {
-      toast({
-        title: "오류",
-        description: "선택한 평가위원 또는 평가대상 정보를 찾을 수 없습니다.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // 통합 HTML 생성 함수 사용
-    const evaluationContent = generateEvaluationHTML(evaluatorInfo, candidateInfo);
-
-    // 제목 결정
-    const dynamicTitle = candidateInfo ? `${candidateInfo.name} 심사표` : (currentTemplate?.title || "제공기관 선정 심의회 평가표");
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: "오류",
-        description: "팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>평가표 출력 - ${dynamicTitle}</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
-          <div class="evaluation-page">
-            ${evaluationContent}
-          </div>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.print();
-    toast({
-      title: "인쇄",
-      description: "인쇄 미리보기가 열렸습니다!",
-    });
-  };
-
-  // 🎯 배치 인쇄 기능
-  const printAllCombinations = () => {
-    if (candidates.length === 0 || evaluators.length === 0) {
-      toast({
-        title: "오류",
-        description: "평가대상과 평가위원이 모두 등록되어야 배치 인쇄가 가능합니다.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    let allPrintContent = '';
-    const totalPages = candidates.length * evaluators.length;
-
-    candidates.forEach((candidate: any) => {
-      evaluators.forEach((evaluator: any) => {
-        const evaluationContent = generateEvaluationHTML(evaluator, candidate);
-        allPrintContent += `
-          <div class="evaluation-page">
-            ${evaluationContent}
-          </div>
-        `;
-      });
-    });
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: "오류",
-        description: "팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>전체 평가표 배치 인쇄 (${totalPages}페이지)</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
-          ${allPrintContent}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.print();
-    toast({
-      title: "배치 인쇄",
-      description: `총 ${totalPages}개의 평가표가 생성되었습니다!`,
-    });
-  };
-
-  // 🎯 평가위원별 일괄인쇄 기능
-  const printByEvaluator = (evaluatorId: number) => {
-    const evaluator = evaluators.find((e: any) => e.id === evaluatorId);
-    if (!evaluator) return;
-
-    let allPrintContent = '';
-    const totalPages = candidates.length;
-
-    candidates.forEach((candidate: any) => {
-      const evaluationContent = generateEvaluationHTML(evaluator, candidate);
-      allPrintContent += `
-        <div class="evaluation-page">
-          ${evaluationContent}
-        </div>
-      `;
-    });
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: "오류",
-        description: "팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${evaluator.name} 평가위원 전체 평가표 (${totalPages}페이지)</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
-          ${allPrintContent}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.print();
-    toast({
-      title: "평가위원별 인쇄",
-      description: `${evaluator.name} 평가위원의 ${totalPages}개 평가표가 생성되었습니다!`,
-    });
-  };
-
-  // 🎯 평가대상별 일괄인쇄 기능
-  const printByCandidate = (candidateId: number) => {
-    const candidate = candidates.find((c: any) => c.id === candidateId);
-    if (!candidate) return;
-
-    let allPrintContent = '';
-    const totalPages = evaluators.length;
-
-    evaluators.forEach((evaluator: any) => {
-      const evaluationContent = generateEvaluationHTML(evaluator, candidate);
-      allPrintContent += `
-        <div class="evaluation-page">
-          ${evaluationContent}
-        </div>
-      `;
-    });
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: "오류",
-        description: "팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${candidate.name} 평가대상 전체 평가표 (${totalPages}페이지)</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
-          ${allPrintContent}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.print();
-    toast({
-      title: "평가대상별 인쇄",
-      description: `${candidate.name} 평가대상의 ${totalPages}개 평가표가 생성되었습니다!`,
-    });
-  };
-
-  // 📄 보고서 출력 섹션
-  const renderReportSection = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>📋 평가표 보고서 출력</CardTitle>
-              <CardDescription>심사표 보기와 동일한 평가표를 인쇄하거나 PDF로 저장할 수 있습니다.</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* 평가위원 및 평가대상 선택 */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-            <h3 className="text-sm font-bold mb-3 text-blue-800">🎯 평가위원 및 평가대상 선택</h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택</label>
-                <div className="relative">
-                  <select
-                    value={selectedEvaluator || ''}
-                    onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">평가위원을 선택하세요</option>
-                    {(evaluators as any[]).map((evaluator: any) => (
-                      <option key={evaluator.id} value={evaluator.id}>
-                        {evaluator.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택</label>
-                <div className="relative">
-                  <select
-                    value={selectedCandidate || ''}
-                    onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full text-sm border rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">평가대상을 선택하세요</option>
-                    {(candidates as any[]).map((candidate: any) => (
-                      <option key={candidate.id} value={candidate.id}>
-                        {candidate.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* 인쇄 버튼들 */}
-            <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Button
-                onClick={printEvaluationSheet}
-                disabled={!selectedEvaluator || !selectedCandidate}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 text-xs"
-              >
-                <Download className="w-3 h-3" />
-                개별 인쇄
-              </Button>
-              <Button
-                onClick={printAllCombinations}
-                disabled={candidates.length === 0 || evaluators.length === 0}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 text-xs"
-              >
-                <Download className="w-3 h-3" />
-                배치 인쇄
-              </Button>
-              <div className="lg:col-span-2">
-                <select 
-                  className="w-full text-xs border rounded px-2 py-1.5 bg-white"
-                  onChange={(e) => e.target.value && printByEvaluator(parseInt(e.target.value))}
-                  defaultValue=""
-                >
-                  <option value="">평가위원별 일괄인쇄</option>
-                  {(evaluators as any[]).map((evaluator: any) => (
-                    <option key={evaluator.id} value={evaluator.id}>
-                      {evaluator.name} ({candidates.length}페이지)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* 평가표 미리보기 */}
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-6">
-            <div className="mb-4">
-              <div className="text-right mb-2">
-                <span className="text-sm text-gray-600">
-                  구분: {selectedCandidateInfo?.category || selectedCandidateInfo?.department || ''}
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-center mb-6">{getDynamicTitle()}</h1>
-            </div>
-
-            {/* 평가 항목 테이블 */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border-2 border-gray-400">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-400 px-4 py-3 text-center font-bold">
-                      구분 ({calculateTotalPoints()}점)
-                    </th>
-                    <th className="border border-gray-400 px-4 py-3 text-center font-bold">세부 항목</th>
-                    <th className="border border-gray-400 px-4 py-3 text-center font-bold">유형</th>
-                    <th className="border border-gray-400 px-4 py-3 text-center font-bold">배점</th>
-                    <th className="border border-gray-400 px-4 py-3 text-center font-bold">평가점수</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentTemplate.sections.map((section: any, sectionIndex: number) => (
-                    section.items.map((item: any, itemIndex: number) => (
-                      <tr key={`${section.id}-${item.id}`}>
-                        {itemIndex === 0 && (
-                          <td 
-                            className="border border-gray-400 px-4 py-3 text-center font-medium bg-blue-50 align-top"
-                            rowSpan={section.items.length}
-                          >
-                            {section.id}. {section.title}
-                            <br />
-                            <span className="text-sm text-gray-600">
-                              ({section.items.reduce((sum: number, i: any) => sum + (i.points || 0), 0)}점)
-                            </span>
-                          </td>
-                        )}
-                        <td className="border border-gray-400 px-4 py-2">{itemIndex + 1}. {item.text}</td>
-                        <td className="border border-gray-400 px-4 py-2 text-center">{item.type}</td>
-                        <td className="border border-gray-400 px-4 py-2 text-center">{item.points}점</td>
-                        <td className="border border-gray-400 px-4 py-2 text-center">
-                          <input 
-                            type="number" 
-                            min="0" 
-                            max={item.points}
-                            value={item.score || ''}
-                            onChange={(e) => {
-                              const newScore = parseInt(e.target.value) || 0;
-                              setCurrentTemplate(prev => ({
-                                ...prev,
-                                sections: prev.sections.map(s => 
-                                  s.id === section.id 
-                                    ? {
-                                        ...s,
-                                        items: s.items.map(i => 
-                                          i.id === item.id ? { ...i, score: Math.min(newScore, item.points) } : i
-                                        )
-                                      }
-                                    : s
-                                )
-                              }));
-                            }}
-                            className="w-16 text-center border rounded px-2 py-1"
-                          />
-                        </td>
-                      </tr>
-                    ))
-                  ))}
-                  <tr className="bg-yellow-50 font-bold">
-                    <td className="border border-gray-400 px-4 py-2 text-center">합계</td>
-                    <td className="border border-gray-400 px-4 py-2 text-center">-</td>
-                    <td className="border border-gray-400 px-4 py-2 text-center">-</td>
-                    <td className="border border-gray-400 px-4 py-2 text-center">{calculateTotalPoints()}점</td>
-                    <td className="border border-gray-400 px-4 py-2 text-center">{calculateTotalScore()}점</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* 평가위원 정보 */}
-            <div className="mt-8 text-right">
-              <p className="text-sm">
-                평가위원: {selectedEvaluatorInfo?.name || '_______________'}
-              </p>
-              <p className="text-sm mt-2">
-                날짜: {new Date().toLocaleDateString('ko-KR')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  // 🎯 순위 관련 데이터 처리 (타입 안전한 결과 사용)
+  const passThreshold = 70; // 기준점수 70%
+  const topPerformers = resultsData.slice(0, 10); // 상위 10명
+  const failedCandidates = resultsData.filter((result: CandidateResult) => result.percentage < passThreshold);
+  const passedCandidates = resultsData.filter((result: CandidateResult) => result.percentage >= passThreshold);
+  
+  // 동점자 처리
+  const tieGroups = resultsData.reduce((groups: any, result: CandidateResult) => {
+    const key = result.percentage.toFixed(1);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(result);
+    return groups;
+  }, {});
+  
+  const tiedCandidates = Object.values(tieGroups).filter((group: any) => group.length > 1);
 
   return (
     <div className="min-h-screen bg-gray-50">

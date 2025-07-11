@@ -43,14 +43,73 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  // Initialize Supabase API storage system
+async function initializeSystem() {
+  console.log('🔧 Checking system initialization...');
+  
   try {
-    await import("./storage-supabase-api").then(module => module.initializeStorage());
-  } catch (error: any) {
-    console.warn("⚠️  Storage initialization warning:", error?.message || error);
-    console.warn("System will continue with basic functionality");
+    // 🎯 먼저 Supabase API storage 시스템 초기화
+    const { initializeStorage } = await import("./storage-supabase-api");
+    await initializeStorage();
+    console.log('✅ Storage system initialized');
+
+    // 이제 storage 객체를 import
+    const { storage } = await import("./storage-supabase-api");
+    
+    // 기존 관리자 계정 확인
+    const existingAdmin = await storage.getAdminByUsername('admin');
+    if (existingAdmin) {
+      console.log('✅ Existing admin account found');
+    } else {
+      console.log('🔧 Creating default admin account...');
+      await storage.createAdmin({
+        username: 'admin',
+        password: 'admin123',
+        name: '시스템 관리자'
+      });
+      console.log('✅ Default admin account created');
+    }
+
+    // 기존 시스템 설정 확인
+    const existingConfig = await storage.getSystemConfig();
+    if (existingConfig) {
+      console.log('✅ Existing system config found');
+    } else {
+      console.log('🔧 Creating default system config...');
+      await storage.updateSystemConfig({
+        evaluationTitle: '제공기관 선정 심의회 평가표',
+        systemName: '평가 기관',
+        evaluationDate: new Date().toISOString().split('T')[0]
+      });
+      console.log('✅ Default system config created');
+    }
+
+    // 🎯 Supabase에 저장된 템플릿 자동 로드
+    console.log('🔍 Checking for existing evaluation templates in Supabase...');
+    const existingCategories = await storage.getAllCategories();
+    const existingItems = await storage.getAllEvaluationItems();
+    
+    if (existingCategories.length > 0 && existingItems.length > 0) {
+      console.log(`✅ Found existing templates in Supabase:`);
+      console.log(`   📋 Categories: ${existingCategories.length}`);
+      console.log(`   📝 Evaluation Items: ${existingItems.length}`);
+      console.log('🎯 Templates automatically loaded from Supabase!');
+      
+      // 🔧 ID 기반 점수를 CODE 기반으로 마이그레이션
+      console.log('🔄 Starting score migration from ID-based to CODE-based...');
+      await storage.migrateScoresToCodeBased();
+    } else {
+      console.log('⚠️ No evaluation templates found in Supabase');
+      console.log('📝 Please create templates via Admin → Evaluation Items Management');
+    }
+
+    console.log('✅ System initialization completed');
+  } catch (error) {
+    console.error('❌ System initialization failed:', error);
   }
+}
+
+(async () => {
+  await initializeSystem();
   
   const server = await registerRoutes(app);
 
@@ -74,7 +133,7 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = process.env.PORT || 5001; // 임시로 5001 포트 사용
   server.listen(port, () => {
     log(`🚀 Server running at http://localhost:${port}`);
   });
