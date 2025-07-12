@@ -23,7 +23,8 @@ export async function apiRequest(
   return res;
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
+export type UnauthorizedBehavior = "throw" | "returnNull";
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
@@ -31,6 +32,12 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      // 🔧 추가: 캐시 방지 헤더로 실시간 데이터 보장
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -45,15 +52,17 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5분
-      gcTime: 10 * 60 * 1000, // 10분
-      retry: false,
-      refetchOnMount: true,
+      // 🔧 수정: 실시간 연동 최적화
+      refetchInterval: 3000, // 3초마다 자동 갱신
+      refetchOnWindowFocus: true, // 윈도우 포커스시 갱신
+      staleTime: 1000, // 1초 후 stale 처리 (실시간 반영)
+      gcTime: 5 * 60 * 1000, // 5분 후 가비지 컬렉션
+      retry: 1, // 1회 재시도
+      refetchOnMount: true, // 마운트시 항상 갱신
+      refetchOnReconnect: true, // 재연결시 갱신
     },
     mutations: {
-      retry: false,
+      retry: 1, // 1회 재시도
     },
   },
 });

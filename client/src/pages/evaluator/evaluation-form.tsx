@@ -8,10 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Save, Send, ArrowLeft, Star } from "lucide-react";
+import { Save, Send, ArrowLeft, Star, RefreshCw, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UseQueryOptions } from "@tanstack/react-query";
-import React from "react"; // Added missing import
+import React from "react";
 
 interface EvaluationItem {
   id: number;
@@ -47,21 +47,15 @@ export default function EvaluationForm() {
   });
   const candidate = (candidateRaw as any) || {};
 
+  // 🔧 수정: 평가자 전용 평가 항목 API (실시간 업데이트 강화)
   const { data: items = [], isLoading: itemsLoading } = useQuery<any[]>({
     queryKey: ["/api/evaluator/evaluation-items"],
+    refetchInterval: 2000, // 2초마다 갱신
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 1000,
+    cacheTime: 0, // 캐시 사용 안 함으로 실시간 반영
   } as UseQueryOptions<any[], Error>);
-
-  // 1. items에 type(정량/정성) 필드 동기화
-  const itemsWithType = items.map((item: any) => ({
-    ...item,
-    type: item.isQuantitative ? '정량' : '정성',
-  }));
-
-  // 관리자 템플릿 데이터 가져오기 (실시간 반영)
-  const { data: adminTemplate, isLoading: templateLoading } = useQuery<any>({
-    queryKey: ["/api/admin/templates/default"],
-    refetchInterval: 1000, // 1초마다 갱신하여 실시간 반영
-  } as UseQueryOptions<any, Error>);
 
   // 사전점수 데이터 가져오기
   const { data: presetScores = [], isLoading: presetLoading } = useQuery<any[]>({
@@ -229,7 +223,6 @@ export default function EvaluationForm() {
       
       presetScores.forEach(ps => {
         if (ps.apply_preset && ps.candidate_id === parseInt(candidateId as string)) {
-          // 기존 scores에 해당 항목이 없거나, 사전점수와 다른 경우에만 업데이트
           if (!newScores[ps.evaluation_item_id] || newScores[ps.evaluation_item_id].score !== ps.preset_score) {
             newScores[ps.evaluation_item_id] = {
               itemId: ps.evaluation_item_id,
@@ -247,12 +240,50 @@ export default function EvaluationForm() {
     }
   }, [presetScores, candidateId]);
 
-  if (candidateLoading || itemsLoading || scoresLoading || templateLoading || presetLoading) {
+  // 🔧 수정: 로딩 상태 개선
+  if (candidateLoading || itemsLoading || scoresLoading || presetLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">평가 데이터를 불러오는 중...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+          <p className="text-lg text-gray-600">
+            {candidateLoading ? "평가 대상 정보를 불러오는 중..." : 
+             itemsLoading ? "평가 항목을 불러오는 중..." : 
+             "평가 데이터를 불러오는 중..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔧 수정: 평가 항목이 없는 경우 안내 메시지
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md mx-auto">
+          <div className="text-6xl">📋</div>
+          <h2 className="text-2xl font-bold text-gray-800">평가 항목이 설정되지 않았습니다</h2>
+          <p className="text-gray-600">
+            관리자에게 평가 항목 설정을 요청해주세요.
+            <br />
+            관리자가 평가 항목을 설정하면 자동으로 업데이트됩니다.
+          </p>
+          <div className="mt-6 space-x-4">
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="mr-4"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              새로고침
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation("/evaluator/dashboard")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              대시보드로 돌아가기
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -260,101 +291,89 @@ export default function EvaluationForm() {
 
   const progress = getProgress();
   const { total, maxTotal } = getTotalScore();
-  
-  // 점수 매핑을 위한 code→score 맵 생성 (강화된 버전)
-  const scoreByCode: { [code: string]: any } = {};
-  scores && Object.values(scores).forEach((s: any) => {
-    if (s && s.itemCode) {
-      scoreByCode[s.itemCode] = s;
-    } else if (s && s.itemId) {
-      // itemId로 평가항목 찾아서 code 매핑
-      const item = items.find((item: any) => item.id === s.itemId);
-      if (item && item.code) {
-        scoreByCode[item.code] = { ...s, itemCode: item.code };
-      }
-    }
-  });
-  
-  // 사전점수도 code로 매핑 (강화된 버전)
-  const presetScoreByCode: { [code: string]: any } = {};
-  presetScores && presetScores.forEach((ps: any) => {
-    if (ps && ps.item_code) {
-      presetScoreByCode[ps.item_code] = ps;
-    } else if (ps && ps.evaluation_item_id) {
-      // evaluation_item_id로 평가항목 찾아서 code 매핑
-      const item = items.find((item: any) => item.id === ps.evaluation_item_id);
-      if (item && item.code) {
-        presetScoreByCode[item.code] = { ...ps, item_code: item.code };
-      }
-    }
-  });
 
-  // 1. 템플릿 구조만으로 렌더링 (구분, 합계 포함)
-  const renderTable = () => {
-    if (!adminTemplate || !adminTemplate.sections) return null;
-    let sectionAlpha = 'A'.charCodeAt(0);
-    let totalScore = 0;
-    return (
-      <table className="w-full border mb-4">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-2 py-1">구분</th>
-            <th className="border px-2 py-1">세부 항목</th>
-            <th className="border px-2 py-1">유형</th>
-            <th className="border px-2 py-1">배점</th>
-            <th className="border px-2 py-1">평가점수</th>
-          </tr>
-        </thead>
-        <tbody>
-          {adminTemplate.sections.map((section: any, sectionIdx: number) => {
-            const sectionLabel = section.label || String.fromCharCode(sectionAlpha + sectionIdx);
-            return (
-              <React.Fragment key={section.id || sectionIdx}>
-                {section.items.map((item: any, idx: number) => {
-                  const code = item.code;
-                  const scoreObj = scoreByCode[code];
-                  const presetObj = presetScoreByCode[code];
-                  const isPreset = !!(presetObj && presetObj.preset_score !== undefined && presetObj.apply_preset);
-                  const displayScore = isPreset ? presetObj.preset_score : (scoreObj ? scoreObj.score : '');
-                  totalScore += Number(displayScore) || 0;
-                  return (
-                    <tr key={code}>
-                      {idx === 0 && (
-                        <td className="border px-2 py-1 text-center font-bold bg-gray-50 align-middle" rowSpan={section.items.length}>
-                          {sectionLabel}. {section.title}<br />({section.totalPoints}점)
-                        </td>
+  // 🔧 수정: 간단하고 실용적인 평가 항목 렌더링
+  const renderEvaluationItems = () => {
+    // 카테고리별로 그룹화
+    const itemsByCategory = items.reduce((acc: any, item: any) => {
+      const categoryName = item.category?.categoryName || item.categoryName || "기타";
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
+      }
+      acc[categoryName].push(item);
+      return acc;
+    }, {});
+
+    return Object.entries(itemsByCategory).map(([categoryName, categoryItems]: [string, any]) => (
+      <Card key={categoryName} className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">{categoryName}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {categoryItems.map((item: any) => {
+              const isPreset = isPresetApplied(item.id);
+              const currentScore = isPreset ? getPresetScore(item.id) : (scores[item.id]?.score || 0);
+              const maxScore = item.maxScore || 10;
+              
+              return (
+                <div key={item.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{item.name || item.itemName}</h4>
+                      {item.description && (
+                        <p className="text-sm text-gray-600 mt-1">{item.description}</p>
                       )}
-                      <td className="border px-2 py-1">{item.text}</td>
-                      <td className="border px-2 py-1 text-center">{item.type}</td>
-                      <td className="border px-2 py-1 text-center">{item.points}점</td>
-                      <td className="border px-2 py-1 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          max={item.points}
-                          value={displayScore}
-                          onChange={e => {
-                            if (isPreset) return;
-                            handleScoreChange(code, 'score', Math.min(Math.max(0, parseInt(e.target.value) || 0), item.points));
-                          }}
-                          className={`w-16 text-center ${isPreset ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : ''}`}
-                          disabled={isPreset}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </React.Fragment>
-            );
-          })}
-          {/* 합계 행 */}
-          <tr className="bg-yellow-50 font-bold">
-            <td className="border px-2 py-2 text-center" colSpan={4}>총계</td>
-            <td className="border px-2 py-2 text-center">{adminTemplate.totalScore}점</td>
-          </tr>
-        </tbody>
-      </table>
-    );
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {item.isQuantitative ? '정량' : '정성'}
+                        </Badge>
+                        <span className="text-sm text-gray-500">
+                          최대 {maxScore}점
+                        </span>
+                        {isPreset && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Star className="h-3 w-3 mr-1" />
+                            사전점수 적용
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-4 text-right">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={maxScore}
+                        value={currentScore}
+                        onChange={(e) => handleScoreChange(item.id, 'score', Math.min(Math.max(0, parseInt(e.target.value) || 0), maxScore))}
+                        className={`w-20 text-center ${isPreset ? 'bg-gray-100 text-gray-600' : ''}`}
+                        disabled={isPreset}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">
+                        / {maxScore}점
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      의견 (선택사항)
+                    </label>
+                    <Textarea
+                      value={scores[item.id]?.comments || ""}
+                      onChange={(e) => handleScoreChange(item.id, 'comments', e.target.value)}
+                      placeholder="이 항목에 대한 의견을 입력해주세요..."
+                      className="text-sm"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    ));
   };
 
   return (
@@ -368,7 +387,7 @@ export default function EvaluationForm() {
               돌아가기
             </Button>
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">{candidate?.name} 평가</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{candidate?.name} 평가</h1>
               <p className="text-lg text-gray-600">
                 {candidate?.department} · {candidate?.position}
               </p>
@@ -405,21 +424,9 @@ export default function EvaluationForm() {
           </CardContent>
         </Card>
 
-        {/* 평가 항목들 - 관리자 템플릿 구조 사용 */}
-        <div className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">평가위원 심사표</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4">
-                <h2 className="font-bold text-xl mb-4">평가위원 심사표</h2>
-                <div className="overflow-x-auto">
-                  {renderTable()}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* 평가 항목들 */}
+        <div className="space-y-6">
+          {renderEvaluationItems()}
         </div>
 
         {/* 제출 버튼 */}
@@ -443,22 +450,6 @@ export default function EvaluationForm() {
                     {isSubmitting ? "제출 중..." : "평가 제출"}
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {submission?.isSubmitted && (
-          <Card className="mt-8 border-green-200 bg-green-50">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-green-600 mb-2">
-                  <Send className="h-8 w-8 mx-auto" />
-                </div>
-                <h3 className="text-lg font-semibold text-green-800">평가가 완료되었습니다</h3>
-                <p className="text-sm text-green-600">
-                  {submission.submittedAt && `제출일: ${new Date(submission.submittedAt).toLocaleString()}`}
-                </p>
               </div>
             </CardContent>
           </Card>

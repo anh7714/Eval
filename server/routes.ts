@@ -592,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Validated data:", validatedData);
       const category = await storage.createCategory(validatedData);
       res.json(category);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Category creation error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
@@ -664,6 +664,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== ADMIN EVALUATION CATEGORY ROUTES =====
   app.get("/api/admin/categories", requireAuth, async (req, res) => {
     try {
+      // 캐시 방지 헤더 추가
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
       const categories = await storage.getAllCategories();
       res.json(categories);
     } catch (error) {
@@ -739,6 +746,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for evaluation items
   app.get("/api/admin/evaluation-items", requireAuth, async (req, res) => {
     try {
+      // 캐시 방지 헤더 추가
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
       const items = await storage.getAllEvaluationItems();
       res.json(items);
     } catch (error) {
@@ -909,19 +923,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 평가위원 전용 평가 항목 조회 API
+  // 🔧 수정: 평가위원 전용 평가 항목 조회 API (실시간 업데이트 지원)
   app.get("/api/evaluator/evaluation-items", requireEvaluatorAuth, async (req, res) => {
     try {
       const items = await storage.getAllEvaluationItems();
-      // code 필드를 포함하여 반환 (1:1 매핑 보장)
+      
+      // 🔧 개선: 더 자세한 정보 포함
       const itemsWithCode = items.map(item => ({
         ...item,
-        itemCode: item.code, // 템플릿과 매핑을 위한 필드
-        type: item.isQuantitative ? '정량' : '정성', // 유형 정보 추가
-        hasPresetScores: item.hasPresetScores || false // 사전점수 여부 추가
+        itemCode: item.code,
+        itemName: item.name,
+        type: item.isQuantitative ? '정량' : '정성',
+        hasPresetScores: item.hasPresetScores || false,
+        category: {
+          id: item.categoryId,
+          categoryName: item.categoryName || '',
+          categoryCode: item.categoryId.toString() || ''
+        }
       }));
+      
+      // 🔧 개선: 캐시 방지 헤더 추가
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      console.log(`📋 평가자 ${req.session.evaluator.name}에게 평가 항목 ${items.length}개 전송`);
       res.json(itemsWithCode);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ 평가 항목 조회 실패:', error);
       res.status(500).json({ message: "Failed to fetch evaluation items" });
     }
   });
@@ -1175,6 +1206,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('❌ 통계 API 오류:', error);
       res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
+  // 🔧 추가: 시스템 통계 API (공개)
+  app.get("/api/system/stats", async (req, res) => {
+    try {
+      const stats = await storage.getSystemStatistics();
+      console.log('📊 시스템 통계 데이터:', stats);
+      res.json(stats);
+    } catch (error: any) {
+      console.error('❌ 시스템 통계 API 오류:', error);
+      res.status(500).json({ message: "Failed to fetch system statistics" });
     }
   });
 
@@ -1670,6 +1713,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('❌ 전체 데이터 정리 실패:', error);
       res.status(500).json({ message: "전체 데이터 정리 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 🔧 추가: 평가위원 전용 평가 데이터 조회 API
+  app.get("/api/evaluator/evaluation/:candidateId", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const evaluatorId = req.session.evaluator.id;
+      const candidateId = parseInt(req.params.candidateId);
+      
+      console.log('📖 평가위원 전용 평가 데이터 조회:', { evaluatorId, candidateId });
+
+      // 새 시스템 사용
+      const result = await storage.getEvaluationStatusNew(evaluatorId, candidateId);
+
+      console.log('✅ 평가위원 전용 조회 성공:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('❌ 평가위원 전용 조회 실패:', error);
+      res.status(500).json({ message: "평가 데이터 조회 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 🔧 추가: 평가위원 전용 카테고리 조회 API
+  app.get("/api/evaluator/categories", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const categories = await storage.getActiveCategories();
+      console.log('📋 평가위원 전용 카테고리 조회 성공:', categories.length, '개');
+      res.json(categories);
+    } catch (error: any) {
+      console.error('❌ 평가위원 전용 카테고리 조회 실패:', error);
+      res.status(500).json({ message: "카테고리 조회 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 🔧 추가: 평가위원 전용 평가 항목 조회 API  
+  app.get("/api/evaluator/evaluation-items", requireEvaluatorAuth, async (req, res) => {
+    try {
+      const items = await storage.getAllEvaluationItems();
+      
+      // 평가위원에게 필요한 정보만 포함
+      const itemsWithCode = items.map(item => ({
+        ...item,
+        itemCode: item.code,
+        itemName: item.name,
+        type: item.isQuantitative ? '정량' : '정성',
+        hasPresetScores: item.hasPresetScores || false,
+        category: {
+          id: item.categoryId,
+          categoryName: item.categoryName || '',
+        }
+      }));
+      
+      console.log('📋 평가위원 전용 평가 항목 조회 성공:', itemsWithCode.length, '개');
+      
+      // 캐시 방지 헤더 추가
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      res.json(itemsWithCode);
+    } catch (error: any) {
+      console.error('❌ 평가위원 전용 평가 항목 조회 실패:', error);
+      res.status(500).json({ message: "평가 항목 조회 중 오류가 발생했습니다." });
     }
   });
 

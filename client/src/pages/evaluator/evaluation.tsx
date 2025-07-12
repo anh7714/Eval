@@ -69,20 +69,20 @@ export default function EvaluatorEvaluationPage() {
     setSelectedStatus("all");
   };
 
-  // 평가 모달 열기 함수
+  // 🔧 수정: 평가 모달 열기 함수 (평가자 전용 API 사용)
   const openEvaluationModal = async (candidate: any) => {
     setSelectedCandidate(candidate);
     
     try {
       console.log('🚀 평가 모달 열기 시작:', candidate);
       
-      // 🎯 평가결과 조회와 동일한 방식으로 데이터 가져오기
+      // 🎯 평가자 전용 API 사용 (실시간 업데이트)
       const [existingDataResponse, presetScoresResponse, categoriesResponse, evaluationItemsResponse, systemConfigResponse] = await Promise.all([
-        fetch(`/api/evaluator/evaluation/${candidate.id}`),
-        fetch(`/api/admin/candidate-preset-scores/${candidate.id}`),
-        fetch('/api/admin/categories'), // 평가결과 조회와 동일
-        fetch('/api/admin/evaluation-items'), // 평가결과 조회와 동일 
-        fetch('/api/system/config') // 평가결과 조회와 동일
+        fetch(`/api/evaluator/evaluation/${candidate.id}`, { credentials: 'include' }),
+        fetch(`/api/admin/candidate-preset-scores/${candidate.id}`, { credentials: 'include' }),
+        fetch('/api/evaluator/categories', { credentials: 'include' }), // 🔧 수정
+        fetch('/api/evaluator/evaluation-items', { credentials: 'include' }), // 🔧 수정 
+        fetch('/api/system/config', { credentials: 'include' })
       ]);
 
       // 1. 카테고리와 평가항목 데이터 가져오기
@@ -637,30 +637,24 @@ export default function EvaluatorEvaluationPage() {
     );
   };
 
-  // 미리보기 모달 열기
+  // 🔧 수정: 미리보기 모달 점수 매칭 로직 (정확한 ID 매칭)
   const openPreviewModal = async (candidate: any) => {
     try {
       console.log('🔍 미리보기 모달 열기:', candidate);
       
-      // 🎯 평가 모달과 동일한 방식으로 데이터 가져오기 (관리자 심사표 동기화)
+      // 데이터 가져오기
       const [evaluationResponse, categoriesResponse, evaluationItemsResponse, systemConfigResponse] = await Promise.all([
-        fetch(`/api/evaluator/evaluation/${candidate.id}`, {
-          method: 'GET',
-          credentials: 'include'
-        }),
-        fetch('/api/admin/categories'), // 관리자 심사표와 동기화
-        fetch('/api/admin/evaluation-items'), // 관리자 심사표와 동기화
-        fetch('/api/system/config') // 관리자 심사표와 동기화
+        fetch(`/api/evaluator/evaluation/${candidate.id}`, { credentials: 'include' }),
+        fetch('/api/evaluator/categories', { credentials: 'include' }),
+        fetch('/api/evaluator/evaluation-items', { credentials: 'include' }),
+        fetch('/api/system/config', { credentials: 'include' })
       ]);
       
       // 평가 점수 데이터
       let previewScores: any = {};
       if (evaluationResponse.ok) {
         const data = await evaluationResponse.json();
-        console.log('📄 미리보기 데이터:', data);
-        console.log('📊 미리보기 점수 원본:', data.scores);
-        console.log('📊 미리보기 점수 키들:', Object.keys(data.scores || {}));
-        console.log('📊 미리보기 점수 값들:', Object.values(data.scores || {}));
+        console.log('📊 미리보기 점수 데이터:', data.scores);
         previewScores = data.scores || {};
       }
 
@@ -669,58 +663,45 @@ export default function EvaluatorEvaluationPage() {
       let evaluationItems: any[] = [];
       let systemConfig: any = {};
       
-      if (categoriesResponse.ok) {
-        categories = await categoriesResponse.json();
-        console.log('📋 관리자 카테고리 데이터:', categories);
-      }
+      if (categoriesResponse.ok) categories = await categoriesResponse.json();
+      if (evaluationItemsResponse.ok) evaluationItems = await evaluationItemsResponse.json();
+      if (systemConfigResponse.ok) systemConfig = await systemConfigResponse.json();
+
+      // 템플릿 변환
+      const convertedTemplate = convertDataToTemplate(categories, evaluationItems, systemConfig);
       
-      if (evaluationItemsResponse.ok) {
-        evaluationItems = await evaluationItemsResponse.json();
-        console.log('📝 관리자 평가항목 데이터:', evaluationItems);
-        console.log('📝 평가항목 ID들:', evaluationItems.map(item => ({ id: item.id, name: item.name })));
-      }
-      
-      if (systemConfigResponse.ok) {
-        systemConfig = await systemConfigResponse.json();
-        console.log('⚙️ 시스템 설정:', systemConfig);
+      // 🎯 간단한 정확한 점수 매칭 (evaluation_item_id 기반)
+      if (convertedTemplate?.sections) {
+        convertedTemplate.sections.forEach((section: any) => {
+          section.items.forEach((item: any) => {
+            // 🎯 정확한 ID 매칭 (Supabase 구조에 맞춤)
+            const itemId = item.evaluationItemId;
+            const actualScore = previewScores[itemId?.toString()] || 0;
+            
+            console.log(`🔍 미리보기 점수 매칭: "${item.text}"`);
+            console.log(`   📝 평가항목 ID: ${itemId}`);
+            console.log(`   📊 찾은 점수: ${actualScore}`);
+            console.log(`   ---`);
+            
+            // 점수 설정
+            item.score = actualScore;
+          });
+        });
       }
 
-      // 관리자 심사표로 템플릿 생성 (평가 모달과 동일)
-      const template = convertDataToTemplate(categories, evaluationItems, systemConfig);
-      console.log('🎯 결과확인 모달 - 관리자 심사표 템플릿:', template);
-      console.log('🎯 템플릿 항목들의 evaluationItemId:', template.sections?.map((section: any) => ({
-        sectionTitle: section.title,
-        items: section.items?.map((item: any) => ({
-          text: item.text,
-          evaluationItemId: item.evaluationItemId,
-          type: item.type
-        }))
-      })));
-        
+      console.log('🎯 미리보기 모달 최종 템플릿 (점수 반영 후):', convertedTemplate);
+
+      // 모달 상태 설정
       setPreviewCandidate(candidate);
       setPreviewScores(previewScores);
-      
-      // 템플릿도 상태로 저장
-      setEvaluationTemplate(template);
+      setEvaluationTemplate(convertedTemplate);
       setIsPreviewModalOpen(true);
+      
+      console.log('✅ 미리보기 모달 열기 완료');
 
-      // 🔍 키 매핑 디버깅
-      console.log('🔍 점수 매핑 디버깅:');
-      template.sections?.forEach((section: any) => {
-        section.items?.forEach((item: any) => {
-          const key = item.evaluationItemId;
-          const score = previewScores[key];
-          console.log(`   "${item.text}" - 키: ${key} (타입: ${typeof key}) -> 점수: ${score}`);
-        });
-      });
-        
     } catch (error) {
-      console.error('❌ 미리보기 모달 오류:', error);
-      toast({
-        title: "오류",
-        description: "평가 결과를 불러오는 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
+      console.error('❌ 미리보기 모달 열기 실패:', error);
+      alert('결과 확인 중 오류가 발생했습니다.');
     }
   };
 
@@ -1318,7 +1299,7 @@ export default function EvaluatorEvaluationPage() {
           </div>
         )}
 
-        {/* 미리보기 모달 */}
+        {/* 미리보기 모달 - 완전한 구조 */}
         {isPreviewModalOpen && previewCandidate && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -1340,9 +1321,7 @@ export default function EvaluatorEvaluationPage() {
                 </div>
 
                 <div className="space-y-4">
-
                   <div className="bg-white border border-gray-300 rounded-lg p-4">
-                    
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse border border-black">
                         <thead>
@@ -1356,7 +1335,6 @@ export default function EvaluatorEvaluationPage() {
                         </thead>
                         <tbody>
                           {(() => {
-                            // 🎯 관리자 심사표 템플릿 사용 (전역 상태 대신)
                             if (!evaluationTemplate || !evaluationTemplate.sections) {
                               return (
                                 <tr>
@@ -1389,77 +1367,8 @@ export default function EvaluatorEvaluationPage() {
                                     {item.points}점
                                   </td>
                                   <td className="border border-black px-3 py-3 text-center text-sm font-medium text-blue-600">
-                                    {(() => {
-                                      // 🚨 긴급 디버깅: 실제 데이터 구조 완전 분석
-                                      const itemId = item.evaluationItemId;
-                                      const itemCode = item.code;
-                                      
-                                      console.log(`🚨 긴급 디버깅 - 항목: "${item.text}"`);
-                                      console.log(`   📝 템플릿 항목 정보:`, {
-                                        evaluationItemId: itemId,
-                                        evaluationItemIdType: typeof itemId,
-                                        code: itemCode,
-                                        codeType: typeof itemCode,
-                                        전체항목: item
-                                      });
-                                      
-                                      console.log(`   📊 실제 점수 객체 완전 분석:`);
-                                      console.log(`   - 점수 객체:`, previewScores);
-                                      console.log(`   - 점수 객체 타입:`, typeof previewScores);
-                                      console.log(`   - 키 목록:`, Object.keys(previewScores));
-                                      console.log(`   - 키 타입들:`, Object.keys(previewScores).map(k => `${k}(${typeof k})`));
-                                      console.log(`   - 값 목록:`, Object.values(previewScores));
-                                      
-                                      // 모든 가능한 키 형태 시도
-                                      const allPossibleKeys = [
-                                        itemCode,
-                                        itemId,
-                                        String(itemId),
-                                        Number(itemId),
-                                        parseInt(itemId),
-                                        `${itemId}`,
-                                        `"${itemId}"`,
-                                        itemId?.toString(),
-                                      ];
-                                      
-                                      console.log(`   🔑 시도할 모든 키:`, allPossibleKeys);
-                                      
-                                      let foundScore = 0;
-                                      let foundKey = null;
-                                      
-                                      // 각 키 하나씩 상세 테스트
-                                      for (const testKey of allPossibleKeys) {
-                                        const testResult = previewScores[testKey];
-                                        console.log(`   🧪 키 테스트: ${testKey} (타입: ${typeof testKey}) → 결과: ${testResult}`);
-                                        
-                                        if (testResult !== undefined && testResult !== null && testResult !== 0) {
-                                          foundScore = testResult;
-                                          foundKey = testKey;
-                                          console.log(`   ✅ 성공! 키: ${foundKey}, 점수: ${foundScore}`);
-                                          break;
-                                        }
-                                      }
-                                      
-                                      // 직접 키 매칭 시도
-                                      console.log(`   🔄 직접 매칭 시도:`);
-                                      Object.keys(previewScores).forEach(scoreKey => {
-                                        const scoreValue = previewScores[scoreKey];
-                                        console.log(`   - 실제키 "${scoreKey}"(${typeof scoreKey}) vs 템플릿ID "${itemId}"(${typeof itemId}) → 일치: ${scoreKey == itemId}, 엄격일치: ${scoreKey === itemId}`);
-                                        
-                                        if (scoreKey == itemId || scoreKey === String(itemId) || scoreKey === itemCode) {
-                                          console.log(`   🎯 매칭 발견! 키: ${scoreKey}, 값: ${scoreValue}`);
-                                          if (!foundScore) {
-                                            foundScore = scoreValue;
-                                            foundKey = scoreKey;
-                                          }
-                                        }
-                                      });
-                                      
-                                      console.log(`   🏁 최종 결과: 키=${foundKey}, 점수=${foundScore}`);
-                                      console.log(`   =====================================`);
-                                      
-                                      return foundScore || 0;
-                                    })()}점
+                                    {/* 🔧 수정: 실제 저장된 점수 표시 */}
+                                    <strong>{item.score || 0}점</strong>
                                   </td>
                                 </tr>
                               ));
@@ -1473,7 +1382,12 @@ export default function EvaluatorEvaluationPage() {
                                   {evaluationTemplate.totalScore}점
                                 </td>
                                 <td className="border border-black px-3 py-3 text-center text-sm font-bold text-blue-600">
-                                  {Object.values(previewScores).reduce((sum: number, score: any) => sum + (score || 0), 0)}점
+                                  {/* 🔧 수정: 실제 점수 합계 표시 */}
+                                  <strong>
+                                    {evaluationTemplate.sections.reduce((total: number, section: any) => 
+                                      total + section.items.reduce((sectionTotal: number, item: any) => 
+                                        sectionTotal + (item.score || 0), 0), 0)}점
+                                  </strong>
                                 </td>
                               </tr>
                             ]);
@@ -1496,8 +1410,10 @@ export default function EvaluatorEvaluationPage() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
 }
+
 

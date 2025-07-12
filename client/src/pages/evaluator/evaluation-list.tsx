@@ -36,8 +36,11 @@ export default function EvaluationList() {
     queryKey: ["/api/evaluator/progress"],
   });
 
+  // 🔧 수정: 평가자 전용 카테고리 API 사용
   const { data: categories = [] } = useQuery({
-    queryKey: ["/api/admin/categories"],
+    queryKey: ["/api/evaluator/categories"], // 🔧 수정
+    refetchInterval: 3000, // 3초마다 갱신하여 관리자 설정 실시간 반영
+    refetchOnWindowFocus: true,
   });
 
   // 평가위원에게 할당된 후보자 목록을 가져오기

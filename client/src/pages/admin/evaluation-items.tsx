@@ -452,19 +452,23 @@ export default function EvaluationItemManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // 데이터 쿼리들 - 실시간 연동 적용
+  // 🔧 수정: 데이터 쿼리들 - 실시간 연동 최적화
   const { data: categories = [], isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories, isFetching: categoriesFetching } = useQuery({
     queryKey: ["/api/admin/categories"],
     retry: 2,
     refetchOnWindowFocus: true,
-    staleTime: 30000, // 30초 동안 데이터를 신선하다고 간주
+    refetchInterval: 2000, // 2초마다 자동 갱신
+    staleTime: 1000, // 1초 후 stale 처리 (실시간 반영)
+    refetchOnMount: true,
   });
 
   const { data: items = [], isLoading: itemsLoading, error: itemsError, refetch: refetchItems, isFetching: itemsFetching } = useQuery({
     queryKey: ["/api/admin/evaluation-items"],
     retry: 2,
     refetchOnWindowFocus: true,
-    staleTime: 30000, // 30초 동안 데이터를 신선하다고 간주
+    refetchInterval: 2000, // 2초마다 자동 갱신
+    staleTime: 1000, // 1초 후 stale 처리 (실시간 반영)
+    refetchOnMount: true,
   });
 
   // 에러 상태 로깅

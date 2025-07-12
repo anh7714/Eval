@@ -74,12 +74,12 @@ export default function ResultsManagement() {
   const [editingItem, setEditingItem] = useState(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: results = [], isLoading: resultsLoading } = useQuery({
+  const { data: results = [], isLoading: resultsLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/results"],
   });
 
-  const { data: progress = [], isLoading: progressLoading } = useQuery({
-    queryKey: ["/api/admin/evaluator-progress"],
+  const { data: progress = [], isLoading: progressLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/progress"],
   });
 
   // 평가위원 목록 가져오기
@@ -1357,7 +1357,7 @@ export default function ResultsManagement() {
                                           <div className="flex justify-center items-center">
                                             <Input
                                               type={column.type === 'number' ? 'number' : 'text'}
-                                              value={item[column.id] || (column.type === 'number' ? 0 : '')}
+                                              value={(item as any)[column.id] || (column.type === 'number' ? 0 : '')}
                                               onChange={(e) => updateItem(section.id, item.id, column.id, column.type === 'number' ? (parseInt(e.target.value) || 0) : e.target.value)}
                                               className="text-xs text-center w-12 mx-auto"
                                             />
@@ -1365,9 +1365,9 @@ export default function ResultsManagement() {
                                         )
                                       ) : (
                                         <span className="text-xs">
-                                          {column.id === 'points' ? `${item[column.id]}점` : 
-                                           column.id === 'score' ? item[column.id] :
-                                           item[column.id]}
+                                          {column.id === 'points' ? `${(item as any)[column.id]}점` : 
+                                           column.id === 'score' ? (item as any)[column.id] :
+                                           (item as any)[column.id]}
                                         </span>
                                       )}
                                     </td>

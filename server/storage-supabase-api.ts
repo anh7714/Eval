@@ -958,21 +958,15 @@ export class SupabaseStorage {
     }
   }
 
+  // 🔧 새로운 평가 시스템 기반 평가 결과 조회
   async getEvaluationResults(): Promise<any[]> {
     try {
-      console.log('📊 평가 결과 집계 시작 (새 시스템)...');
+      console.log('📊 평가 결과 집계 시작 (새로운 평가 시스템)...');
       
-      // 0. 중복 데이터 정리 (성능상 필요시에만 실행)
-      // await this.cleanupDuplicateEvaluations();
-      
-      // 1. 모든 완료된 평가 세션 데이터 가져오기 (최신 데이터만)
+      // 1. 모든 완료된 평가 세션 조회 (새로운 evaluation_sessions 테이블 사용)
       const { data: sessions, error: sessionsError } = await supabase
         .from('evaluation_sessions')
-        .select(`
-          *,
-          candidates:candidate_id (id, name, department, position, category),
-          evaluators:evaluator_id (id, name)
-        `)
+        .select('*')
         .eq('is_completed', true)
         .order('updated_at', { ascending: false });
 
@@ -982,70 +976,80 @@ export class SupabaseStorage {
       }
 
       if (!sessions || sessions.length === 0) {
-        console.log('📝 완료된 평가 데이터가 없습니다 (새 시스템).');
+        console.log('📝 완료된 평가 데이터가 없습니다.');
         return [];
       }
 
-      console.log('📊 완료된 평가 데이터 (새 시스템):', sessions.length, '건');
+      // 2. 활성 평가대상 정보 조회
+      const { data: candidates, error: candidatesError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('is_active', true);
 
-      // 2. 중복 제거: 각 평가자-후보자 조합당 최신 1개만 사용
-      const uniqueSessions = new Map<string, any>();
-      
-      for (const session of sessions) {
-        const key = `${session.evaluator_id}-${session.candidate_id}`;
-        if (!uniqueSessions.has(key)) {
-          uniqueSessions.set(key, session);
-        }
+      if (candidatesError) {
+        console.error('❌ 평가대상 데이터 조회 오류:', candidatesError);
+        throw candidatesError;
       }
 
-      const validSessions = Array.from(uniqueSessions.values());
-      console.log('📊 중복 제거 후 유효한 평가 데이터:', validSessions.length, '건');
+      // 3. 평가대상 맵 생성
+      const candidateMap = new Map<number, any>();
+      candidates?.forEach(candidate => {
+        candidateMap.set(candidate.id, candidate);
+      });
 
-      // 3. 후보자별로 데이터 집계
+      // 4. 중복 제거 및 후보자별 점수 집계
       const candidateScores = new Map<number, {
         candidate: any;
-        scores: number[];
         totalScores: number[];
         evaluatorCount: number;
         maxPossibleScore: number;
       }>();
 
-      // 4. 최대 가능 점수 계산 (evaluation_items 테이블에서)
+      // 5. 최대 가능 점수 계산
       const { data: evaluationItems, error: itemsError } = await supabase
         .from('evaluation_items')
         .select('max_score')
         .eq('is_active', true);
 
-      if (itemsError) {
-        console.error('❌ 평가 항목 조회 오류:', itemsError);
-        throw itemsError;
-      }
-
       const maxPossibleScore = evaluationItems?.reduce((sum, item) => sum + (item.max_score || 0), 0) || 100;
-      console.log('📊 최대 가능 점수:', maxPossibleScore);
 
-      // 5. 각 평가 세션에서 데이터 집계 (중복 제거된 데이터 사용)
-      for (const session of validSessions) {
+      // 6. 각 세션별로 개별 점수 합계 계산
+      for (const session of sessions) {
         const candidateId = session.candidate_id;
-        const candidate = session.candidates;
-        const totalScore = session.total_score || 0;
+        const candidate = candidateMap.get(candidateId);
+
+        if (!candidate) {
+          console.warn(`⚠️ 평가대상 정보 없음: ${candidateId}`);
+          continue;
+        }
+
+        // 해당 세션의 개별 점수들 조회
+        const { data: itemScores } = await supabase
+          .from('evaluation_item_scores')
+          .select('score')
+          .eq('evaluator_id', session.evaluator_id)
+          .eq('candidate_id', session.candidate_id);
+
+        // 개별 점수 합계 계산
+        const actualTotalScore = itemScores?.reduce((sum, item) => sum + (item.score || 0), 0) || 0;
 
         if (!candidateScores.has(candidateId)) {
           candidateScores.set(candidateId, {
             candidate: candidate,
-            scores: [],
             totalScores: [],
             evaluatorCount: 0,
-            maxPossibleScore: session.max_possible_score || maxPossibleScore
+            maxPossibleScore: maxPossibleScore
           });
         }
 
         const candidateData = candidateScores.get(candidateId)!;
-        candidateData.totalScores.push(totalScore);
+        candidateData.totalScores.push(actualTotalScore);
         candidateData.evaluatorCount++;
       }
 
-      // 6. 후보자별 평균 점수 계산 및 결과 배열 생성
+      console.log('📊 점수 집계 완료:', candidateScores.size, '명');
+
+      // 7. 후보자별 평균 점수 계산 및 결과 생성
       const results: any[] = [];
       
       for (const [candidateId, data] of candidateScores) {
@@ -1060,17 +1064,17 @@ export class SupabaseStorage {
             position: data.candidate.position || '',
             category: data.candidate.category || '일반'
           },
-          totalScore: Math.round(averageScore * 100) / 100, // 소수점 2자리까지
+          totalScore: Math.round(averageScore * 100) / 100,
           maxPossibleScore: data.maxPossibleScore,
-          percentage: Math.round(percentage * 100) / 100, // 소수점 2자리까지
+          percentage: Math.round(percentage * 100) / 100,
           evaluatorCount: data.evaluatorCount,
           completedEvaluations: data.evaluatorCount,
           averageScore: Math.round(averageScore * 100) / 100,
-          rank: 0 // 아래에서 순위 계산
+          rank: 0
         });
       }
 
-      // 7. 점수순으로 정렬하고 순위 부여
+      // 8. 정렬 및 순위 부여
       results.sort((a, b) => b.percentage - a.percentage);
       
       let currentRank = 1;
@@ -1081,13 +1085,11 @@ export class SupabaseStorage {
         results[i].rank = currentRank;
       }
 
-      console.log('✅ 평가 결과 집계 완료 (새 시스템):', results.length, '명');
-      console.log('📊 결과 미리보기:', results.slice(0, 3));
-
+      console.log('✅ 평가 결과 집계 완료 (새로운 시스템):', results.length, '명');
       return results;
 
     } catch (error) {
-      console.error('❌ 평가 결과 조회 오류 (새 시스템):', error);
+      console.error('❌ 평가 결과 조회 오류:', error);
       return [];
     }
   }
@@ -1138,31 +1140,31 @@ export class SupabaseStorage {
       if (categoriesError) throw categoriesError;
       const totalCategories = categories?.length || 0;
 
-      // 5. 평가 진행 상태 분석 (is_completed 기준)
-      let inProgress = 0;
-      let completed = 0;
-      let completionRate = 0;
+              // 5. 평가 진행 상태 분석 (새로운 시스템 기준)
+        let inProgress = 0;
+        let completed = 0;
+        let completionRate = 0;
 
-      if (totalCandidates > 0 && activeEvaluators > 0) {
-        // 완료된 평가 수 (is_completed = true)
-        const { data: completedSessions, error: completedError } = await supabase
-          .from('evaluation_sessions')
-          .select('id')
-          .eq('is_completed', true);
-        
-        if (!completedError && completedSessions) {
-          completed = completedSessions.length;
-        }
+        if (totalCandidates > 0 && activeEvaluators > 0) {
+          // 완료된 평가 수 (is_completed = true)
+          const { data: completedSessions, error: completedError } = await supabase
+            .from('evaluation_sessions')
+            .select('id')
+            .eq('is_completed', true);
+          
+          if (!completedError && completedSessions) {
+            completed = completedSessions.length;
+          }
 
-        // 진행 중인 평가 수 (is_completed = false)
-        const { data: inProgressSessions, error: inProgressError } = await supabase
-          .from('evaluation_sessions')
-          .select('id')
-          .eq('is_completed', false);
+          // 진행 중인 평가 수 (is_completed = false)
+          const { data: inProgressSessions, error: inProgressError } = await supabase
+            .from('evaluation_sessions')
+            .select('id')
+            .eq('is_completed', false);
 
-        if (!inProgressError && inProgressSessions) {
-          inProgress = inProgressSessions.length;
-        }
+          if (!inProgressError && inProgressSessions) {
+            inProgress = inProgressSessions.length;
+          }
 
         // 완료율 계산 (총 가능한 평가 수 대비)
         const totalPossibleEvaluations = totalCandidates * activeEvaluators;
@@ -2146,7 +2148,7 @@ export class SupabaseStorage {
         throw sessionError;
       }
 
-      // 2. 개별 점수들 조회
+      // 2. 개별 점수들 조회 (항상 이것을 기준으로 함)
       const { data: itemScores, error: scoresError } = await supabase
         .from('evaluation_item_scores')
         .select('*')
@@ -2164,26 +2166,34 @@ export class SupabaseStorage {
         return {
           isCompleted: false,
           hasTemporaryData: false,
-          hasTemporarySave: false, // 기존 API 호환성
+          hasTemporarySave: false,
           scores: {},
           totalScore: 0
         };
       }
 
-      // 4. 기존 API 형태로 변환
+      // 4. 개별 점수들을 기존 API 형태로 변환
       const scores: Record<string, number> = {};
+      let calculatedTotalScore = 0;
+
       itemScores?.forEach(item => {
         scores[item.evaluation_item_id.toString()] = item.score;
+        calculatedTotalScore += item.score; // 🔧 개별 점수 합계로 총점 계산
       });
 
-      console.log('✅ 새 시스템 평가 데이터 조회 성공:', { scores, totalScore: session.total_score });
+      // 5. 🔧 수정: 항상 개별 점수 합계 사용
+      console.log('✅ 점수 계산 완료:', { 
+        세션총점: session.total_score, 
+        계산된총점: calculatedTotalScore,
+        개별점수수: itemScores?.length || 0
+      });
 
       return {
         isCompleted: session.is_completed || false,
         hasTemporaryData: session.has_temporary_data || false,
-        hasTemporarySave: session.has_temporary_data || false, // 기존 API 호환성
+        hasTemporarySave: session.has_temporary_data || false,
         scores,
-        totalScore: session.total_score || 0
+        totalScore: calculatedTotalScore // 🔧 항상 개별 점수 합계 사용
       };
 
     } catch (error) {
