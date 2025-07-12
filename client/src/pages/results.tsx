@@ -1767,6 +1767,187 @@ export default function ResultsPage() {
     }));
   }, [filteredData]);
 
+  // 1. 최종 선정자만 추출
+  const selectedCandidates = rankedData.filter(r => r.percentage >= 70); // 예시: 70% 이상 합격
+
+  // 2. 최종 심사결과 보고서 템플릿 컴포넌트
+  const FinalReportTemplate = ({
+    overview,
+    candidates,
+    evaluators,
+    date,
+  }: {
+    overview: {
+      title: string;
+      date: string;
+      place: string;
+      host: string;
+      method: string;
+      maxScore: number;
+      targetCount: number;
+      candidateCount: number;
+    };
+    candidates: any[];
+    evaluators: any[];
+    date: string;
+  }) => (
+    <div style={{ fontFamily: 'Malgun Gothic, Arial, sans-serif', background: '#fff', color: '#222', padding: 32, width: 800, margin: '0 auto' }}>
+      <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 24 }}>돌봄SOS 서비스 제공기관 선정 심사결과 최종 서명부</h2>
+    <hr />
+    <h3 style={{ fontWeight: 600, fontSize: 16, margin: '24px 0 8px' }}>1. 심사 개요</h3>
+    <ul style={{ marginBottom: 16 }}>
+      <li>사업명: {overview.title}</li>
+      <li>심사일시: {overview.date}</li>
+      <li>심사장소: {overview.place}</li>
+      <li>주관부서: {overview.host}</li>
+      <li>심사방식: {overview.method} (최대 {overview.maxScore}점)</li>
+      <li>심사대상 기관수: 총 {overview.targetCount}개 기관</li>
+      <li>신청기관 수: 총 {overview.candidateCount}개 기관</li>
+    </ul>
+    <h3 style={{ fontWeight: 600, fontSize: 16, margin: '24px 0 8px' }}>2. 심사 결과</h3>
+    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
+      <thead>
+        <tr>
+          <th style={{ border: '1px solid #aaa', padding: 8 }}>순위</th>
+          <th style={{ border: '1px solid #aaa', padding: 8 }}>기관명</th>
+          <th style={{ border: '1px solid #aaa', padding: 8 }}>평가점수</th>
+          <th style={{ border: '1px solid #aaa', padding: 8 }}>선정여부</th>
+        </tr>
+      </thead>
+      <tbody>
+        {candidates.map((c, idx) => (
+          <tr key={c.candidate.id}>
+            <td style={{ border: '1px solid #aaa', padding: 8, textAlign: 'center' }}>{idx + 1}</td>
+            <td style={{ border: '1px solid #aaa', padding: 8 }}>{c.candidate.name}</td>
+            <td style={{ border: '1px solid #aaa', padding: 8, textAlign: 'center' }}>{c.totalScore}점</td>
+            <td style={{ border: '1px solid #aaa', padding: 8, textAlign: 'center' }}>{c.percentage >= 70 ? '선정' : '미선정'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <div style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+      ※ 평균점수는 5인 평가위원의 점수를 합산 후 최고/최저 점수 제외 후 평균값 산정
+    </div>
+    <h3 style={{ fontWeight: 600, fontSize: 16, margin: '24px 0 8px' }}>3. 심사위원 서명란</h3>
+    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
+      <thead>
+        <tr>
+          <th style={{ border: '1px solid #aaa', padding: 8 }}>구분</th>
+          <th style={{ border: '1px solid #aaa', padding: 8 }}>성명(서명)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {evaluators.map((e, idx) => (
+          <tr key={e.id}>
+            <td style={{ border: '1px solid #aaa', padding: 8, textAlign: 'center' }}>위원</td>
+            <td style={{ border: '1px solid #aaa', padding: 8, height: 32 }}>&nbsp;</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <div style={{ fontSize: 13, marginTop: 24, textAlign: 'right' }}>작성일: {date}</div>
+  </div>
+);
+
+// 3. 인쇄 미리보기 및 출력 함수
+const handlePrintFinalReport = async () => {
+  // Supabase에서 최신 템플릿 fetch
+  const { data, error } = await supabase
+    .from('report_templates')
+    .select('*')
+    .eq('name', 'final_report_template')
+    .single();
+  if (error || !data || !data.template_json) {
+    alert('최신 보고서 템플릿을 불러올 수 없습니다.');
+    return;
+  }
+  let template;
+  try {
+    template = JSON.parse(data.template_json);
+  } catch (e) {
+    alert('템플릿 데이터 파싱 오류');
+    return;
+  }
+  // 동적 데이터 바인딩
+  const today = new Date();
+  const dateString = today.toISOString().split('T')[0];
+  // 후보자/평가위원 데이터는 기존 filteredData/rankedData/evaluatorsData 사용
+  const candidates = rankedData.filter(r => r.percentage >= 70); // 예시: 70% 이상 합격
+  const evaluators = evaluatorsData;
+  // 템플릿 구조에 따라 동적으로 HTML 생성
+  let html = `<div style="max-width:800px;margin:0 auto;padding:32px;">`;
+  html += `<div style="font-size:22px;font-weight:bold;text-align:center;margin-bottom:24px;">${template.title || ''}</div>`;
+  html += '<hr style="margin-bottom:24px;" />';
+  for (const section of template.sections || []) {
+    if (section.type === 'overview') {
+      html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
+      html += '<ul style="margin-bottom:18px;font-size:14px;">';
+      for (const field of section.fields || []) {
+        html += `<li style="margin-bottom:2px;">• <b>${field.label}</b>: ${field.value}</li>`;
+      }
+      html += '</ul>';
+    } else if (section.type === 'table') {
+      html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
+      html += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;">';
+      html += '<thead><tr>';
+      for (const col of section.columns || []) {
+        html += `<th style="border:1px solid #333;padding:8px;background:#f3f4f6;">${col.label}</th>`;
+      }
+      html += '</tr></thead><tbody>';
+      if (Array.isArray(candidates) && candidates.length > 0) {
+        for (const [idx, row] of candidates.entries()) {
+          html += '<tr>';
+          for (const col of section.columns || []) {
+            // 동적으로 key에 맞는 값 바인딩
+            if (col.key === 'rank') html += `<td style="border:1px solid #333;padding:8px;">${idx + 1}</td>`;
+            else if (col.key === 'name') html += `<td style="border:1px solid #333;padding:8px;">${row.candidate.name}</td>`;
+            else if (col.key === 'score') html += `<td style="border:1px solid #333;padding:8px;">${row.totalScore}점</td>`;
+            else if (col.key === 'status') html += `<td style="border:1px solid #333;padding:8px;">${row.percentage >= 70 ? '선정' : '미선정'}</td>`;
+            else html += `<td style="border:1px solid #333;padding:8px;">${row[col.key] !== undefined ? row[col.key] : ''}</td>`;
+          }
+          html += '</tr>';
+        }
+      } else {
+        html += `<tr><td colspan="${section.columns.length}" style="border:1px solid #333;padding:8px;">데이터 없음</td></tr>`;
+      }
+      html += '</tbody></table>';
+      html += '<div style="font-size:12px;color:#888;margin-bottom:18px;">* 평균점수는 5인 평가위원의 점수를 합산 후 최고/최저 점수 제외 후 평균값 산정</div>';
+    } else if (section.type === 'note') {
+      html += `<div style="font-size:14px;margin-bottom:18px;">${section.text || ''}</div>`;
+    } else if (section.type === 'date') {
+      html += `<div style="font-size:14px;text-align:right;margin-top:32px;">작성일: ${section.date || dateString}</div>`;
+    }
+  }
+  html += '</div>';
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>최종 선정 심사결과보고서</title>
+        <meta charset="UTF-8" />
+        <style>
+          @media print {
+            @page { size: A4; margin: 25mm 15mm 15mm 15mm; }
+            body { font-family: 'Malgun Gothic', Arial, sans-serif; font-size: 13px; color: #222; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #333; padding: 8px; text-align: center; }
+            th { background: #f3f4f6; font-weight: bold; }
+            ul { padding-left: 18px; }
+            li { margin-bottom: 2px; }
+            hr { border: none; border-top: 1.5px solid #bbb; margin: 18px 0; }
+          }
+        </style>
+      </head>
+      <body>${html}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+};
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -1944,135 +2125,130 @@ export default function ResultsPage() {
                         <CardTitle>보고서 출력</CardTitle>
                         <CardDescription>다양한 형식의 보고서 출력을 지원합니다.</CardDescription>
                       </div>
+                      <Button onClick={handlePrintFinalReport} className="bg-blue-600 text-white ml-4">
+                        최종 선정 심사결과보고서 출력
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
-                                      {/* 평가위원 및 평가대상 선택 */}
-                  <div className="mb-6 p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
-                    <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
-                    <div className="grid grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택 (개별 인쇄용)</label>
-                        <select 
-                          className="w-full text-sm border rounded px-3 py-2 bg-white"
-                          value={selectedEvaluator?.toString() || ""}
-                          onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
-                        >
-                          <option value="">평가위원 선택</option>
-                          {evaluatorsData.map((evaluator: any) => (
-                            <option key={evaluator.id} value={evaluator.id.toString()}>
-                              {evaluator.name} ({evaluator.department})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택 (개별 인쇄용)</label>
-                        <select 
-                          className="w-full text-sm border rounded px-3 py-2 bg-white"
-                          value={selectedCandidate?.toString() || ""}
-                          onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
-                        >
-                          <option value="">평가대상 선택</option>
-                          {filteredData.map((result: CandidateResult) => (
-                            <option key={result.candidate.id} value={result.candidate.id.toString()}>
-                              {result.candidate.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* 개별 인쇄 & 전체 배치 인쇄 */}
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      {/* 개별 인쇄 */}
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-gray-700">개별 인쇄</div>
-                          <div className="text-xs text-gray-600">선택한 평가위원과 평가대상의 평가표 (실제 점수 반영)</div>
-                        </div>
-                        <Button 
-                          onClick={handlePrintTemplate}
-                          variant="outline"
-                          size="sm"
-                          disabled={!selectedEvaluator || !selectedCandidate}
-                        >
-                          <Printer className="h-4 w-4 mr-2" />
-                          인쇄
-                        </Button>
-                      </div>
-
-                      {/* 전체 배치 인쇄 */}
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200">
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-blue-800">전체 배치 인쇄</div>
-                          <div className="text-xs text-gray-600">
-                            모든 평가위원 × 모든 평가대상 ({candidatesData.length}명 × {evaluatorsData.length}명 = {candidatesData.length * evaluatorsData.length}페이지)
-                          </div>
-                        </div>
-                        <Button 
-                          onClick={handlePrintAllCombinations}
-                          variant="default"
-                          size="sm"
-                          disabled={candidatesData.length === 0 || evaluatorsData.length === 0}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Printer className="h-4 w-4 mr-2" />
-                          전체 인쇄
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* 인쇄 옵션 */}
-                    <div className="mt-4 space-y-3">
-
-                      {/* 평가위원별/평가대상별 인쇄 */}
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* 평가위원별 인쇄 */}
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="font-medium text-sm text-gray-700 mb-2">평가위원별 일괄 인쇄</div>
-                          <div className="text-xs text-gray-500 mb-2">특정 평가위원의 모든 평가표</div>
+                    {/* 기존 보고서 출력 UI/기능 복구: 평가위원/평가대상 선택, 개별/전체 인쇄, 기존 보고서/엑셀 출력 등 */}
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-xs font-medium mb-2 text-gray-700">평가위원 선택 (개별 인쇄용)</label>
                           <select 
-                            className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
-                            onChange={(e) => e.target.value && handlePrintByEvaluator(parseInt(e.target.value))}
-                            defaultValue=""
+                            className="w-full text-sm border rounded px-3 py-2 bg-white"
+                            value={selectedEvaluator?.toString() || ""}
+                            onChange={(e) => setSelectedEvaluator(e.target.value ? parseInt(e.target.value) : null)}
                           >
                             <option value="">평가위원 선택</option>
                             {evaluatorsData.map((evaluator: any) => (
-                              <option key={evaluator.id} value={evaluator.id}>
-                                {evaluator.name} ({candidatesData.length}페이지)
+                              <option key={evaluator.id} value={evaluator.id.toString()}>
+                                {evaluator.name} ({evaluator.department})
                               </option>
                             ))}
                           </select>
                         </div>
-
-                        {/* 평가대상별 인쇄 */}
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="font-medium text-sm text-gray-700 mb-2">평가대상별 일괄 인쇄</div>
-                          <div className="text-xs text-gray-500 mb-2">특정 평가대상의 모든 평가표</div>
+                        <div>
+                          <label className="block text-xs font-medium mb-2 text-gray-700">평가대상 선택 (개별 인쇄용)</label>
                           <select 
-                            className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
-                            onChange={(e) => e.target.value && handlePrintByCandidate(parseInt(e.target.value))}
-                            defaultValue=""
+                            className="w-full text-sm border rounded px-3 py-2 bg-white"
+                            value={selectedCandidate?.toString() || ""}
+                            onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
                           >
                             <option value="">평가대상 선택</option>
-                            {filteredData.map((result: CandidateResult) => (
-                              <option key={result.candidate.id} value={result.candidate.id}>
-                                {result.candidate.name} ({evaluatorsData.length}페이지)
+                            {rankedData.map((result: CandidateResult) => (
+                              <option key={result.candidate.id} value={result.candidate.id.toString()}>
+                                {result.candidate.name}
                               </option>
                             ))}
                           </select>
                         </div>
                       </div>
-
-                      {/* 인쇄 팁 */}
-                      <div className="text-xs text-gray-600 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
-                        <span className="text-orange-600 font-medium">💡 인쇄 팁:</span> 브라우저 인쇄 설정에서 '머리글 및 바닥글' 옵션을 해제하면 더 깨끗한 출력이 가능합니다
+                      {/* 개별 인쇄 & 전체 배치 인쇄 */}
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        {/* 개별 인쇄 */}
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-gray-700">개별 인쇄</div>
+                            <div className="text-xs text-gray-600">선택한 평가위원과 평가대상의 평가표 (실제 점수 반영)</div>
+                          </div>
+                          <Button 
+                            onClick={handlePrintTemplate}
+                            variant="outline"
+                            size="sm"
+                            disabled={!selectedEvaluator || !selectedCandidate}
+                          >
+                            <Printer className="h-4 w-4 mr-2" />
+                            인쇄
+                          </Button>
+                        </div>
+                        {/* 전체 배치 인쇄 */}
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200">
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-blue-800">전체 배치 인쇄</div>
+                            <div className="text-xs text-gray-600">
+                              모든 평가위원 × 모든 평가대상 ({candidatesData.length}명 × {evaluatorsData.length}명 = {candidatesData.length * evaluatorsData.length}페이지)
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={handlePrintAllCombinations}
+                            variant="default"
+                            size="sm"
+                            disabled={candidatesData.length === 0 || evaluatorsData.length === 0}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Printer className="h-4 w-4 mr-2" />
+                            전체 인쇄
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-
-
+                      {/* 인쇄 옵션 */}
+                      <div className="mt-4 space-y-3">
+                        {/* 평가위원별/평가대상별 인쇄 */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* 평가위원별 인쇄 */}
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="font-medium text-sm text-gray-700 mb-2">평가위원별 일괄 인쇄</div>
+                            <div className="text-xs text-gray-500 mb-2">특정 평가위원의 모든 평가표</div>
+                            <select 
+                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
+                              onChange={(e) => e.target.value && handlePrintByEvaluator(parseInt(e.target.value))}
+                              defaultValue=""
+                            >
+                              <option value="">평가위원 선택</option>
+                              {evaluatorsData.map((evaluator: any) => (
+                                <option key={evaluator.id} value={evaluator.id}>
+                                  {evaluator.name} ({candidatesData.length}페이지)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {/* 평가대상별 인쇄 */}
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="font-medium text-sm text-gray-700 mb-2">평가대상별 일괄 인쇄</div>
+                            <div className="text-xs text-gray-500 mb-2">특정 평가대상의 모든 평가표</div>
+                            <select 
+                              className="w-full text-xs border rounded px-2 py-1 bg-white mb-2"
+                              onChange={(e) => e.target.value && handlePrintByCandidate(parseInt(e.target.value))}
+                              defaultValue=""
+                            >
+                              <option value="">평가대상 선택</option>
+                              {rankedData.map((result: CandidateResult) => (
+                                <option key={result.candidate.id} value={result.candidate.id}>
+                                  {result.candidate.name} ({evaluatorsData.length}페이지)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        {/* 인쇄 팁 */}
+                        <div className="text-xs text-gray-600 p-2 bg-orange-50 rounded border-l-4 border-orange-400">
+                          <span className="text-orange-600 font-medium">💡 인쇄 팁:</span> 브라우저 인쇄 설정에서 '머리글 및 바닥글' 옵션을 해제하면 더 깨끗한 출력이 가능합니다
+                        </div>
+                      </div>
+                    </div>                    
                   </CardContent>
                 </Card>
               </TabsContent>
