@@ -26,6 +26,8 @@ interface CandidateResult {
     department: string;
     position: string;
     category: string;
+    mainCategory?: string;  // 메인 카테고리 (구분)
+    subCategory?: string;   // 서브 카테고리 (세부구분)
   };
   totalScore: number;
   maxPossibleScore: number;
@@ -40,8 +42,10 @@ export default function ResultsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string>("all"); // 메인 카테고리 (구분)
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");   // 서브 카테고리 (세부구분)
   const [activeTab, setActiveTab] = useState<string>("ranking");
+  const [rankingActiveTab, setRankingActiveTab] = useState<string>("overall"); // 순위결과 섹션 전용 탭 상태
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   
   // 보고서 출력용 상태 변수들
@@ -162,7 +166,7 @@ export default function ResultsPage() {
   }, []);
 
   // 🔧 수정: 실시간 연동 최적화된 데이터 쿼리들 (과도한 로딩 방지)
-  const { data: results = [], isLoading: resultsLoading } = useQuery({
+  const { data: results = [], isLoading: resultsLoading, error: resultsError } = useQuery({
     queryKey: ["/api/admin/results"],
     refetchInterval: false, // 자동 새로고침 비활성화 (실시간 구독만 사용)
     staleTime: 30000, // 30초
@@ -170,14 +174,9 @@ export default function ResultsPage() {
     refetchOnMount: true,
   });
 
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ["/api/admin/categories"],
-    refetchInterval: false, // 자동 새로고침 비활성화
-    staleTime: 60000, // 60초
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-  });
+  // 🔧 기존 카테고리 시스템 제거됨
 
+  // 계층적 카테고리 옵션 데이터 가져오기
   const { data: stats = {} } = useQuery({
     queryKey: ["/api/system/stats"],
     refetchInterval: 60000, // 60초만 유지 (통계는 덜 중요)
@@ -216,38 +215,62 @@ export default function ResultsPage() {
 
   // 타입 안전한 결과 데이터
   const resultsData = results as CandidateResult[];
-  const categoriesData = categories as any[];
   const candidatesData = candidates as any[];
   const evaluatorsData = evaluators as any[];
 
-  // 🔧 데이터 검증 및 디버깅
-  useEffect(() => {
-    console.log('📊 결과 페이지 데이터 상태:', {
-      resultsLoading,
-      categoriesLoading,
-      itemsLoading,
-      resultsCount: resultsData?.length || 0,
-      categoriesCount: categoriesData?.length || 0,
-      evaluatorsCount: evaluatorsData?.length || 0,
-      results: resultsData,
-      categories: categoriesData
-    });
-  }, [resultsLoading, categoriesLoading, itemsLoading, resultsData, categoriesData, evaluatorsData]);
-
   // 로딩 상태 체크 (조건부 return 대신 조건부 렌더링 사용)
-  const isLoading = resultsLoading || categoriesLoading || itemsLoading;
+  const isLoading = resultsLoading || itemsLoading;
+  
+  // 메인 카테고리 목록 (type: "main")
+  const mainCategories = useMemo(() => {
+    return Array.from(new Set(candidatesData.map((c: any) => c.mainCategory).filter(Boolean)));
+  }, [candidatesData]);
+
+  // 선택된 메인 카테고리의 서브 카테고리 목록
+  const subCategories = useMemo(() => {
+    if (selectedMainCategory === "all") {
+      return Array.from(new Set(candidatesData.map((c: any) => c.subCategory).filter(Boolean)));
+    }
+    return Array.from(new Set(
+      candidatesData
+        .filter((c: any) => c.mainCategory === selectedMainCategory)
+        .map((c: any) => c.subCategory)
+        .filter(Boolean)
+    ));
+  }, [candidatesData, selectedMainCategory]);
+
+  // 서브 카테고리 변경 시 자동으로 첫 번째 서브 카테고리 선택
+  useEffect(() => {
+    if (selectedMainCategory === "all") {
+      setSelectedSubCategory("all");
+    } else if (subCategories.length > 0 && selectedSubCategory === "all") {
+      setSelectedSubCategory("all"); // 기본값 유지
+    }
+  }, [selectedMainCategory, subCategories]);
 
   // 🎯 순위 관련 데이터 처리 (useMemo로 메모이제이션)
   const passThreshold = 70;
   
-  // 카테고리 필터링된 결과 데이터
+  // 🔧 계층적 카테고리 필터링된 결과 데이터
   const filteredData = useMemo(() => {
-    return selectedCategory === "all" 
-      ? resultsData 
-      : resultsData.filter((result: CandidateResult) => 
-          result.candidate.category === selectedCategory
-        );
-  }, [selectedCategory, resultsData]);
+    let data = [...resultsData];
+    
+    // 1. 메인 카테고리 필터링 (구분)
+    if (selectedMainCategory !== "all") {
+      data = data.filter((result: CandidateResult) => 
+        result.candidate.mainCategory === selectedMainCategory
+      );
+    }
+    
+    // 2. 서브 카테고리 필터링 (세부구분)
+    if (selectedSubCategory !== "all") {
+      data = data.filter((result: CandidateResult) => 
+        result.candidate.subCategory === selectedSubCategory
+      );
+    }
+    
+    return data;
+  }, [selectedMainCategory, selectedSubCategory, resultsData]);
   
   const topPerformers = useMemo(() => filteredData.slice(0, 10), [filteredData]);
   const failedCandidates = useMemo(() => filteredData.filter((result: CandidateResult) => result.percentage < passThreshold), [filteredData]);
@@ -272,6 +295,76 @@ export default function ResultsPage() {
       ? filteredData.reduce((sum: number, result: CandidateResult) => sum + result.percentage, 0) / filteredData.length
       : 0;
   }, [filteredData]);
+
+  // 🔧 기존 카테고리 시스템 제거됨
+
+  // 🔧 메인 카테고리별 데이터 계산
+  const mainCategoryResults = useMemo(() => {
+    if (!filteredData || !mainCategories || filteredData.length === 0 || mainCategories.length === 0) return [];
+    
+    return mainCategories.map(mainCategory => {
+      const mainCategoryData = filteredData.filter(result => 
+        result.candidate.mainCategory === mainCategory.name
+      );
+      return {
+        category: mainCategory.name,
+        results: mainCategoryData.sort((a, b) => b.percentage - a.percentage),
+        count: mainCategoryData.length,
+        avgScore: mainCategoryData.length > 0 ? 
+          mainCategoryData.reduce((sum, r) => sum + r.percentage, 0) / mainCategoryData.length : 0
+      };
+    });
+  }, [filteredData, mainCategories]);
+
+  // 🔧 서브 카테고리별 데이터 계산
+  const subCategoryResults = useMemo(() => {
+    if (!filteredData || !subCategories || filteredData.length === 0 || subCategories.length === 0) return [];
+    
+    return subCategories.map(subCategory => {
+      const subCategoryData = filteredData.filter(result => 
+        result.candidate.subCategory === subCategory.name
+      );
+      return {
+        category: subCategory.name,
+        results: subCategoryData.sort((a, b) => b.percentage - a.percentage),
+        count: subCategoryData.length,
+        avgScore: subCategoryData.length > 0 ? 
+          subCategoryData.reduce((sum, r) => sum + r.percentage, 0) / subCategoryData.length : 0
+      };
+    });
+  }, [filteredData, subCategories]);
+
+  // 🔧 데이터 검증 및 디버깅
+  useEffect(() => {
+    console.log('📊 결과 페이지 데이터 상태:', {
+      resultsLoading,
+      itemsLoading,
+      resultsCount: resultsData?.length || 0,
+      evaluatorsCount: evaluatorsData?.length || 0,
+      candidatesCount: candidatesData?.length || 0,
+      mainCategoriesCount: mainCategories?.length || 0,
+      subCategoriesCount: subCategories?.length || 0,
+      filteredDataCount: filteredData?.length || 0,
+      results: resultsData,
+      mainCategories: mainCategories,
+      subCategories: subCategories,
+      filteredData: filteredData
+    });
+
+    // 🔧 계층적 카테고리 데이터 검증
+    if (resultsData?.length > 0) {
+      const candidatesWithMainCategory = resultsData.filter((result: CandidateResult) => result.candidate.mainCategory);
+      const candidatesWithSubCategory = resultsData.filter((result: CandidateResult) => result.candidate.subCategory);
+      
+      console.log('📊 계층적 카테고리 사용 현황:', {
+        totalCandidates: resultsData.length,
+        withMainCategory: candidatesWithMainCategory.length,
+        withSubCategory: candidatesWithSubCategory.length,
+        mainCategoryValues: Array.from(new Set(candidatesWithMainCategory.map(r => r.candidate.mainCategory))),
+        subCategoryValues: Array.from(new Set(candidatesWithSubCategory.map(r => r.candidate.subCategory)))
+      });
+    }
+  }, [resultsLoading, itemsLoading, resultsData, evaluatorsData, candidatesData, mainCategories, subCategories, filteredData]);
 
   const convertDataToTemplate = (categories: any[], evaluationItems: any[], systemConfig: any) => {
     if (!Array.isArray(categories) || !Array.isArray(evaluationItems)) {
@@ -364,7 +457,8 @@ export default function ResultsPage() {
             이름: result.candidate.name,
             소속: result.candidate.department || '',
             직책: result.candidate.position || '',
-            구분: result.candidate.category || '',
+            구분: result.candidate.mainCategory || result.candidate.category || '',
+            세부구분: result.candidate.subCategory || '',
             총점: result.totalScore,
             만점: result.maxPossibleScore,
             득점률: `${result.percentage.toFixed(1)}%`,
@@ -381,7 +475,8 @@ export default function ResultsPage() {
             이름: result.candidate.name,
             소속: result.candidate.department || '',
             직책: result.candidate.position || '',
-            구분: result.candidate.category || '',
+            구분: result.candidate.mainCategory || result.candidate.category || '',
+            세부구분: result.candidate.subCategory || '',
             총점: result.totalScore,
             만점: result.maxPossibleScore,
             득점률: `${result.percentage.toFixed(1)}%`,
@@ -395,18 +490,14 @@ export default function ResultsPage() {
           break;
 
         case 'custom':
-          const customData = filteredData.filter((result: CandidateResult) => {
-            if (selectedCategory !== 'all' && result.candidate.category !== selectedCategory) {
-              return false;
-            }
-            return true;
-          });
+          const customData = filteredData; // 이미 필터링된 데이터 사용
           reportData = customData.map((result: CandidateResult) => ({
             순위: result.rank,
             이름: result.candidate.name,
             소속: result.candidate.department || '',
             직책: result.candidate.position || '',
-            구분: result.candidate.category || '',
+            구분: result.candidate.mainCategory || result.candidate.category || '',
+            세부구분: result.candidate.subCategory || '',
             총점: result.totalScore,
             만점: result.maxPossibleScore,
             득점률: `${result.percentage.toFixed(1)}%`,
@@ -430,7 +521,8 @@ export default function ResultsPage() {
         { '보고서 제목': `평가 결과 보고서 (${reportType === 'ranking' ? '순위 결과' : reportType === 'detailed' ? '상세 분석' : '사용자 정의'})` },
         { '보고서 제목': `생성일시: ${timestamp}` },
         { '보고서 제목': `총 평가대상 수: ${reportData.length}명` },
-        { '보고서 제목': `선택된 카테고리: ${selectedCategory === 'all' ? '전체' : selectedCategory}` },
+        { '보고서 제목': `구분: ${selectedMainCategory === 'all' ? '전체' : selectedMainCategory}` },
+        { '보고서 제목': `세부구분: ${selectedSubCategory === 'all' ? '전체' : selectedSubCategory}` },
         { '보고서 제목': '' }, // 빈 줄
       ];
 
@@ -859,7 +951,7 @@ export default function ResultsPage() {
 
   // 🔧 평가위원별 일괄 인쇄
   const handlePrintByEvaluator = async (evaluatorId: number) => {
-    if (candidatesData.length === 0) {
+    if (filteredData.length === 0) {
       toast({
         title: "데이터 없음",
         description: "평가대상 데이터가 없습니다.",
@@ -878,7 +970,7 @@ export default function ResultsPage() {
       return;
     }
 
-    const totalPages = candidatesData.length;
+    const totalPages = filteredData.length;
     const confirmMessage = `${evaluatorInfo.name} 평가위원의 모든 평가표 ${totalPages}페이지를 인쇄하시겠습니까?`;
     
     if (!confirm(confirmMessage)) {
@@ -897,8 +989,8 @@ export default function ResultsPage() {
 
     let allPagesContent = '';
     
-    for (let i = 0; i < candidatesData.length; i++) {
-      const candidate = candidatesData[i];
+    for (let i = 0; i < filteredData.length; i++) {
+      const candidate = filteredData[i].candidate;
       const actualScores = await getActualEvaluationScores(evaluatorId, candidate.id);
       const evaluationContent = await generateEvaluationHTML(evaluatorInfo, candidate);
       
@@ -948,7 +1040,7 @@ export default function ResultsPage() {
       return;
     }
 
-    const candidateInfo = candidatesData.find((c: any) => c.id === candidateId);
+    const candidateInfo = filteredData.find((r: CandidateResult) => r.candidate.id === candidateId)?.candidate;
     if (!candidateInfo) {
       toast({
         title: "오류 발생",
@@ -979,7 +1071,7 @@ export default function ResultsPage() {
     
     for (let i = 0; i < evaluatorsData.length; i++) {
       const evaluator = evaluatorsData[i];
-      const actualScores = await getActualEvaluationScores(evaluator.id, candidateId);
+      const actualScores = await getActualEvaluationScores(evaluator.id, candidateInfo.id);
       const evaluationContent = await generateEvaluationHTML(evaluator, candidateInfo);
       
       allPagesContent += `
@@ -1018,7 +1110,7 @@ export default function ResultsPage() {
   };
 
   const handlePrintAllCombinations = async () => {
-    if (candidatesData.length === 0 || evaluatorsData.length === 0) {
+    if (filteredData.length === 0 || evaluatorsData.length === 0) {
       toast({
         title: "데이터 없음",
         description: "평가위원 또는 평가대상 데이터가 없습니다.",
@@ -1027,8 +1119,8 @@ export default function ResultsPage() {
       return;
     }
 
-    const totalPages = candidatesData.length * evaluatorsData.length;
-    const confirmMessage = `총 ${totalPages}페이지 (평가위원 ${evaluatorsData.length}명 × 평가대상 ${candidatesData.length}명)를 인쇄하시겠습니까?`;
+    const totalPages = filteredData.length * evaluatorsData.length;
+    const confirmMessage = `총 ${totalPages}페이지 (평가위원 ${evaluatorsData.length}명 × 평가대상 ${filteredData.length}명)를 인쇄하시겠습니까?`;
     
     if (!confirm(confirmMessage)) {
       return;
@@ -1047,8 +1139,8 @@ export default function ResultsPage() {
     let allPagesContent = '';
     
     // 🔧 실제 평가점수를 반영한 전체 배치 인쇄
-    for (let candidateIndex = 0; candidateIndex < candidatesData.length; candidateIndex++) {
-      const candidate = candidatesData[candidateIndex];
+    for (let candidateIndex = 0; candidateIndex < filteredData.length; candidateIndex++) {
+      const candidate = filteredData[candidateIndex].candidate;
       
       for (let evaluatorIndex = 0; evaluatorIndex < evaluatorsData.length; evaluatorIndex++) {
         const evaluator = evaluatorsData[evaluatorIndex];
@@ -1134,15 +1226,15 @@ export default function ResultsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {categoriesData.map((category: any) => {
-              const categoryResults = filteredData.filter((r: CandidateResult) => r.candidate.category === category.categoryName);
+            {mainCategories.map((category: any) => {
+              const categoryResults = filteredData.filter((r: CandidateResult) => r.candidate.mainCategory === category.name);
               const avgScore = categoryResults.length > 0 ? 
                 categoryResults.reduce((sum: number, r: CandidateResult) => sum + r.percentage, 0) / categoryResults.length : 0;
               
               return (
                 <div key={category.id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold">{category.categoryName}</h3>
+                    <h3 className="font-semibold">{category.name}</h3>
                     <Badge variant="outline">{categoryResults.length}명</Badge>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600">
@@ -1160,7 +1252,7 @@ export default function ResultsPage() {
 
   // 🏆 순위 결과 섹션  
   const renderRankingSection = () => (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs value={rankingActiveTab} onValueChange={setRankingActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="overall" className="flex items-center gap-2">
           <Trophy className="h-4 w-4" />
@@ -1211,8 +1303,8 @@ export default function ResultsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.length > 0 ? (
-                    filteredData.map((result: CandidateResult, index: number) => (
+                  {rankedData.length > 0 ? (
+                    rankedData.map((result: CandidateResult, index: number) => (
                       <tr key={result.candidate.id} className={index < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
                         <td className="border border-gray-300 px-4 py-2 text-center font-bold">
                           {result.rank}
@@ -1251,7 +1343,13 @@ export default function ResultsPage() {
                     <tr>
                       <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                         <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        평가 결과가 없습니다.
+                        <p className="text-base font-medium mb-2">평가 결과가 없습니다.</p>
+                        <div className="text-sm text-gray-600">
+                          <p>• 전체 평가대상: {candidatesData?.length || 0}명</p>
+                          <p>• 전체 평가위원: {evaluatorsData?.length || 0}명</p>
+                          <p>• 완료된 평가: {resultsData?.length || 0}건</p>
+                          <p className="mt-2">평가를 완료하면 여기에 결과가 표시됩니다.</p>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -1269,69 +1367,122 @@ export default function ResultsPage() {
               <Target className="h-5 w-5 text-blue-500" />
               평가영역별 세부순위
             </CardTitle>
+            <CardDescription>
+              구분과 세부구분을 선택하여 계층적으로 결과를 확인할 수 있습니다.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <div className="relative">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-48 input-professional h-12 border-2 border-gray-200 dark:border-gray-600 hover:border-amber-300 dark:hover:border-amber-500 transition-colors duration-200 shadow-sm hover:shadow-md">
-                    <SelectValue placeholder="구분 선택" />
-                  </SelectTrigger>
-                  <SelectContent 
-                    className="z-[100] border-2 border-gray-200 dark:border-gray-600 shadow-2xl bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
-                    position="popper"
-                    sideOffset={4}
-                  >
-                    <SelectItem 
-                      value="all"
-                      className="hover:bg-amber-50 dark:hover:bg-amber-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
-                    >
-                      전체
-                    </SelectItem>
-                    {categoriesData.map((category: any) => (
-                      <SelectItem 
-                        key={category.id} 
-                        value={category.categoryName}
-                        className="hover:bg-amber-50 dark:hover:bg-amber-900/30 cursor-pointer py-3 px-4 transition-colors duration-150"
-                      >
-                        {category.categoryName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* 필터링은 페이지 상위에서 처리됨 */}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoriesData.map((category: any) => {
-                const categoryResults = filteredData.filter((r: CandidateResult) => r.candidate.category === category.categoryName);
-                const topInCategory = categoryResults.slice(0, 3);
-                
-                return (
-                  <Card key={category.id} className="border-l-4 border-l-blue-500">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{category.categoryName}</CardTitle>
-                      <p className="text-sm text-gray-600">총 {categoryResults.length}명</p>
+            {/* 🔧 계층적 카테고리별 결과 표시 */}
+            <Tabs defaultValue="hierarchy" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="hierarchy">계층별 결과</TabsTrigger>
+                <TabsTrigger value="main">메인 카테고리</TabsTrigger>
+              </TabsList>
+
+              {/* 계층별 결과 (메인 → 서브) */}
+              <TabsContent value="hierarchy" className="space-y-6">
+                {mainCategoryResults.map((mainCategoryData: any) => (
+                  <Card key={mainCategoryData.category} className="border-l-4 border-l-green-500">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        📁 {mainCategoryData.category}
+                        <Badge variant="outline">{mainCategoryData.count}명</Badge>
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">
+                        평균 점수: {mainCategoryData.avgScore.toFixed(1)}%
+                      </p>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
-                        {topInCategory.map((result: CandidateResult, index: number) => (
-                          <div key={result.candidate.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm">{index + 1}.</span>
-                              <span className="text-sm">{result.candidate.name}</span>
-                            </div>
-                            <span className="text-sm font-medium text-blue-600">
-                              {result.percentage.toFixed(1)}%
-                            </span>
-                          </div>
-                        ))}
+                      {/* 해당 메인 카테고리의 서브 카테고리들 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {subCategoryResults
+                          .filter((subData: any) => {
+                            // 해당 메인 카테고리에 속하는 서브 카테고리만 필터링
+                            const subCategory = subCategories.find(sub => sub.name === subData.category);
+                            const mainCategory = mainCategories.find(main => main.name === mainCategoryData.category);
+                            return subCategory && mainCategory && subCategory.parentId === mainCategory.id;
+                          })
+                          .map((subCategoryData: any) => {
+                            const topInSubCategory = subCategoryData.results.slice(0, 3);
+                            
+                            return (
+                              <Card key={subCategoryData.category} className="border border-gray-200">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-sm">📄 {subCategoryData.category}</CardTitle>
+                                  <p className="text-xs text-gray-600">
+                                    {subCategoryData.count}명 · 평균 {subCategoryData.avgScore.toFixed(1)}%
+                                  </p>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                  <div className="space-y-1">
+                                    {topInSubCategory.length > 0 ? (
+                                      topInSubCategory.map((result: CandidateResult, index: number) => (
+                                        <div key={result.candidate.id} className="flex items-center justify-between text-xs p-1">
+                                          <span>{index + 1}. {result.candidate.name}</span>
+                                          <span className="font-medium text-blue-600">
+                                            {result.percentage.toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <p className="text-xs text-gray-500 text-center py-2">데이터 없음</p>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
+                ))}
+              </TabsContent>
+
+              {/* 메인 카테고리별 상위 3명 */}
+              <TabsContent value="main" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {mainCategoryResults.map((categoryData: any) => {
+                    const topInCategory = categoryData.results.slice(0, 3);
+                    
+                    return (
+                      <Card key={categoryData.category} className="border-l-4 border-l-blue-500">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">📁 {categoryData.category}</CardTitle>
+                          <p className="text-sm text-gray-600">
+                            총 {categoryData.count}명 · 평균 {categoryData.avgScore.toFixed(1)}%
+                          </p>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            {topInCategory.length > 0 ? (
+                              topInCategory.map((result: CandidateResult, index: number) => (
+                                <div key={result.candidate.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-sm">{index + 1}.</span>
+                                    <span className="text-sm">{result.candidate.name}</span>
+                                  </div>
+                                  <span className="text-sm font-medium text-blue-600">
+                                    {result.percentage.toFixed(1)}%
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-4 text-gray-500">
+                                <p className="text-sm">해당 카테고리에 평가대상이 없습니다</p>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+
+
+            </Tabs>
           </CardContent>
         </Card>
       </TabsContent>
@@ -1537,21 +1688,6 @@ export default function ResultsPage() {
         <CardTitle className="flex items-center justify-between">
           <span>상세 평가 결과</span>
           <div className="flex items-center space-x-2">
-            <div className="relative">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="전체 카테고리" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체 카테고리</SelectItem>
-                  {categoriesData.map((category: any) => (
-                    <SelectItem key={category.id} value={category.categoryName}>
-                      {category.categoryName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <Button onClick={handleExportResults} className="flex items-center space-x-2">
               <Download className="h-4 w-4" />
               <span>엑셀 다운로드</span>
@@ -1579,8 +1715,8 @@ export default function ResultsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.length > 0 ? (
-                filteredData.map((result: CandidateResult) => (
+              {rankedData.length > 0 ? (
+                rankedData.map((result: CandidateResult, index: number) => (
                   <TableRow key={result.candidate.id}>
                     <TableCell className="font-medium">{result.rank}</TableCell>
                     <TableCell className="font-medium">{result.candidate.name}</TableCell>
@@ -1623,6 +1759,14 @@ export default function ResultsPage() {
     </Card>
   );
 
+  // filteredData 기준으로 1위부터 다시 rank를 부여한 rankedData
+  const rankedData = useMemo(() => {
+    return filteredData.map((result: CandidateResult, idx: number) => ({
+      ...result,
+      rank: idx + 1,
+    }));
+  }, [filteredData]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -1630,7 +1774,17 @@ export default function ResultsPage() {
           <div className="flex justify-center items-center min-h-screen">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">로딩 중...</p>
+              <p className="text-gray-600">데이터를 불러오는 중...</p>
+              <div className="mt-4 text-sm text-gray-500">
+                <p>평가 결과: {resultsLoading ? '로딩 중...' : '완료'}</p>                
+                <p>평가 항목: {itemsLoading ? '로딩 중...' : '완료'}</p>
+              </div>
+              {resultsError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-sm">평가 결과 로딩 중 오류가 발생했습니다.</p>
+                  <p className="text-red-500 text-xs mt-1">{resultsError.message}</p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -1651,6 +1805,93 @@ export default function ResultsPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Excel 내보내기
               </Button>
+            </div>
+
+            {/* 🔧 전체 페이지 상위 필터 */}
+            <div className="mb-6 p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
+              <h3 className="text-sm font-bold mb-3 text-blue-800">필터링 옵션</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 메인 카테고리 (구분) */}
+                <div>
+                  <label className="block text-xs font-medium mb-2 text-gray-700">구분 (메인 카테고리)</label>
+                  <Select value={selectedMainCategory} onValueChange={setSelectedMainCategory}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="구분 선택" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border shadow-sm">
+                      <SelectItem value="all">전체 구분</SelectItem>
+                      {mainCategories.map((category: string) => (
+                        <SelectItem key={category} value={category} className="hover:bg-gray-50">
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 서브 카테고리 (세부구분) */}
+                <div>
+                  <label className="block text-xs font-medium mb-2 text-gray-700">세부구분 (서브 카테고리)</label>
+                  <Select 
+                    value={selectedSubCategory} 
+                    onValueChange={setSelectedSubCategory}
+                    disabled={selectedMainCategory === "all" || subCategories.length === 0}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="세부구분 선택" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border shadow-sm">
+                      <SelectItem value="all">전체 세부구분</SelectItem>
+                      {subCategories.map((category: string) => (
+                        <SelectItem key={category} value={category} className="hover:bg-gray-50">
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 필터 상태 표시 */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedMainCategory !== "all" && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    구분: {selectedMainCategory}
+                  </Badge>
+                )}
+                {selectedSubCategory !== "all" && (
+                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
+                    세부구분: {selectedSubCategory}
+                  </Badge>
+                )}
+                <span className="text-xs text-gray-600">
+                  필터링 결과: {filteredData.length}명
+                </span>
+              </div>
+
+              {/* 🔧 계층적 카테고리 데이터 상태 표시 */}
+              {!isLoading && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="text-xs text-gray-700 space-y-1">
+                    <div className="flex justify-between">
+                      <span>계층적 카테고리 시스템 상태</span>
+                      <span className="font-medium">
+                        {mainCategories.length > 0 ? '✅ 활성' : '❌ 비활성'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <p>• 메인 카테고리: {mainCategories.length}개</p>
+                        <p>• 서브 카테고리: {subCategories.length}개</p>
+                      </div>
+                      <div>
+                        <p>• 전체 평가대상: {candidatesData.length}명</p>
+                        <p>• 평가 결과: {resultsData.length}건</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -1707,7 +1948,7 @@ export default function ResultsPage() {
                   </CardHeader>
                   <CardContent>
                                       {/* 평가위원 및 평가대상 선택 */}
-                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <div className="mb-6 p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
                     <h3 className="text-sm font-bold mb-3 text-blue-800">평가위원 및 평가대상 선택</h3>
                     <div className="grid grid-cols-2 gap-6">
                       <div>
@@ -1733,9 +1974,9 @@ export default function ResultsPage() {
                           onChange={(e) => setSelectedCandidate(e.target.value ? parseInt(e.target.value) : null)}
                         >
                           <option value="">평가대상 선택</option>
-                          {candidatesData.map((candidate: any) => (
-                            <option key={candidate.id} value={candidate.id.toString()}>
-                              {candidate.name}
+                          {filteredData.map((result: CandidateResult) => (
+                            <option key={result.candidate.id} value={result.candidate.id.toString()}>
+                              {result.candidate.name}
                             </option>
                           ))}
                         </select>
@@ -1815,9 +2056,9 @@ export default function ResultsPage() {
                             defaultValue=""
                           >
                             <option value="">평가대상 선택</option>
-                            {candidatesData.map((candidate: any) => (
-                              <option key={candidate.id} value={candidate.id}>
-                                {candidate.name} ({evaluatorsData.length}페이지)
+                            {filteredData.map((result: CandidateResult) => (
+                              <option key={result.candidate.id} value={result.candidate.id}>
+                                {result.candidate.name} ({evaluatorsData.length}페이지)
                               </option>
                             ))}
                           </select>

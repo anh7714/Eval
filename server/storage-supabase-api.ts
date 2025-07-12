@@ -1062,7 +1062,9 @@ export class SupabaseStorage {
             name: data.candidate.name,
             department: data.candidate.department || '',
             position: data.candidate.position || '',
-            category: data.candidate.category || '일반'
+            category: data.candidate.category || '일반',
+            mainCategory: data.candidate.main_category || data.candidate.mainCategory,
+            subCategory: data.candidate.sub_category || data.candidate.subCategory
           },
           totalScore: Math.round(averageScore * 100) / 100,
           maxPossibleScore: data.maxPossibleScore,
