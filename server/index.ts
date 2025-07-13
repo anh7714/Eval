@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
+import cors from "cors";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -9,9 +10,22 @@ dotenv.config();
 // Disable SSL certificate verification for Supabase connection
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+// 환경변수 로딩 확인 및 마스킹 출력
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+console.log('🔑 SUPABASE_URL:', supabaseUrl ? supabaseUrl.slice(0, 20) + '...' : '[미설정]');
+console.log('🔑 SUPABASE_ANON_KEY:', supabaseAnonKey ? supabaseAnonKey.slice(0, 8) + '...' : '[미설정]');
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('⚠️  환경변수(SUPABASE_URL, SUPABASE_ANON_KEY)가 누락되었습니다. .env 파일 또는 실행 환경을 확인하세요!');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -78,7 +92,7 @@ async function initializeSystem() {
       await storage.updateSystemConfig({
         evaluationTitle: '제공기관 선정 심의회 평가표',
         systemName: '평가 기관',
-        evaluationDate: new Date().toISOString().split('T')[0]
+        evaluationEndDate: new Date()
       });
       console.log('✅ Default system config created');
     }

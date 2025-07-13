@@ -1107,24 +1107,21 @@ export class SupabaseStorage {
     completed: number;
   }> {
     try {
-      console.log('📊 시스템 통계 계산 시작 (새 시스템)');
-      
+      console.log('📊 시스템 통계 계산 시작 (수정됨)');
       // 1. 평가자 통계
       const { data: allEvaluators, error: evaluatorsError } = await supabase
         .from('evaluators')
         .select('id, is_active');
       if (evaluatorsError) throw evaluatorsError;
-      
       const totalEvaluators = allEvaluators.length;
       const activeEvaluators = allEvaluators.filter(e => e.is_active).length;
 
-      // 2. 활성 평가대상 수
-      const { data: activeCandidates, error: candidatesError } = await supabase
+      // 2. 전체 평가대상 수 (is_active 필터 제거)
+      const { data: candidates, error: candidatesError } = await supabase
         .from('candidates')
-        .select('id')
-        .eq('is_active', true);
+        .select('id');
       if (candidatesError) throw candidatesError;
-      const totalCandidates = activeCandidates.length;
+      const totalCandidates = candidates.length;
 
       // 3. 평가항목 수
       const { data: evaluationItems, error: itemsError } = await supabase
@@ -1134,46 +1131,38 @@ export class SupabaseStorage {
       if (itemsError) throw itemsError;
       const totalEvaluationItems = evaluationItems?.length || 0;
 
-      // 4. 카테고리 수
-      const { data: categories, error: categoriesError } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('is_active', true);
-      if (categoriesError) throw categoriesError;
-      const totalCategories = categories?.length || 0;
+      // 4. 카테고리 수 (categories 테이블 없음 → 0으로 고정)
+      const totalCategories = 0;
 
-              // 5. 평가 진행 상태 분석 (새로운 시스템 기준)
-        let inProgress = 0;
-        let completed = 0;
-        let completionRate = 0;
+      // 5. 평가 진행 상태 분석 (수정)
+      let inProgress = 0;
+      let completed = 0;
+      let completionRate = 0;
 
-        if (totalCandidates > 0 && activeEvaluators > 0) {
-          // 완료된 평가 수 (is_completed = true)
-          const { data: completedSessions, error: completedError } = await supabase
-            .from('evaluation_sessions')
-            .select('id')
-            .eq('is_completed', true);
-          
-          if (!completedError && completedSessions) {
-            completed = completedSessions.length;
-          }
+      // 모든 세션 조회
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('evaluation_sessions')
+        .select('candidate_id, is_completed, has_temporary_data');
+      if (sessionsError) throw sessionsError;
 
-          // 진행 중인 평가 수 (is_completed = false)
-          const { data: inProgressSessions, error: inProgressError } = await supabase
-            .from('evaluation_sessions')
-            .select('id')
-            .eq('is_completed', false);
+      // 완료된 평가대상 (is_completed = TRUE)
+      const completedCandidateIds = new Set(
+        sessions.filter(s => s.is_completed).map(s => s.candidate_id)
+      );
+      completed = completedCandidateIds.size;
 
-          if (!inProgressError && inProgressSessions) {
-            inProgress = inProgressSessions.length;
-          }
+      // 진행중 평가대상 (is_completed = FALSE 또는 has_temporary_data = TRUE, 단 완료된 대상은 제외)
+      const inProgressCandidateIds = new Set(
+        sessions
+          .filter(s => (!s.is_completed || s.has_temporary_data) && !completedCandidateIds.has(s.candidate_id))
+          .map(s => s.candidate_id)
+      );
+      inProgress = inProgressCandidateIds.size;
 
-        // 완료율 계산 (총 가능한 평가 수 대비)
-        const totalPossibleEvaluations = totalCandidates * activeEvaluators;
-        completionRate = totalPossibleEvaluations > 0 ? Math.round((completed / totalPossibleEvaluations) * 100) : 0;
-      }
+      // 완료율 계산
+      completionRate = totalCandidates > 0 ? Math.round((completed / totalCandidates) * 100) : 0;
 
-      console.log('📊 서버 통계 데이터 (새 시스템):', {
+      console.log('📊 서버 통계 데이터 (수정됨):', {
         totalEvaluators,
         activeEvaluators,
         totalCandidates,
@@ -1195,7 +1184,7 @@ export class SupabaseStorage {
         completed
       };
     } catch (error) {
-      console.error('Error in getSystemStatistics (새 시스템):', error);
+      console.error('Error in getSystemStatistics (수정됨):', error);
       // 오류 시 기본값 반환
       return {
         totalEvaluators: 0,
@@ -2380,3 +2369,4 @@ export async function initializeStorage() {
 }
 
 export { storage };
+export { supabase };
