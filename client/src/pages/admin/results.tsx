@@ -44,7 +44,6 @@ const keyOptions: Record<string, { key: string; label: string }[]> = {
     { key: 'email', label: '이메일' },
     { key: 'progress', label: '진행률' },
     { key: 'completedCount', label: '완료수' },
-    { key: 'role', label: '구분(직책)' },
     { key: 'empty', label: '빈셀' }, // 빈셀용
   ],
   results: [

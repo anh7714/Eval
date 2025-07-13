@@ -154,9 +154,9 @@ export default function ResultsPage() {
     };
   }, [queryClient]);
 
-  const handleTabChange = (event: CustomEvent) => {
-    setActiveTab(event.detail);
-  };
+    const handleTabChange = (event: CustomEvent) => {
+      setActiveTab(event.detail);
+    };
 
   useEffect(() => {
     window.addEventListener('tabChange', handleTabChange as EventListener);
@@ -306,7 +306,7 @@ export default function ResultsPage() {
       const mainCategoryData = filteredData.filter(result => 
         result.candidate.mainCategory === mainCategory.name
       );
-      return {
+    return {
         category: mainCategory.name,
         results: mainCategoryData.sort((a, b) => b.percentage - a.percentage),
         count: mainCategoryData.length,
@@ -742,7 +742,7 @@ export default function ResultsPage() {
                        column.id === 'score' ? `${item[column.id] || 0}점` :
                        column.id === 'type' ? (item[column.id] || '') :
                        (item[column.id] || '')}
-                    </td>
+                  </td>
                   `).join('')}
                 </tr>
               `;
@@ -753,11 +753,11 @@ export default function ResultsPage() {
             <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #e8e8e8; vertical-align: middle; font-size: 13px;">합계</td>
             <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; vertical-align: middle;"></td>
             ${columnConfig.filter(col => col.visible && !['section', 'item'].includes(col.id)).map(column => `
-              <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px; vertical-align: middle;">
+            <td style="border: 1px solid #666; padding: 12px; text-align: center; background-color: #f5f5f5; font-size: 13px; vertical-align: middle;">
                 ${column.id === 'points' ? `${totalPoints}점` : 
                   column.id === 'score' ? `${totalScore}점` : 
                   ''}
-              </td>
+            </td>
             `).join('')}
           </tr>
         </tbody>
@@ -910,35 +910,35 @@ export default function ResultsPage() {
 
     // 실제 평가점수 조회
     const actualScores = await getActualEvaluationScores(selectedEvaluator, selectedCandidate);
-    
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
       toast({
         title: "팝업 차단",
         description: "브라우저의 팝업 차단을 해제해주세요.",
         variant: "destructive",
       });
-      return;
-    }
+        return;
+      }
 
     const evaluationContent = await generateEvaluationHTML(evaluatorInfo, candidateInfo);
 
-    printWindow.document.write(`
-      <html>
-        <head>
+      printWindow.document.write(`
+        <html>
+          <head>
           <title>평가표 - ${candidateInfo.name} (${evaluatorInfo.name})</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
-          <div class="evaluation-page">
-            ${evaluationContent}
-          </div>
-        </body>
-      </html>
-    `);
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
+            <div class="evaluation-page">
+              ${evaluationContent}
+            </div>
+          </body>
+        </html>
+      `);
 
-    printWindow.document.close();
+      printWindow.document.close();
     printWindow.onload = () => {
       printWindow.print();
     };
@@ -975,17 +975,17 @@ export default function ResultsPage() {
     
     if (!confirm(confirmMessage)) {
       return;
-    }
+      }
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
       toast({
         title: "팝업 차단",
         description: "브라우저의 팝업 차단을 해제해주세요.",
         variant: "destructive",
       });
-      return;
-    }
+        return;
+      }
 
     let allPagesContent = '';
     
@@ -999,16 +999,16 @@ export default function ResultsPage() {
           ${evaluationContent}
         </div>
       `;
-    }
+      }
 
-    printWindow.document.write(`
-      <html>
-        <head>
+      printWindow.document.write(`
+        <html>
+          <head>
           <title>${evaluatorInfo.name} 평가위원 전체 평가표 - ${totalPages}페이지</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
           ${allPagesContent}
           <script>
             window.onload = function() {
@@ -1017,11 +1017,11 @@ export default function ResultsPage() {
               }, 500);
             };
           </script>
-        </body>
-      </html>
-    `);
+          </body>
+        </html>
+      `);
 
-    printWindow.document.close();
+      printWindow.document.close();
 
     toast({
       title: "인쇄 준비 완료",
@@ -1075,20 +1075,20 @@ export default function ResultsPage() {
       const evaluationContent = await generateEvaluationHTML(evaluator, candidateInfo);
       
       allPagesContent += `
-        <div class="evaluation-page">
-          ${evaluationContent}
-        </div>
-      `;
-    }
+          <div class="evaluation-page">
+            ${evaluationContent}
+          </div>
+        `;
+      }
 
-    printWindow.document.write(`
-      <html>
-        <head>
+      printWindow.document.write(`
+        <html>
+          <head>
           <title>${candidateInfo.name} 평가대상 전체 평가표 - ${totalPages}페이지</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
           ${allPagesContent}
           <script>
             window.onload = function() {
@@ -1097,11 +1097,11 @@ export default function ResultsPage() {
               }, 500);
             };
           </script>
-        </body>
-      </html>
-    `);
+          </body>
+        </html>
+      `);
 
-    printWindow.document.close();
+      printWindow.document.close();
 
     toast({
       title: "인쇄 준비 완료",
@@ -1153,16 +1153,16 @@ export default function ResultsPage() {
           </div>
         `;
       }
-    }
+      }
 
-    printWindow.document.write(`
-      <html>
-        <head>
+      printWindow.document.write(`
+        <html>
+          <head>
           <title>전체 평가표 배치 인쇄 - ${totalPages}페이지</title>
-          <meta charset="UTF-8">
-          ${getPrintStyle()}
-        </head>
-        <body>
+            <meta charset="UTF-8">
+            ${getPrintStyle()}
+          </head>
+          <body>
           ${allPagesContent}
           <script>
             window.onload = function() {
@@ -1171,13 +1171,13 @@ export default function ResultsPage() {
               }, 500);
             };
           </script>
-        </body>
-      </html>
-    `);
+          </body>
+        </html>
+      `);
 
-    printWindow.document.close();
+      printWindow.document.close();
 
-    toast({
+      toast({
       title: "전체 인쇄 준비 완료",
       description: `${totalPages}페이지의 평가표가 인쇄창에서 열렸습니다.`,
     });
@@ -1191,32 +1191,32 @@ export default function ResultsPage() {
           <CardTitle>점수 분포</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+    <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-green-50 rounded">
               <span className="font-medium">우수 (90% 이상)</span>
               <span className="font-bold text-green-600">
                 {filteredData.filter((r: CandidateResult) => r.percentage >= 90).length}명
               </span>
-            </div>
+      </div>
             <div className="flex justify-between items-center p-3 bg-blue-50 rounded">
               <span className="font-medium">양호 (80-89%)</span>
               <span className="font-bold text-blue-600">
                 {filteredData.filter((r: CandidateResult) => r.percentage >= 80 && r.percentage < 90).length}명
               </span>
-            </div>
+      </div>
             <div className="flex justify-between items-center p-3 bg-yellow-50 rounded">
               <span className="font-medium">보통 (70-79%)</span>
               <span className="font-bold text-yellow-600">
                 {filteredData.filter((r: CandidateResult) => r.percentage >= 70 && r.percentage < 80).length}명
               </span>
-            </div>
+        </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
               <span className="font-medium">개선필요 (70% 미만)</span>
               <span className="font-bold text-gray-600">
                 {filteredData.filter((r: CandidateResult) => r.percentage < 70).length}명
               </span>
-            </div>
-          </div>
+        </div>
+      </div>
         </CardContent>
       </Card>
 
@@ -1236,15 +1236,15 @@ export default function ResultsPage() {
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="font-semibold">{category.name}</h3>
                     <Badge variant="outline">{categoryResults.length}명</Badge>
-                  </div>
+      </div>
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>평균 점수</span>
                     <span className="font-medium">{avgScore.toFixed(1)}%</span>
-                  </div>
+            </div>
                 </div>
               );
             })}
-          </div>
+            </div>
         </CardContent>
       </Card>
     </div>
@@ -1253,56 +1253,56 @@ export default function ResultsPage() {
   // 🏆 순위 결과 섹션  
   const renderRankingSection = () => (
     <Tabs value={rankingActiveTab} onValueChange={setRankingActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
-        <TabsTrigger value="overall" className="flex items-center gap-2">
-          <Trophy className="h-4 w-4" />
-          종합순위
-        </TabsTrigger>
-        <TabsTrigger value="category" className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4" />
-          항목별순위
-        </TabsTrigger>
-        <TabsTrigger value="ties" className="flex items-center gap-2">
-          <Scale className="h-4 w-4" />
-          동점자처리
-        </TabsTrigger>
-        <TabsTrigger value="failed" className="flex items-center gap-2">
-          <X className="h-4 w-4" />
-          탈락현황
-        </TabsTrigger>
-        <TabsTrigger value="final" className="flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" />
-          최종선정
-        </TabsTrigger>
-      </TabsList>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overall" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            종합순위
+          </TabsTrigger>
+          <TabsTrigger value="category" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            항목별순위
+          </TabsTrigger>
+          <TabsTrigger value="ties" className="flex items-center gap-2">
+            <Scale className="h-4 w-4" />
+            동점자처리
+          </TabsTrigger>
+          <TabsTrigger value="failed" className="flex items-center gap-2">
+            <X className="h-4 w-4" />
+            탈락현황
+          </TabsTrigger>
+          <TabsTrigger value="final" className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            최종선정
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="overall" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
+        <TabsContent value="overall" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-500" />
               종합 순위표
-            </CardTitle>
+              </CardTitle>
             <CardDescription>
               전체 평가대상의 종합 순위를 확인할 수 있습니다.
             </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border border-gray-300 px-4 py-2 text-center">순위</th>
-                    <th className="border border-gray-300 px-4 py-2 text-left">이름</th>
-                    <th className="border border-gray-300 px-4 py-2 text-left">소속</th>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border border-gray-300 px-4 py-2 text-center">순위</th>
+                      <th className="border border-gray-300 px-4 py-2 text-left">이름</th>
+                      <th className="border border-gray-300 px-4 py-2 text-left">소속</th>
                     <th className="border border-gray-300 px-4 py-2 text-left">직책</th>
-                    <th className="border border-gray-300 px-4 py-2 text-left">구분</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">총점</th>
+                      <th className="border border-gray-300 px-4 py-2 text-left">구분</th>
+                      <th className="border border-gray-300 px-4 py-2 text-center">총점</th>
                     <th className="border border-gray-300 px-4 py-2 text-center">득점률</th>
                     <th className="border border-gray-300 px-4 py-2 text-center">평가위원수</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </tr>
+                  </thead>
+                  <tbody>
                   {rankedData.length > 0 ? (
                     rankedData.map((result: CandidateResult, index: number) => (
                       <tr key={result.candidate.id} className={index < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
@@ -1327,8 +1327,8 @@ export default function ResultsPage() {
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-center">
                           <span className={`font-semibold ${
-                            result.percentage >= 90 ? 'text-green-600' : 
-                            result.percentage >= 80 ? 'text-blue-600' : 
+                            result.percentage >= 90 ? 'text-green-600' :
+                            result.percentage >= 80 ? 'text-blue-600' :
                             result.percentage >= 70 ? 'text-yellow-600' : 'text-red-600'
                           }`}>
                             {result.percentage.toFixed(1)}%
@@ -1350,28 +1350,28 @@ export default function ResultsPage() {
                           <p>• 완료된 평가: {resultsData?.length || 0}건</p>
                           <p className="mt-2">평가를 완료하면 여기에 결과가 표시됩니다.</p>
                         </div>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <TabsContent value="category" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-blue-500" />
-              평가영역별 세부순위
-            </CardTitle>
+        <TabsContent value="category" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-blue-500" />
+                평가영역별 세부순위
+              </CardTitle>
             <CardDescription>
               구분과 세부구분을 선택하여 계층적으로 결과를 확인할 수 있습니다.
             </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent>
             {/* 필터링은 페이지 상위에서 처리됨 */}
             
             {/* 🔧 계층적 카테고리별 결과 표시 */}
@@ -1424,12 +1424,12 @@ export default function ResultsPage() {
                                           <span className="font-medium text-blue-600">
                                             {result.percentage.toFixed(1)}%
                                           </span>
-                                        </div>
+                </div>
                                       ))
                                     ) : (
                                       <p className="text-xs text-gray-500 text-center py-2">데이터 없음</p>
                                     )}
-                                  </div>
+              </div>
                                 </CardContent>
                               </Card>
                             );
@@ -1442,227 +1442,88 @@ export default function ResultsPage() {
 
               {/* 메인 카테고리별 상위 3명 */}
               <TabsContent value="main" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {mainCategoryResults.map((categoryData: any) => {
                     const topInCategory = categoryData.results.slice(0, 3);
-                    
-                    return (
+                  
+                  return (
                       <Card key={categoryData.category} className="border-l-4 border-l-blue-500">
-                        <CardHeader className="pb-2">
+                      <CardHeader className="pb-2">
                           <CardTitle className="text-lg">📁 {categoryData.category}</CardTitle>
                           <p className="text-sm text-gray-600">
                             총 {categoryData.count}명 · 평균 {categoryData.avgScore.toFixed(1)}%
                           </p>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
                             {topInCategory.length > 0 ? (
                               topInCategory.map((result: CandidateResult, index: number) => (
-                                <div key={result.candidate.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-sm">{index + 1}.</span>
-                                    <span className="text-sm">{result.candidate.name}</span>
-                                  </div>
-                                  <span className="text-sm font-medium text-blue-600">
-                                    {result.percentage.toFixed(1)}%
-                                  </span>
-                                </div>
+                            <div key={result.candidate.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">{index + 1}.</span>
+                                <span className="text-sm">{result.candidate.name}</span>
+                              </div>
+                              <span className="text-sm font-medium text-blue-600">
+                                {result.percentage.toFixed(1)}%
+                              </span>
+                            </div>
                               ))
                             ) : (
                               <div className="text-center py-4 text-gray-500">
                                 <p className="text-sm">해당 카테고리에 평가대상이 없습니다</p>
                               </div>
                             )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
               </TabsContent>
 
 
             </Tabs>
-          </CardContent>
-        </Card>
-      </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <TabsContent value="ties" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Scale className="h-5 w-5 text-orange-500" />
-              동점자 발생 및 처리현황
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {tiedCandidates.length > 0 ? (
-              <div className="space-y-4">
-                {tiedCandidates.map((group: any, index: number) => (
-                  <Card key={index} className="border-l-4 border-l-orange-500">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">
-                        동점 그룹 {index + 1}: {group[0].percentage.toFixed(1)}%
-                      </CardTitle>
-                      <p className="text-sm text-gray-600">{group.length}명 동점</p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {group.map((result: CandidateResult) => (
-                          <div key={result.candidate.id} className="flex items-center justify-between p-2 bg-orange-50 rounded">
-                            <div>
-                              <span className="font-medium">{result.candidate.name}</span>
-                              <span className="text-sm text-gray-600 ml-2">
-                                {result.candidate.department}
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium">{result.percentage.toFixed(1)}%</div>
-                              <div className="text-xs text-gray-500">
-                                {result.totalScore}/{result.maxPossibleScore}점
+        <TabsContent value="ties" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Scale className="h-5 w-5 text-orange-500" />
+                동점자 발생 및 처리현황
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tiedCandidates.length > 0 ? (
+                <div className="space-y-4">
+                  {tiedCandidates.map((group: any, index: number) => (
+                    <Card key={index} className="border-l-4 border-l-orange-500">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">
+                          동점 그룹 {index + 1}: {group[0].percentage.toFixed(1)}%
+                        </CardTitle>
+                        <p className="text-sm text-gray-600">{group.length}명 동점</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {group.map((result: CandidateResult) => (
+                            <div key={result.candidate.id} className="flex items-center justify-between p-2 bg-orange-50 rounded">
+                              <div>
+                                <span className="font-medium">{result.candidate.name}</span>
+                                <span className="text-sm text-gray-600 ml-2">
+                                  {result.candidate.department}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium">{result.percentage.toFixed(1)}%</div>
+                                <div className="text-xs text-gray-500">
+                                  {result.totalScore}/{result.maxPossibleScore}점
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Scale className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">동점자가 없습니다</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="failed" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <X className="h-5 w-5 text-red-500" />
-              기준점수 미달 현황
-            </CardTitle>
-            <CardDescription>
-              기준점수 70% 미달자: {failedCandidates.length}명
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {failedCandidates.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-red-50">
-                      <th className="border border-gray-300 px-4 py-2 text-left">이름</th>
-                      <th className="border border-gray-300 px-4 py-2 text-left">소속</th>
-                      <th className="border border-gray-300 px-4 py-2 text-left">구분</th>
-                      <th className="border border-gray-300 px-4 py-2 text-center">득점률</th>
-                      <th className="border border-gray-300 px-4 py-2 text-center">부족점수</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {failedCandidates.map((result: CandidateResult) => (
-                      <tr key={result.candidate.id} className="hover:bg-red-50">
-                        <td className="border border-gray-300 px-4 py-2 font-medium">
-                          {result.candidate.name}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2">
-                          {result.candidate.department}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2">
-                          {result.candidate.category}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2 text-center">
-                          <span className="font-semibold text-red-600">
-                            {result.percentage.toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2 text-center">
-                          <span className="text-red-600">
-                            -{(70 - result.percentage).toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <p className="text-gray-500">모든 평가대상이 기준점수를 충족했습니다</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="final" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              최종 선정결과
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <Card className="border-l-4 border-l-green-500">
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{passedCandidates.length}</div>
-                    <div className="text-sm text-gray-600">합격자</div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-l-4 border-l-red-500">
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">{failedCandidates.length}</div>
-                    <div className="text-sm text-gray-600">불합격자</div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-l-4 border-l-blue-500">
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {passedCandidates.length > 0 ? ((passedCandidates.length / totalCandidatesCount) * 100).toFixed(1) : 0}%
-                    </div>
-                    <div className="text-sm text-gray-600">합격률</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg">최종 합격자 명단</h4>
-              {passedCandidates.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {passedCandidates.map((result: CandidateResult) => (
-                    <Card key={result.candidate.id} className="border-l-4 border-l-green-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold">{result.candidate.name}</div>
-                            <div className="text-sm text-gray-600">
-                              {result.candidate.department} · {result.candidate.position}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {result.candidate.category}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-green-600">
-                              {result.percentage.toFixed(1)}%
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {result.rank}위
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </CardContent>
                     </Card>
@@ -1670,15 +1531,154 @@ export default function ResultsPage() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <X className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">합격자가 없습니다</p>
+                  <Scale className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">동점자가 없습니다</p>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="failed" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <X className="h-5 w-5 text-red-500" />
+                기준점수 미달 현황
+              </CardTitle>
+              <CardDescription>
+                기준점수 70% 미달자: {failedCandidates.length}명
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {failedCandidates.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-red-50">
+                        <th className="border border-gray-300 px-4 py-2 text-left">이름</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">소속</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">구분</th>
+                        <th className="border border-gray-300 px-4 py-2 text-center">득점률</th>
+                        <th className="border border-gray-300 px-4 py-2 text-center">부족점수</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {failedCandidates.map((result: CandidateResult) => (
+                        <tr key={result.candidate.id} className="hover:bg-red-50">
+                          <td className="border border-gray-300 px-4 py-2 font-medium">
+                            {result.candidate.name}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            {result.candidate.department}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            {result.candidate.category}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">
+                            <span className="font-semibold text-red-600">
+                              {result.percentage.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">
+                            <span className="text-red-600">
+                              -{(70 - result.percentage).toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <p className="text-gray-500">모든 평가대상이 기준점수를 충족했습니다</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="final" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                최종 선정결과
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <Card className="border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{passedCandidates.length}</div>
+                      <div className="text-sm text-gray-600">합격자</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-red-500">
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">{failedCandidates.length}</div>
+                      <div className="text-sm text-gray-600">불합격자</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                      {passedCandidates.length > 0 ? ((passedCandidates.length / totalCandidatesCount) * 100).toFixed(1) : 0}%
+                      </div>
+                      <div className="text-sm text-gray-600">합격률</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">최종 합격자 명단</h4>
+                {passedCandidates.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {passedCandidates.map((result: CandidateResult) => (
+                      <Card key={result.candidate.id} className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold">{result.candidate.name}</div>
+                              <div className="text-sm text-gray-600">
+                                {result.candidate.department} · {result.candidate.position}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {result.candidate.category}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-green-600">
+                                {result.percentage.toFixed(1)}%
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {result.rank}위
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <X className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">합격자가 없습니다</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
   );
 
   // 📋 상세결과 섹션
@@ -1827,27 +1827,13 @@ export default function ResultsPage() {
     </table>
     <div style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
       ※ 평균점수는 5인 평가위원의 점수를 합산 후 최고/최저 점수 제외 후 평균값 산정
-    </div>
-    <h3 style={{ fontWeight: 600, fontSize: 16, margin: '24px 0 8px' }}>3. 심사위원 서명란</h3>
-    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
-      <thead>
-        <tr>
-          <th style={{ border: '1px solid #aaa', padding: 8 }}>구분</th>
-          <th style={{ border: '1px solid #aaa', padding: 8 }}>성명(서명)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {evaluators.map((e, idx) => (
-          <tr key={e.id}>
-            <td style={{ border: '1px solid #aaa', padding: 8, textAlign: 'center' }}>위원</td>
-            <td style={{ border: '1px solid #aaa', padding: 8, height: 32 }}>&nbsp;</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+                  </div>
+    {/* 🟢 심사위원 서명란 표(정적 JSX) 제거: 동적 템플릿 기반으로만 출력 */}
+    {/* <h3 style={{ fontWeight: 600, fontSize: 16, margin: '24px 0 8px' }}>3. 심사위원 서명란</h3>
+    <table ...> ... </table> */}
     <div style={{ fontSize: 13, marginTop: 24, textAlign: 'right' }}>작성일: {date}</div>
-  </div>
-);
+    </div>
+  );
 
 // 3. 인쇄 미리보기 및 출력 함수
 const handlePrintFinalReport = async () => {
@@ -1886,6 +1872,30 @@ const handlePrintFinalReport = async () => {
         html += `<li style="margin-bottom:2px;">• <b>${field.label}</b>: ${field.value}</li>`;
       }
       html += '</ul>';
+    } else if (section.type === 'table' && section.dataSource === 'evaluators') {
+      html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
+      html += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;">';
+      html += '<thead><tr>';
+      for (const col of section.columns || []) {
+        html += `<th style="border:1px solid #333;padding:8px;background:#f3f4f6;">${col.label}</th>`;
+      }
+      html += '</tr></thead><tbody>';
+      if (Array.isArray(evaluators) && evaluators.length > 0) {
+        for (const evaluator of evaluators) {
+          html += '<tr>';
+          for (const col of section.columns || []) {
+            if (col.key === 'name') html += `<td style="border:1px solid #333;padding:8px;">${evaluator.name || ''}</td>`;
+            else if (col.key === 'department') html += `<td style="border:1px solid #333;padding:8px;">${evaluator.department || ''}</td>`;
+            else if (col.key === 'email') html += `<td style="border:1px solid #333;padding:8px;">${evaluator.email || ''}</td>`;
+            else if (col.key === 'empty') html += `<td style="border:1px solid #333;padding:8px;">&nbsp;</td>`;
+            else html += `<td style="border:1px solid #333;padding:8px;">${evaluator[col.key] !== undefined ? evaluator[col.key] : ''}</td>`;
+          }
+          html += '</tr>';
+        }
+      } else {
+        html += `<tr><td colspan="${section.columns.length}" style="border:1px solid #333;padding:8px;">데이터 없음</td></tr>`;
+      }
+      html += '</tbody></table>';
     } else if (section.type === 'table') {
       html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
       html += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;">';
@@ -1898,7 +1908,6 @@ const handlePrintFinalReport = async () => {
         for (const [idx, row] of candidates.entries()) {
           html += '<tr>';
           for (const col of section.columns || []) {
-            // 동적으로 key에 맞는 값 바인딩
             if (col.key === 'rank') html += `<td style="border:1px solid #333;padding:8px;">${idx + 1}</td>`;
             else if (col.key === 'name') html += `<td style="border:1px solid #333;padding:8px;">${row.candidate.name}</td>`;
             else if (col.key === 'score') html += `<td style="border:1px solid #333;padding:8px;">${row.totalScore}점</td>`;
@@ -1969,24 +1978,24 @@ const handlePrintFinalReport = async () => {
             </div>
           </div>
         ) : (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  📊 평가 결과 조회
-                </h1>
-                <p className="text-gray-600 mt-2">
-                  전체 평가 결과와 통계를 확인할 수 있습니다.
-                </p>
-              </div>
-              <Button 
-                onClick={handleExportResults}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Excel 내보내기
-              </Button>
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                📊 평가 결과 조회
+              </h1>
+              <p className="text-gray-600 mt-2">
+                전체 평가 결과와 통계를 확인할 수 있습니다.
+              </p>
             </div>
+            <Button 
+              onClick={handleExportResults}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Excel 내보내기
+            </Button>
+          </div>
 
             {/* 🔧 전체 페이지 상위 필터 */}
             <div className="mb-6 p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
@@ -2254,7 +2263,7 @@ const handlePrintFinalReport = async () => {
               </TabsContent>
             </div>
           </Tabs>
-          </div>
+        </div>
         )}
       </div>
     </div>
