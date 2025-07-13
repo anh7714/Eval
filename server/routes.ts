@@ -15,6 +15,7 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import type { Request, Response } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from './storage-supabase-api';
 
 // Extend session data interface
 declare module 'express-session' {
@@ -1234,55 +1235,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/incomplete-details", requireAuth, async (req: Request, res: Response) => {
     try {
       console.log('🔍 미완료 상세 조회 시작');
-      
-      // 1. 모든 활성 평가대상 조회
       const allCandidates = await storage.getActiveCandidates();
       console.log('📊 총 평가대상 수:', allCandidates.length);
-      
-      // 2. 모든 활성 평가위원 조회  
       const allEvaluators = await storage.getActiveEvaluators();
       console.log('📊 총 평가위원 수:', allEvaluators.length);
-      
-      // 3. 각 평가대상별로 평가 상태 확인 (통계 API와 동일한 로직 사용)
-      const candidateDetails: any[] = [];
-      
-      for (const candidate of allCandidates) {
+      const { data: completedSessions } = await supabase
+        .from('evaluation_sessions')
+        .select('candidate_id')
+        .eq('is_completed', true);
+      const completedCandidateIds = new Set((completedSessions || []).map((s: any) => s.candidate_id));
+      const incompleteCandidates = allCandidates.filter(candidate => !completedCandidateIds.has(candidate.id));
+      const candidateDetails = [];
+      for (const candidate of incompleteCandidates) {
         try {
-          // evaluation_submissions 테이블에서 직접 조회 (통계 API와 동일한 방식)
           const submissions = await storage.getEvaluationSubmissionsByCandidate(candidate.id);
-          
-          const completedSubmissions = submissions.filter(s => s.is_completed === true);
-          const inProgressSubmissions = submissions.filter(s => s.is_completed === false);
-          
-          // 상태 결정: 완료된 평가가 하나라도 있으면 completed, 임시저장이 있으면 inProgress, 없으면 notStarted
+          const completedSubmissions = submissions.filter((s: any) => s.is_completed === true);
+          const inProgressSubmissions = submissions.filter((s: any) => s.is_completed === false);
           let status = 'notStarted';
           if (completedSubmissions.length > 0) {
             status = 'completed';
           } else if (inProgressSubmissions.length > 0) {
             status = 'inProgress';
           }
-          
-                    // 진행중 평가위원과 미평가 평가위원 구분
-          const completedEvaluatorIds = completedSubmissions.map(s => s.evaluator_id);
-          const inProgressEvaluatorIds = inProgressSubmissions.map(s => s.evaluator_id);
+          const completedEvaluatorIds = completedSubmissions.map((s: any) => s.evaluator_id);
+          const inProgressEvaluatorIds = inProgressSubmissions.map((s: any) => s.evaluator_id);
           const evaluatedEvaluatorIds = [...completedEvaluatorIds, ...inProgressEvaluatorIds];
-          
-          // 진행중 평가위원 (평가를 시작했지만 완료하지 않은 평가위원)
-          const inProgressEvaluators = allEvaluators.filter(evaluator => 
-            inProgressEvaluatorIds.includes(evaluator.id)
-          ).map(evaluator => ({
-            id: evaluator.id,
-            name: evaluator.name
-          }));
-          
-          // 미평가 평가위원 (아무것도 하지 않은 평가위원)
-          const notEvaluatedEvaluators = allEvaluators.filter(evaluator => 
-            !evaluatedEvaluatorIds.includes(evaluator.id)
-          ).map(evaluator => ({
-            id: evaluator.id,
-            name: evaluator.name
-          }));
-
+          const inProgressEvaluators = allEvaluators.filter(evaluator => inProgressEvaluatorIds.includes(evaluator.id)).map(evaluator => ({ id: evaluator.id, name: evaluator.name }));
+          const notEvaluatedEvaluators = allEvaluators.filter(evaluator => !evaluatedEvaluatorIds.includes(evaluator.id)).map(evaluator => ({ id: evaluator.id, name: evaluator.name }));
           candidateDetails.push({
             id: candidate.id,
             name: candidate.name,
@@ -1293,11 +1272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             inProgressEvaluators: inProgressEvaluators,
             pendingEvaluators: notEvaluatedEvaluators
           });
-          
-          console.log(`📋 ${candidate.name}: ${status} (완료: ${completedSubmissions.length}, 진행중: ${inProgressSubmissions.length}, 미평가: ${notEvaluatedEvaluators.length}명)`);
         } catch (candidateError: any) {
-          console.warn(`평가대상 ${candidate.name} 상태 조회 실패:`, candidateError);
-          // 오류 시 기본값으로 처리
           candidateDetails.push({
             id: candidate.id,
             name: candidate.name,
@@ -1305,56 +1280,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             position: candidate.position || '',
             category: candidate.category || '정보 없음',
             status: 'notStarted',
-            pendingEvaluators: allEvaluators.map(evaluator => ({
-              id: evaluator.id,
-              name: evaluator.name
-            }))
+            pendingEvaluators: allEvaluators.map(evaluator => ({ id: evaluator.id, name: evaluator.name }))
           });
         }
       }
-      
       console.log('✅ 미완료 상세 조회 완료:', candidateDetails.length, '건');
-      
-      // 상태별 개수 로깅
-      const statusCounts = {
-        completed: candidateDetails.filter(c => c.status === 'completed').length,
-        inProgress: candidateDetails.filter(c => c.status === 'inProgress').length,
-        notStarted: candidateDetails.filter(c => c.status === 'notStarted').length
-      };
-      console.log('📊 상태별 개수:', statusCounts);
-      
-      // 미완료 건만 필터링 (완료된 건 제외)
-      const incompleteCandidates = candidateDetails.filter(candidate => candidate.status !== 'completed');
-      console.log('📊 실제 미완료 건수:', incompleteCandidates.length, '건');
-      
-      // 미완료 건의 상태별 개수 로깅
-      const incompleteStatusCounts = {
-        inProgress: incompleteCandidates.filter(c => c.status === 'inProgress').length,
-        notStarted: incompleteCandidates.filter(c => c.status === 'notStarted').length
-      };
-      console.log('📊 미완료 건 상태별 개수:', incompleteStatusCounts);
-      
       const result = {
-        candidates: incompleteCandidates, // 완료된 건 제외
+        candidates: candidateDetails,
         evaluators: await Promise.all(allEvaluators.map(async evaluator => {
-          // 각 평가위원별 진행률 계산
           const evaluatorSubmissions = await storage.getEvaluationSubmissionsByEvaluator(evaluator.id);
-          
           const allSubmissions = evaluatorSubmissions || [];
           const completedCount = allSubmissions.filter((s: any) => s.is_completed === true).length;
           const inProgressCount = allSubmissions.filter((s: any) => s.is_completed === false).length;
-          const totalCandidatesCount = allCandidates.length; // 전체 평가대상 기준
+          const totalCandidatesCount = allCandidates.length;
           const progress = totalCandidatesCount > 0 ? Math.round(((completedCount + inProgressCount) / totalCandidatesCount) * 100) : 0;
-          
-          // 이 평가위원이 평가하지 않은 미완료 평가대상들
           const evaluatedCandidateIds = allSubmissions.map((s: any) => s.candidate_id);
-          const pendingCandidates = incompleteCandidates.filter(candidate => 
-            !evaluatedCandidateIds.includes(candidate.id)
-          ).map(candidate => ({
-            id: candidate.id,
-            name: candidate.name
-          }));
-          
+          const pendingCandidates = incompleteCandidates.filter(candidate => !evaluatedCandidateIds.includes(candidate.id)).map(candidate => ({ id: candidate.id, name: candidate.name }));
           return {
             id: evaluator.id,
             name: evaluator.name,
@@ -1367,14 +1308,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }))
       };
-      
       res.json(result);
+      return;
     } catch (error: any) {
       console.error('❌ 미완료 상세 조회 실패:', error);
-      res.status(500).json({ 
-        message: "Failed to fetch incomplete details", 
-        error: error.message 
-      });
+      res.status(500).json({ message: "Failed to fetch incomplete details", error: error.message });
+      return;
     }
   });
 
@@ -1778,6 +1717,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('❌ 평가위원 전용 평가 항목 조회 실패:', error);
       res.status(500).json({ message: "평가 항목 조회 중 오류가 발생했습니다." });
+    }
+  });
+
+  // 평가자별 상세 진행현황(진행률, 미완료 리스트 등) API
+  app.get("/api/admin/evaluator-progress-advanced", requireAuth, async (req, res) => {
+    try {
+      const allEvaluators = await storage.getActiveEvaluators();
+      const allCandidates = await storage.getActiveCandidates();
+      // 완료된 평가대상 candidate_id 집합 구하기
+      const { data: completedSessions } = await supabase
+        .from('evaluation_sessions')
+        .select('candidate_id, evaluator_id, is_completed')
+        .eq('is_completed', true);
+      // 평가자별로 진행률, 미완료 리스트 계산
+      const result = await Promise.all(allEvaluators.map(async evaluator => {
+        // 이 평가자가 완료한 후보자 id
+        const completedCandidateIds = new Set(
+          (completedSessions || [])
+            .filter((s: any) => s.evaluator_id === evaluator.id)
+            .map((s: any) => s.candidate_id)
+        );
+        const completedCount = completedCandidateIds.size;
+        const totalCount = allCandidates.length;
+        const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+        // 미완료 후보자 리스트
+        const incompleteCandidates = allCandidates.filter(candidate => !completedCandidateIds.has(candidate.id));
+        return {
+          id: evaluator.id,
+          name: evaluator.name,
+          department: evaluator.department || '',
+          progress,
+          completedCount,
+          totalCount,
+          incompleteCandidates: incompleteCandidates.map(c => ({ id: c.id, name: c.name, category: c.category }))
+        };
+      }));
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: 'Failed to fetch evaluator progress', error: error.message });
     }
   });
 
