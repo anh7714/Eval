@@ -38,6 +38,53 @@ interface CandidateResult {
   rank: number;
 }
 
+// Editor.js blocks -> HTML 변환 함수
+function renderEditorBlocks(blocks: Array<{ type: string; data: any }>): string {
+  let html = '';
+  for (const block of blocks) {
+    switch (block.type) {
+      case 'header':
+        html += `<h${block.data.level}>${block.data.text}</h${block.data.level}>`;
+        break;
+      case 'paragraph':
+        html += `<p>${block.data.text}</p>`;
+        break;
+      case 'table':
+        if (block.data.content) {
+          html += '<table style="border-collapse:collapse;width:100%;margin:16px 0;">';
+          for (const row of block.data.content) {
+            html += '<tr>';
+            for (const cell of row) {
+              html += `<td style="border:1px solid #333;padding:8px;">${cell}</td>`;
+            }
+            html += '</tr>';
+          }
+          html += '</table>';
+        }
+        break;
+      case 'list':
+        if (block.data.style === 'ordered') {
+          html += '<ol>';
+          for (const item of block.data.items) {
+            html += `<li>${item}</li>`;
+          }
+          html += '</ol>';
+        } else {
+          html += '<ul>';
+          for (const item of block.data.items) {
+            html += `<li>${item}</li>`;
+          }
+          html += '</ul>';
+        }
+        break;
+      default:
+        // 기타 블록은 무시 또는 필요시 추가 구현
+        break;
+    }
+  }
+  return html;
+}
+
 export default function ResultsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1836,126 +1883,100 @@ export default function ResultsPage() {
   );
 
 // 3. 인쇄 미리보기 및 출력 함수
-const handlePrintFinalReport = async () => {
-  // Supabase에서 최신 템플릿 fetch
-  const { data, error } = await supabase
-    .from('report_templates')
-    .select('*')
-    .eq('name', 'final_report_template')
-    .single();
-  if (error || !data || !data.template_json) {
-    alert('최신 보고서 템플릿을 불러올 수 없습니다.');
+const handlePrintFinalReport = async (): Promise<void> => {
+  if (!reportTemplate?.editorData?.blocks) {
+    toast({
+      title: '출력 오류',
+      description: '저장된 템플릿이 없거나 에디터 데이터가 없습니다.',
+      variant: 'destructive',
+    });
     return;
   }
-  let template;
-  try {
-    template = JSON.parse(data.template_json);
-  } catch (e) {
-    alert('템플릿 데이터 파싱 오류');
-    return;
-  }
-  // 동적 데이터 바인딩
-  const today = new Date();
-  const dateString = today.toISOString().split('T')[0];
-  // 후보자/평가위원 데이터는 기존 filteredData/rankedData/evaluatorsData 사용
-  const candidates = rankedData.filter(r => r.percentage >= 70); // 예시: 70% 이상 합격
-  const evaluators = evaluatorsData;
-  // 템플릿 구조에 따라 동적으로 HTML 생성
-  let html = `<div style="max-width:800px;margin:0 auto;padding:32px;">`;
-  html += `<div style="font-size:22px;font-weight:bold;text-align:center;margin-bottom:24px;">${template.title || ''}</div>`;
-  html += '<hr style="margin-bottom:24px;" />';
-  for (const section of template.sections || []) {
-    if (section.type === 'overview') {
-      html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
-      html += '<ul style="margin-bottom:18px;font-size:14px;">';
-      for (const field of section.fields || []) {
-        html += `<li style="margin-bottom:2px;">• <b>${field.label}</b>: ${field.value}</li>`;
-      }
-      html += '</ul>';
-    } else if (section.type === 'table' && section.dataSource === 'evaluators') {
-      html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
-      html += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;">';
-      html += '<thead><tr>';
-      for (const col of section.columns || []) {
-        html += `<th style="border:1px solid #333;padding:8px;background:#f3f4f6;">${col.label}</th>`;
-      }
-      html += '</tr></thead><tbody>';
-      if (Array.isArray(evaluators) && evaluators.length > 0) {
-        for (const evaluator of evaluators) {
-          html += '<tr>';
-          for (const col of section.columns || []) {
-            if (col.key === 'name') html += `<td style="border:1px solid #333;padding:8px;">${evaluator.name || ''}</td>`;
-            else if (col.key === 'department') html += `<td style="border:1px solid #333;padding:8px;">${evaluator.department || ''}</td>`;
-            else if (col.key === 'email') html += `<td style="border:1px solid #333;padding:8px;">${evaluator.email || ''}</td>`;
-            else if (col.key === 'empty') html += `<td style="border:1px solid #333;padding:8px;">&nbsp;</td>`;
-            else html += `<td style="border:1px solid #333;padding:8px;">${evaluator[col.key] !== undefined ? evaluator[col.key] : ''}</td>`;
-          }
-          html += '</tr>';
-        }
-      } else {
-        html += `<tr><td colspan="${section.columns.length}" style="border:1px solid #333;padding:8px;">데이터 없음</td></tr>`;
-      }
-      html += '</tbody></table>';
-    } else if (section.type === 'table') {
-      html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
-      html += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;">';
-      html += '<thead><tr>';
-      for (const col of section.columns || []) {
-        html += `<th style="border:1px solid #333;padding:8px;background:#f3f4f6;">${col.label}</th>`;
-      }
-      html += '</tr></thead><tbody>';
-      if (Array.isArray(candidates) && candidates.length > 0) {
-        for (const [idx, row] of candidates.entries()) {
-          html += '<tr>';
-          for (const col of section.columns || []) {
-            if (col.key === 'rank') html += `<td style="border:1px solid #333;padding:8px;">${idx + 1}</td>`;
-            else if (col.key === 'name') html += `<td style="border:1px solid #333;padding:8px;">${row.candidate.name}</td>`;
-            else if (col.key === 'score') html += `<td style="border:1px solid #333;padding:8px;">${row.totalScore}점</td>`;
-            else if (col.key === 'status') html += `<td style="border:1px solid #333;padding:8px;">${row.percentage >= 70 ? '선정' : '미선정'}</td>`;
-            else html += `<td style="border:1px solid #333;padding:8px;">${row[col.key] !== undefined ? row[col.key] : ''}</td>`;
-          }
-          html += '</tr>';
-        }
-      } else {
-        html += `<tr><td colspan="${section.columns.length}" style="border:1px solid #333;padding:8px;">데이터 없음</td></tr>`;
-      }
-      html += '</tbody></table>';
-      html += '<div style="font-size:12px;color:#888;margin-bottom:18px;">* 평균점수는 5인 평가위원의 점수를 합산 후 최고/최저 점수 제외 후 평균값 산정</div>';
-    } else if (section.type === 'note') {
-      html += `<div style="font-size:14px;margin-bottom:18px;">${section.text || ''}</div>`;
-    } else if (section.type === 'date') {
-      html += `<div style="font-size:14px;text-align:right;margin-top:32px;">작성일: ${section.date || dateString}</div>`;
-    }
-  }
-  html += '</div>';
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
-  printWindow.document.write(`
-    <!DOCTYPE html>
+  const htmlContent = `
     <html>
       <head>
-        <title>최종 선정 심사결과보고서</title>
-        <meta charset="UTF-8" />
+        <title>${reportTemplate.title || '보고서 미리보기'}</title>
         <style>
-          @media print {
-            @page { size: A4; margin: 25mm 15mm 15mm 15mm; }
-            body { font-family: 'Malgun Gothic', Arial, sans-serif; font-size: 13px; color: #222; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #333; padding: 8px; text-align: center; }
-            th { background: #f3f4f6; font-weight: bold; }
-            ul { padding-left: 18px; }
-            li { margin-bottom: 2px; }
-            hr { border: none; border-top: 1.5px solid #bbb; margin: 18px 0; }
-          }
+          body { font-family: 'Noto Sans KR', sans-serif; margin: 40px; }
+          h1, h2, h3, h4, h5, h6 { margin: 16px 0 8px 0; }
+          p { margin: 8px 0; }
+          table { margin: 16px 0; }
         </style>
       </head>
-      <body>${html}</body>
+      <body>
+        <h2 style="text-align:center;">${reportTemplate.title || ''}</h2>
+        ${renderEditorBlocks(reportTemplate.editorData.blocks)}
+      </body>
     </html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+  `;
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+  }
 };
+
+  // [추가] 최종 선정 심사결과보고서 템플릿 저장 함수 (upsert)
+  const handleSaveReportTemplate = async (template: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('report_templates')
+        .upsert([
+          {
+            name: 'final_report_template',
+            template_json: JSON.stringify(template),
+            updated_at: new Date().toISOString()
+          }
+        ], { onConflict: 'name' }); // fix: string not array
+      if (error) {
+        toast({
+          title: '저장 실패',
+          description: '템플릿 저장 중 오류가 발생했습니다.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: '저장 완료',
+          description: '템플릿이 성공적으로 저장되었습니다.',
+        });
+        await handleLoadReportTemplate();
+      }
+    } catch (error) {
+      toast({
+        title: '저장 실패',
+        description: '템플릿 저장 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // ResultsPage 함수형 컴포넌트 내부 useState 선언부 근처에 추가
+  const [reportTemplate, setReportTemplate] = useState<any>(null);
+
+  // 템플릿 불러오기 함수 구현
+  const handleLoadReportTemplate = async () => {
+    const { data, error } = await supabase
+      .from('report_templates')
+      .select('template_json')
+      .eq('name', 'final_report_template')
+      .single();
+    if (error || !data?.template_json) {
+      setReportTemplate(null);
+      return;
+    }
+    try {
+      setReportTemplate(JSON.parse(data.template_json));
+    } catch (e) {
+      setReportTemplate(null);
+    }
+  };
+
+  // 컴포넌트 마운트 시 템플릿 자동 로드
+  useEffect(() => {
+    handleLoadReportTemplate();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

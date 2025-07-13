@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
+import { CSVLink } from 'react-csv';
+import WysiwygReportEditor from "@/components/WysiwygReportEditor";
 
 // Supabase 클라이언트 설정
 const supabase = createClient(
@@ -451,6 +453,14 @@ export default function ResultsManagement() {
   // 보고서 템플릿 관련 상태
   const [reportTemplate, setReportTemplate] = useState<any>(null); // 초기값 하드코딩 제거
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  // ResultsManagement 함수형 컴포넌트 내에 아래 함수를 추가
+  const setMinimalReportTemplate = (template) => {
+    setReportTemplate({
+      title: template?.title || '보고서 제목',
+      editorData: template?.editorData || {}
+    });
+  };
 
   // 최초 마운트 시 Supabase에서 템플릿 fetch
   useEffect(() => {
@@ -1073,22 +1083,23 @@ export default function ResultsManagement() {
 
   // 최종 선정 심사결과보고서 템플릿 상태 및 핸들러
   const handleSaveReportTemplate = () => {
-    // 기존 함수 내용을 Supabase 저장으로 변경
     setIsSavingTemplate(true);
-    
-    // Supabase에 템플릿 저장
     const saveTemplateToSupabase = async () => {
       try {
+        // 오직 title, editorData만 저장
+        const minimalTemplate = {
+          title: reportTemplate?.title || '보고서 제목',
+          editorData: reportTemplate?.editorData || {}
+        };
         const { data, error } = await supabase
           .from('report_templates')
           .upsert([
             {
               name: 'final_report_template',
-              template_json: JSON.stringify(reportTemplate),
+              template_json: JSON.stringify(minimalTemplate),
               updated_at: new Date().toISOString()
             }
           ], { onConflict: ['name'] });
-
         if (error) {
           console.error('템플릿 저장 오류:', error);
           toast({
@@ -1102,6 +1113,8 @@ export default function ResultsManagement() {
             title: "저장 완료",
             description: "템플릿이 성공적으로 저장되었습니다.",
           });
+          // 저장 성공 후 최신 템플릿 자동 불러오기
+          await handleLoadReportTemplate();
         }
       } catch (error) {
         console.error('템플릿 저장 중 예외:', error);
@@ -1114,7 +1127,6 @@ export default function ResultsManagement() {
         setIsSavingTemplate(false);
       }
     };
-
     saveTemplateToSupabase();
   };
 
@@ -1160,144 +1172,6 @@ export default function ResultsManagement() {
     }
   };
 
-  // 1. Add handler to fetch latest template and print
-  const handlePrintFinalReport = async () => {
-    const { data, error } = await supabase
-      .from('report_templates')
-      .select('*')
-      .eq('name', 'final_report_template')
-      .single();
-
-    if (error) {
-      console.error('Supabase fetch error:', error);
-      alert('템플릿을 불러올 수 없습니다.');
-      return;
-    }
-
-    let template = reportTemplate;
-    if (data && data.template_json) {
-      try {
-        template = JSON.parse(data.template_json);
-        setReportTemplate(template); // Always update state with latest
-      } catch (e) {
-        console.error('템플릿 파싱 오류:', e, data.template_json);
-        alert('템플릿 데이터 파싱 오류');
-        return;
-      }
-    } else {
-      alert('DB에 저장된 템플릿이 없습니다.');
-      return;
-    }
-
-    console.log('[최종보고서 인쇄] 실제 사용되는 템플릿:', template);
-    openFinalReportPrintDialog(template);
-  };
-
-  // 2. Implement dynamic print dialog/component
-  function openFinalReportPrintDialog(template: any) {
-    const today = new Date().toISOString().split('T')[0];
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    // Access results data from closure or pass as argument if needed
-    // (Assume results is available in scope)
-    let html = `<div style="max-width:800px;margin:0 auto;padding:32px;">
-      <div style="font-size:22px;font-weight:bold;text-align:center;margin-bottom:24px;">${template.title || ''}</div>
-      <hr style="margin-bottom:24px;" />
-    `;
-    for (const section of template.sections || []) {
-      if (section.type === 'overview') {
-        html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
-        html += '<ul style="margin-bottom:18px;font-size:14px;">';
-        for (const field of section.fields || []) {
-          html += `<li style="margin-bottom:2px;">• <b>${field.label}</b>: ${field.value}</li>`;
-        }
-        html += '</ul>';
-      } else if (section.type === 'table') {
-        // 표 렌더링(HTML 생성) 부분에서, section.dataSource === 'evaluators'일 때 아래처럼 evaluator 데이터 사용
-        // 예시: (section.type === 'table' && section.dataSource === 'evaluators')
-        if (section.type === 'table' && section.dataSource === 'evaluators') {
-          html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
-          html += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;">';
-          html += '<thead><tr>';
-          for (const col of section.columns || []) {
-            html += `<th style="border:1px solid #aaa;padding:8px;">${col.label}</th>`;
-          }
-          html += '</tr></thead><tbody>';
-          if (Array.isArray(evaluators) && evaluators.length > 0) {
-            for (const evaluator of evaluators) {
-              html += '<tr>';
-              for (const col of section.columns || []) {
-                if (col.key === 'role') html += `<td style="border:1px solid #aaa;padding:8px;text-align:center;">${evaluator.role || evaluator.position || ''}</td>`;
-                else if (col.key === 'name') html += `<td style="border:1px solid #aaa;padding:8px;text-align:center;">${evaluator.name || ''}</td>`;
-                else if (col.key === 'empty') html += `<td style="border:1px solid #aaa;padding:8px;text-align:center;">&nbsp;</td>`;
-                else html += `<td style="border:1px solid #aaa;padding:8px;text-align:center;">${evaluator[col.key] !== undefined ? evaluator[col.key] : ''}</td>`;
-              }
-              html += '</tr>';
-            }
-          } else {
-            html += `<tr><td colspan="${section.columns.length}" style="border:1px solid #aaa;padding:8px;">데이터 없음</td></tr>`;
-          }
-          html += '</tbody></table>';
-          html += '<div style="font-size:12px;color:#888;margin-bottom:18px;">* 평가위원 서명란</div>';
-          continue;
-        }
-        html += `<div style="font-size:16px;font-weight:bold;margin-bottom:8px;">${section.title || ''}</div>`;
-        html += '<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;">';
-        html += '<thead><tr>';
-        for (const col of section.columns || []) {
-          html += `<th style="border:1px solid #333;padding:8px;background:#f3f4f6;">${col.label}</th>`;
-        }
-        html += '</tr></thead><tbody>';
-        // ✅ 실제 데이터로 행 생성
-        if (Array.isArray(results) && results.length > 0) {
-          for (const row of results) {
-            html += '<tr>';
-            for (const col of section.columns || []) {
-              html += `<td style="border:1px solid #333;padding:8px;">${row[col.key] !== undefined ? row[col.key] : ''}</td>`;
-            }
-            html += '</tr>';
-          }
-        } else {
-          html += `<tr><td colspan="${section.columns.length}" style="border:1px solid #333;padding:8px;">데이터 없음</td></tr>`;
-        }
-        html += '</tbody></table>';
-        html += '<div style="font-size:12px;color:#888;margin-bottom:18px;">* 평균점수는 5인 평가위원의 점수를 합산 후 최고/최저 점수 제외 후 평균값 산정</div>';
-      } else if (section.type === 'note') {
-        html += `<div style="font-size:14px;margin-bottom:18px;">${section.text || ''}</div>`;
-      } else if (section.type === 'date') {
-        html += `<div style="font-size:14px;text-align:right;margin-top:32px;">작성일: ${section.date || today}</div>`;
-      }
-    }
-    html += '</div>';
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>최종 선정 심사결과보고서</title>
-          <meta charset="UTF-8" />
-          <style>
-            @media print {
-              @page { size: A4; margin: 25mm 15mm 15mm 15mm; }
-              body { font-family: 'Malgun Gothic', Arial, sans-serif; font-size: 13px; color: #222; }
-              table { border-collapse: collapse; width: 100%; }
-              th, td { border: 1px solid #333; padding: 8px; text-align: center; }
-              th { background: #f3f4f6; font-weight: bold; }
-              ul { padding-left: 18px; }
-              li { margin-bottom: 2px; }
-              hr { border: none; border-top: 1.5px solid #bbb; margin: 18px 0; }
-            }
-          </style>
-        </head>
-        <body>${html}</body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
-  }
-
   if (resultsLoading || progressLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1337,10 +1211,10 @@ export default function ResultsManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Trophy className="h-5 w-5" />
-                  <span>후보자별 최종 결과</span>
+                  <span>평가대상별 최종 결과</span>
                 </CardTitle>
                 <CardDescription>
-                  모든 평가가 완료된 후보자들의 최종 점수입니다.
+                  모든 평가가 완료된 평가대상들의 최종 점수입니다.
                   {filteredAndSortedResults.length !== results.length && 
                     ` (검색 결과: ${filteredAndSortedResults.length}명)`
                   }
@@ -1354,7 +1228,7 @@ export default function ResultsManagement() {
                     <div className="flex-1 relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
-                        placeholder="후보자명, 부서, 구분으로 검색..."
+                        placeholder="평가대상명, 부서, 구분으로 검색..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -1397,7 +1271,7 @@ export default function ResultsManagement() {
                           onClick={() => handleSort("candidateName")}
                         >
                           <div className="flex items-center gap-2">
-                            후보자
+                            평가대상
                             <ArrowUpDown className="h-4 w-4" />
                           </div>
                         </TableHead>
@@ -1562,112 +1436,10 @@ export default function ResultsManagement() {
           </TabsContent>
 
           <TabsContent value="progress">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Users className="h-5 w-5" />
-                    <span>평가자별 진행 현황</span>
-                  </CardTitle>
-                  <CardDescription>
-                    각 평가자의 평가 완료 현황입니다.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {progress.map((evaluator: any) => (
-                      <div key={evaluator.id} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-medium">{evaluator.name}</h4>
-                            <p className="text-sm text-gray-600">{evaluator.department}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium">
-                              {evaluator.completed}/{evaluator.total}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {evaluator.progress.toFixed(1)}%
-                            </div>
-                          </div>
-                        </div>
-                        <Progress value={evaluator.progress} className="h-2" />
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <span>진행률</span>
-                          <Badge 
-                            variant={evaluator.progress === 100 ? "default" : 
-                              evaluator.progress > 0 ? "secondary" : "destructive"}
-                            className="text-xs"
-                          >
-                            {evaluator.progress === 100 ? "완료" : 
-                              evaluator.progress > 0 ? "진행중" : "미시작"}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                    {progress.length === 0 && (
-                      <div className="text-center py-4 text-gray-500">
-                        등록된 평가자가 없습니다.
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <BarChart3 className="h-5 w-5" />
-                    <span>전체 진행률</span>
-                  </CardTitle>
-                  <CardDescription>
-                    시스템 전체의 평가 진행 현황을 확인할 수 있습니다.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-blue-600 mb-2">
-                        {progress.length > 0 ? 
-                          (progress.reduce((sum: number, p: any) => sum + p.progress, 0) / progress.length).toFixed(1)
-                          : 0
-                        }%
-                      </div>
-                      <p className="text-gray-600">전체 평균 완료율</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <div className="text-2xl font-semibold text-green-600">
-                          {progress.filter((p: any) => p.progress === 100).length}
-                        </div>
-                        <p className="text-sm text-gray-600">완료된 평가자</p>
-                      </div>
-                      <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                        <div className="text-2xl font-semibold text-orange-600">
-                          {progress.filter((p: any) => p.progress > 0 && p.progress < 100).length}
-                        </div>
-                        <p className="text-sm text-gray-600">진행중인 평가자</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">평가 진행 현황</span>
-                        <span className="text-sm text-gray-500">
-                          {progress.filter((p: any) => p.progress > 0).length}/{progress.length}명
-                        </span>
-                      </div>
-                      <Progress 
-                        value={progress.length > 0 ? 
-                          (progress.filter((p: any) => p.progress > 0).length / progress.length) * 100 : 0
-                        } 
-                        className="h-3"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="p-4">
+              <h2 className="text-lg font-bold mb-2">평가자별 진행 현황</h2>
+              <p className="text-sm text-gray-500 mb-4">각 평가자의 평가 완료 현황입니다.</p>
+              <EvaluatorProgressTable />
             </div>
           </TabsContent>
 
@@ -1693,9 +1465,9 @@ export default function ResultsManagement() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <DynamicReportTemplateEditor
+                  <WysiwygReportEditor
                     template={reportTemplate}
-                    setTemplate={setReportTemplate}
+                    setTemplate={setMinimalReportTemplate}
                     onSave={handleSaveReportTemplate}
                     isSaving={isSavingTemplate}
                   />
@@ -1705,6 +1477,98 @@ export default function ResultsManagement() {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function EvaluatorProgressTable() {
+  const [filter, setFilter] = useState('');
+  const [selectedEvaluator, setSelectedEvaluator] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const { data: progressData = [], isLoading } = useQuery({
+    queryKey: ['/api/admin/evaluator-progress-advanced'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/evaluator-progress-advanced', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    }
+  });
+  // 필터/검색 적용
+  const filtered = progressData.filter((e: any) =>
+    e.name.toLowerCase().includes(filter.toLowerCase()) ||
+    (e.department || '').toLowerCase().includes(filter.toLowerCase())
+  );
+  // 엑셀 내보내기 데이터
+  const csvData = filtered.map((e: any) => ({
+    평가자: e.name,
+    부서: e.department,
+    진행률: `${e.progress}%`,
+    완료수: e.completedCount,
+    전체: e.totalCount,
+    미완료대상: e.incompleteCandidates.map((c: any) => c.name).join(', ')
+  }));
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between">
+        <Input
+          placeholder="평가자 이름/부서 검색"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          className="w-64"
+        />
+        <CSVLink data={csvData} filename="evaluator-progress.csv">
+          <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-1" />엑셀 내보내기</Button>
+        </CSVLink>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>평가자</TableHead>
+            <TableHead>부서</TableHead>
+            <TableHead>진행률</TableHead>
+            <TableHead>완료/전체</TableHead>
+            <TableHead>미완료 대상</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filtered.map((e: any) => (
+            <TableRow key={e.id}>
+              <TableCell>{e.name}</TableCell>
+              <TableCell>{e.department}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Progress value={e.progress} className="w-32" />
+                  <span className="text-xs font-medium">{e.progress}%</span>
+                </div>
+              </TableCell>
+              <TableCell>{e.completedCount} / {e.totalCount}</TableCell>
+              <TableCell>
+                <Button size="xs" variant="outline" onClick={() => { setSelectedEvaluator(e); setModalOpen(true); }}>
+                  {e.incompleteCandidates.length > 0 ? `${e.incompleteCandidates.length}명 보기` : '없음'}
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="bg-white shadow-lg rounded-lg">
+          <DialogHeader>
+            <DialogTitle>미완료 평가대상</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {selectedEvaluator?.incompleteCandidates?.length > 0 ? (
+              <ul className="list-disc pl-5">
+                {selectedEvaluator.incompleteCandidates.map((c: any) => (
+                  <li key={c.id}>{c.name} <span className="text-xs text-gray-500">({c.category})</span></li>
+                ))}
+              </ul>
+            ) : (
+              <div>모든 평가대상을 완료했습니다.</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
