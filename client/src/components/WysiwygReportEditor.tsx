@@ -418,7 +418,7 @@ export default function HWPStyleDocumentEditor() {
     }));
   };
 
-  // 인쇄 처리 함수 - 날짜 부분 보완
+  // 인쇄 처리 함수 - UI 개선
   const handlePrint = () => {
     try {
       // 선택된 후보자들 가져오기
@@ -453,7 +453,7 @@ export default function HWPStyleDocumentEditor() {
 
       const templateDate = getTemplateDate();
 
-      // 인쇄용 HTML 생성 - 날짜 부분 보완
+      // 인쇄용 HTML 생성 - UI 개선
       const printHTML = `
         <!DOCTYPE html>
         <html>
@@ -546,36 +546,38 @@ export default function HWPStyleDocumentEditor() {
               font-size: 8pt;
             }
             
-            /* 긴 텍스트 처리 */
+            /* 기관명 글자수 제한 해제 */
             .report-table td:nth-child(2) {
-              max-width: 25mm;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
+              max-width: none;
+              overflow: visible;
+              text-overflow: unset;
+              white-space: normal;
+              word-wrap: break-word;
             }
             
-            /* 서명란 스타일 - 컴팩트하게 */
+            /* 서명란 스타일 - 높이 더 줄이고 글씨 크기 증가 */
             .signature-table {
               width: 100%;
               border-collapse: collapse;
               margin-top: 6mm;
-              font-size: 8pt;
+              font-size: 9pt; /* 8pt에서 9pt로 증가 */
               page-break-inside: avoid;
             }
             
             .signature-table th {
               background: #f5f5f5;
               border: 0.5pt solid #333;
-              padding: 3mm 2mm;
+              padding: 2mm 2mm; /* 2.5mm에서 2mm로 축소 */
               text-align: center;
               font-weight: bold;
+              font-size: 9pt; /* 헤더 글씨도 9pt로 증가 */
             }
             
             .signature-table td {
               border: 0.5pt solid #333;
-              padding: 4mm 2mm;
+              padding: 2mm 2mm; /* 3mm에서 2mm로 축소 */
               text-align: center;
-              height: 12mm;
+              height: 6mm; /* 8mm에서 6mm로 더 축소 */
             }
             
             /* 각주 스타일 */
@@ -585,6 +587,15 @@ export default function HWPStyleDocumentEditor() {
               margin-top: 3mm;
               padding-top: 1.5mm;
               border-top: 0.3pt solid #ccc;
+            }
+            
+            /* 작성일자 스타일 - 크고 진하게 */
+            .creation-date {
+              margin-top: 8mm;
+              text-align: center;
+              font-size: 11pt; /* 크기 증가 */
+              font-weight: bold; /* 진하게 */
+              color: #000;
             }
             
             /* 페이지 나누기 설정 */
@@ -684,7 +695,7 @@ export default function HWPStyleDocumentEditor() {
               ${selectedCandidates.map((candidate, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td title="${candidate.candidateName}">${candidate.candidateName.length > 8 ? candidate.candidateName.substring(0, 8) + '...' : candidate.candidateName}</td>
+                  <td>${candidate.candidateName}</td>
                   <td>${candidate.averageScore}</td>
                   <td>선정</td>
                   <td>${candidate.mainCategory} > ${candidate.subCategory}</td>
@@ -718,12 +729,10 @@ export default function HWPStyleDocumentEditor() {
             </tbody>
           </table>
           
-          <!-- 템플릿의 footer 표시 - 날짜 치환 -->
-          ${template.sections.find(section => section.type === 'signature')?.footer ? `
-            <div style="margin-top: 8mm; text-align: center; font-size: 9pt; color: #666;">
-              ${template.sections.find(section => section.type === 'signature')?.footer.replace('{{현재날짜}}', currentDate)}
-            </div>
-          ` : ''}
+          <!-- 작성일자 - 크고 진하게 -->
+          <div class="creation-date">
+            작성일: ${currentDate}
+          </div>
         </body>
         </html>
       `;
