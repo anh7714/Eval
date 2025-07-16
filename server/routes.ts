@@ -1759,6 +1759,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 최종 선정 관리 API
+  app.get("/api/admin/final-selections", requireAuth, async (req, res) => {
+    try {
+      const selections = await storage.getFinalSelections();
+      res.json(selections);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch final selections" });
+    }
+  });
+
+  app.post("/api/admin/final-selections", requireAuth, async (req, res) => {
+    try {
+      const { selections } = req.body;
+      const result = await storage.saveFinalSelections(selections);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to save final selections" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

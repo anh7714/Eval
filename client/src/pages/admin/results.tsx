@@ -1172,6 +1172,43 @@ export default function ResultsManagement() {
     }
   };
 
+  // 최종 선정 상태 관리를 위한 state 추가
+  const [finalSelections, setFinalSelections] = useState<{
+    [key: string]: {
+      candidateId: number;
+      candidateName: string;
+      category: string;
+      subCategory: string;
+      isSelected: boolean;
+      averageScore: number;
+    }[]
+  }>({});
+
+  // 구분-세부구분별 최종 선정 관리
+  const handleFinalSelection = (candidateId: number, category: string, subCategory: string, isSelected: boolean) => {
+    setFinalSelections(prev => ({
+      ...prev,
+      [`${category}-${subCategory}`]: prev[`${category}-${subCategory}`]?.map(item => 
+        item.candidateId === candidateId 
+          ? { ...item, isSelected }
+          : item
+      ) || []
+    }));
+  };
+
+  // 최종 선정된 대상자들만 필터링
+  const getFinalSelectedCandidates = () => {
+    const selected: any[] = [];
+    Object.values(finalSelections).forEach(categorySelections => {
+      categorySelections.forEach(item => {
+        if (item.isSelected) {
+          selected.push(item);
+        }
+      });
+    });
+    return selected;
+  };
+
   if (resultsLoading || progressLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

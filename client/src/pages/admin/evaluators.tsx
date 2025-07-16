@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Upload, Download, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from '@supabase/supabase-js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Supabase 클라이언트 설정 (환경변수 검증 포함)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -25,6 +26,7 @@ export default function EvaluatorManagement() {
     email: "",
     department: "",
     password: "",
+    role: "심사위원", // role 필드 추가
   });
 
   const { toast } = useToast();
@@ -147,7 +149,7 @@ export default function EvaluatorManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/evaluators"] });
       toast({ title: "성공", description: "평가자가 추가되었습니다." });
       setIsAddingEvaluator(false);
-      setNewEvaluator({ name: "", email: "", department: "", password: "" });
+      setNewEvaluator({ name: "", email: "", department: "", password: "", role: "심사위원" });
     },
     onError: () => {
       toast({ title: "오류", description: "평가자 추가에 실패했습니다.", variant: "destructive" });
@@ -196,6 +198,7 @@ export default function EvaluatorManagement() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/admin/evaluators/${id}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete evaluator");
@@ -213,10 +216,9 @@ export default function EvaluatorManagement() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingEvaluator) {
-      // 수정 시 비밀번호가 비어있으면 제외
-      const updateData: any = { ...newEvaluator };
+      const updateData = { ...newEvaluator };
       if (!updateData.password) {
-        delete updateData.password;
+        delete updateData.password; // 비밀번호가 비어있으면 업데이트하지 않음
       }
       updateMutation.mutate({ id: editingEvaluator.id, data: updateData });
     } else {
@@ -231,6 +233,7 @@ export default function EvaluatorManagement() {
       email: evaluator.email || "",
       department: evaluator.department,
       password: "", // 비밀번호는 빈 문자열로 시작
+      role: evaluator.role || "심사위원", // role 필드 추가
     });
     setIsAddingEvaluator(true);
   };
@@ -244,7 +247,7 @@ export default function EvaluatorManagement() {
   const handleCancel = () => {
     setIsAddingEvaluator(false);
     setEditingEvaluator(null);
-    setNewEvaluator({ name: "", email: "", department: "", password: "" });
+    setNewEvaluator({ name: "", email: "", department: "", password: "", role: "심사위원" });
   };
 
   if (isLoading) {
@@ -331,6 +334,21 @@ export default function EvaluatorManagement() {
                       </p>
                     )}
                   </div>
+                  <div>
+                    <label className="text-sm font-medium">역할</label>
+                    <Select
+                      value={newEvaluator.role}
+                      onValueChange={(value) => setNewEvaluator(prev => ({ ...prev, role: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="역할 선택" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border shadow-sm">
+                        <SelectItem value="심사위원장">심사위원장</SelectItem>
+                        <SelectItem value="심사위원">심사위원</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="flex space-x-2">
                   <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
@@ -366,11 +384,19 @@ export default function EvaluatorManagement() {
                       <p className="text-sm text-gray-600">
                         {evaluator.email} · {evaluator.department}
                       </p>
+                      {evaluator.role && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          {evaluator.role}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant={evaluator.isActive ? "default" : "secondary"}>
                       {evaluator.isActive ? "활성" : "비활성"}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {evaluator.role || "심사위원"}
                     </Badge>
                     <Button
                       size="sm"

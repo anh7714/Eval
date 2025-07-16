@@ -40,6 +40,7 @@ export const evaluators = pgTable("evaluators", {
   email: text("email"),
   department: text("department").notNull(),
   password: text("password").notNull(),
+  role: text("role").default("심사위원"), // role 필드 추가
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),

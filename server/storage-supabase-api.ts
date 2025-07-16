@@ -422,6 +422,7 @@ export class SupabaseStorage {
       email: data.email,
       department: data.department,
       position: data.position,
+      role: data.role, // role 필드 추가
       isActive: data.is_active,
       createdAt: new Date(data.created_at)
     };
@@ -435,6 +436,7 @@ export class SupabaseStorage {
     if (evaluator.email !== undefined) mapped.email = evaluator.email;
     if (evaluator.department !== undefined) mapped.department = evaluator.department;
     if (evaluator.position !== undefined) mapped.position = evaluator.position;
+    if (evaluator.role !== undefined) mapped.role = evaluator.role; // role 필드 추가
     if (evaluator.isActive !== undefined) mapped.is_active = evaluator.isActive;
     
     return mapped;
